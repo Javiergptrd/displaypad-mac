@@ -1,0 +1,1339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DisplayPad</title>
+<style>
+[hidden] { display: none !important; }
+:root {
+  --bg: #f4f4f7; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b72; --line: #e2e2e8;
+  --field: #ffffff; --chip: #eeeef2; --accent: #0a62f0; --accent-soft: #e6efff; --on-accent: #fff;
+  --danger: #c4001a; --ok: #1a7f37; --warn-bg: #fff3e0; --warn-line: #f3c58a; --warn-text: #7a4300;
+  --err-bg: #fdecee; --err-line: #f2b6bd; --pad: #17171c; --pad-edge: #2a2a32; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111114; --panel: #1b1b20; --text: #ececf1; --muted: #9a9aa5; --line: #2c2c34;
+    --field: #141418; --chip: #26262d; --accent: #4c8dff; --accent-soft: #1d2a44; --on-accent: #fff;
+    --danger: #ff6b7a; --ok: #4cc26b; --warn-bg: #2d2416; --warn-line: #5c4520; --warn-text: #f4c47e;
+    --err-bg: #2f181c; --err-line: #5e2a32; --pad: #0c0c0f; --pad-edge: #26262e; --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111114; --panel: #1b1b20; --text: #ececf1; --muted: #9a9aa5; --line: #2c2c34;
+  --field: #141418; --chip: #26262d; --accent: #4c8dff; --accent-soft: #1d2a44; --on-accent: #fff;
+  --danger: #ff6b7a; --ok: #4cc26b; --warn-bg: #2d2416; --warn-line: #5c4520; --warn-text: #f4c47e;
+  --err-bg: #2f181c; --err-line: #5e2a32; --pad: #0c0c0f; --pad-edge: #26262e; --shadow: none;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; }
+button:hover:not(:disabled) { border-color: var(--muted); }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+button.ghost { background: transparent; }
+button.small { padding: 3px 9px; font-size: 13px; }
+button.icon { padding: 3px 7px; min-width: 28px; }
+button.danger { color: var(--danger); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=text], input[type=number], input:not([type]), select, textarea {
+  width: 100%; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+}
+textarea { resize: vertical; min-height: 64px; }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+input[type=color] { width: 44px; height: 32px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); }
+label { display: block; }
+.lbl { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 4px; }
+.check { display: flex; gap: 8px; align-items: center; }
+small, .hint { color: var(--muted); font-size: 12px; }
+code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius: 5px; word-break: break-all; }
+
+header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+.brand i { width: 22px; height: 14px; border-radius: 3px; background:
+  linear-gradient(90deg, var(--accent) 0 30%, transparent 30% 35%, var(--accent) 35% 65%, transparent 65% 70%, var(--accent) 70%); opacity: .85; }
+.pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+.pill.ok { color: var(--ok); } .pill.bad { color: var(--danger); }
+.spacer { flex: 1; }
+#dirty { font-size: 12px; color: var(--warn-text); }
+
+#banners { padding: 0 20px; max-width: 1240px; margin: 0 auto; }
+.banner { margin-top: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--warn-line); background: var(--warn-bg); color: var(--warn-text); display: flex; gap: 12px; align-items: flex-start; }
+.banner.err { border-color: var(--err-line); background: var(--err-bg); color: var(--danger); }
+.banner div { flex: 1; }
+.banner button { flex: none; }
+
+main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; padding: 16px 20px 40px; max-width: 1240px; margin: 0 auto; align-items: start; }
+@media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+h2 { font-size: 15px; margin: 0 0 12px; }
+h3 { font-size: 13px; margin: 18px 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tab { border-radius: 99px; padding: 5px 14px; }
+.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tab .star { color: #e2a400; margin-left: 4px; }
+.pagebar { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 16px; }
+
+.device { background: linear-gradient(180deg, var(--pad-edge), var(--pad)); border-radius: 22px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: 760px; }
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.key { position: relative; aspect-ratio: 1; padding: 0; border-radius: 12px; border: 2px solid transparent; background: #000; overflow: hidden; }
+.key img { width: 100%; height: 100%; display: block; image-rendering: auto; border-radius: 10px; }
+.key .n { position: absolute; top: 3px; left: 5px; font-size: 10px; color: rgba(255,255,255,.55); text-shadow: 0 0 3px #000; }
+.key .acts { position: absolute; right: 4px; bottom: 3px; font-size: 10px; color: rgba(255,255,255,.7); text-shadow: 0 0 3px #000; }
+.key.sel { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.key.over { border-color: #fff; border-style: dashed; }
+.key:hover:not(.sel) { border-color: rgba(255,255,255,.35); }
+.device-foot { display: flex; justify-content: space-between; color: #8a8a96; font-size: 11px; margin-top: 14px; letter-spacing: .05em; }
+
+.left > * + * { margin-top: 16px; }
+.slider { display: flex; gap: 10px; align-items: center; }
+.slider input { flex: 1; }
+.slider output { min-width: 52px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; }
+.ed-head { display: flex; align-items: center; gap: 8px; }
+.ed-head h2 { margin: 0; }
+.ed-head .tools { margin-left: auto; display: flex; gap: 4px; }
+.ed-top { display: flex; gap: 14px; margin-top: 14px; align-items: center; }
+.ed-top img { width: 112px; height: 112px; border-radius: 14px; background: #000; flex: none; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--chip); }
+.seg button { border: 0; background: transparent; border-radius: 7px; padding: 4px 12px; }
+.seg button[aria-pressed=true] { background: var(--panel); box-shadow: var(--shadow); font-weight: 600; }
+.palette { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; margin-top: 8px; }
+.palette button { border: 0; background: transparent; font-size: 20px; padding: 3px 0; border-radius: 6px; }
+.palette button:hover { background: var(--chip); }
+.drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center; color: var(--muted); cursor: pointer; }
+.drop:hover { border-color: var(--accent); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.row { display: flex; gap: 10px; align-items: flex-end; }
+.row > * { flex: 1; }
+.row > .none { flex: none; }
+.stack > * + * { margin-top: 12px; }
+
+.action { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg); }
+.action + .action { margin-top: 8px; }
+.a-head { display: flex; gap: 6px; align-items: center; }
+.a-head .num { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--chip); font-size: 12px; font-weight: 600; }
+.a-head select { flex: 1; }
+.a-body { margin-top: 8px; }
+.a-body > * + * { margin-top: 8px; }
+.a-body small, .stack small { display: block; }
+.kbd { display: flex; }
+.kbd { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.kbd span { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 7px; background: var(--panel); font-size: 13px; min-width: 24px; text-align: center; }
+button.rec { background: var(--danger); border-color: var(--danger); color: #fff; }
+.empty { text-align: center; color: var(--muted); padding: 14px; border: 1.5px dashed var(--line); border-radius: 10px; }
+#test-out { margin: 10px 0 0; white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 220px; overflow: auto; }
+#test-out .ok { color: var(--ok); } #test-out .bad { color: var(--danger); }
+
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); padding: 18px; width: min(420px, 92vw); }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+dialog p { margin: 0 0 12px; }
+dialog .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .2s; background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px; pointer-events: none; max-width: 90vw; }
+#toast.show { opacity: 1; transform: translateX(-50%); }
+#gate { max-width: 520px; margin: 12vh auto; text-align: center; padding: 0 16px; }
+header .seg button { padding: 3px 12px; }
+#settings { max-width: 860px; margin: 0 auto; padding: 16px 20px 40px; }
+#settings > .card + .card { margin-top: 16px; }
+.set-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.set-row select { width: auto; min-width: 200px; }
+.snippet { position: relative; margin: 0; padding: 10px 70px 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  white-space: pre-wrap; word-break: break-all; font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+.snippet button { position: absolute; top: 6px; right: 6px; }
+.field-line { display: flex; gap: 6px; align-items: center; }
+.crop-state { flex: 1; }
+dialog.crop-dlg { width: min(560px, 94vw); }
+dialog.crop-dlg h2 { margin: 0 0 6px; }
+dialog.crop-dlg p.hint { margin: 0 0 10px; }
+.crop-main { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 12px; }
+.crop-stage { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; border-radius: 18px;
+  cursor: grab; touch-action: none; outline-offset: 3px; box-shadow: 0 0 0 1px var(--line); }
+.crop-stage.dragging { cursor: grabbing; }
+.crop-stage img { position: absolute; max-width: none; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.crop-side { display: flex; flex-direction: column; gap: 6px; }
+.crop-result { width: 102px; height: 102px; border-radius: 12px; background: #000; }
+.crop-quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.field-line code { flex: 1; padding: 6px 8px; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; }
+.ok-t { color: var(--ok); } .bad-t { color: var(--danger); }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="gate" hidden>
+  <h2 data-t="gate_title"></h2>
+  <p class="hint" data-t-html="gate_text"></p>
+</div>
+
+<div id="app" hidden>
+<header>
+  <div class="brand"><i></i>DisplayPad</div>
+  <span id="conn" class="pill" data-t="connecting"></span>
+  <div class="seg" role="group" data-t-aria="nav_label">
+    <button id="nav-keys" aria-pressed="true" data-t="nav_keys"></button>
+    <button id="nav-settings" aria-pressed="false" data-t="nav_settings"></button>
+  </div>
+  <div class="spacer"></div>
+  <span id="dirty" hidden data-t="unsaved"></span>
+  <button id="discard" class="ghost" disabled data-t="discard"></button>
+  <button id="save" class="primary" disabled data-t="save" data-t-title="save_title"></button>
+</header>
+<div id="banners"></div>
+
+<main id="main">
+  <section class="left">
+    <div class="card">
+      <div class="tabs" id="tabs" role="tablist" data-t-aria="pages_label"></div>
+      <div class="pagebar">
+        <button class="small" id="pg-show" data-t="pg_show" data-t-title="pg_show_title"></button>
+        <button class="small" id="pg-start" data-t="pg_start"></button>
+        <button class="small" id="pg-rename" data-t="pg_rename"></button>
+        <button class="small danger" id="pg-delete" data-t="pg_delete"></button>
+      </div>
+      <div class="device">
+        <div class="grid" id="grid"></div>
+        <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span id="page-name"></span></div>
+      </div>
+      <p class="hint" style="margin:12px 0 0" data-t="grid_hint"></p>
+    </div>
+  </section>
+
+  <aside class="card" id="editor" aria-live="polite"></aside>
+</main>
+
+<section id="settings" hidden></section>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <p id="dlg-msg"></p>
+    <input id="dlg-input" maxlength="30" autocomplete="off">
+    <div class="btns"><button type="button" id="dlg-cancel" data-t="cancel"></button><button value="ok" class="primary" id="dlg-ok" data-t="ok"></button></div>
+  </form>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+const REPO_URL = "https://github.com/Javiergptrd/displaypad-mac";
+// ---------------------------------------------------------------- language
+// English is the default; every text the page shows is here, in both languages.
+const STRINGS = {
+  en: {
+    gate_title: "Open the configurator from the app",
+    gate_text: "For security this page needs a key that only your Mac has. Open it with the <b>DisplayPad</b> app (in Applications or with Spotlight) or with the <b>⚙️ Configure</b> key on the pad.",
+    gate_bad_token: "The key is not valid. Open the configurator again from the DisplayPad app.",
+    gate_no_service: "Could not connect to the DisplayPad service: {msg}",
+    connecting: "Connecting…", unsaved: "Unsaved changes", discard: "Discard", save: "Save", save_title: "Save (⌘S)",
+    nav_keys: "Keys", nav_settings: "Settings", nav_label: "Section",
+    pages_label: "Pages", pg_show: "Show on the pad", pg_show_title: "Switch the DisplayPad to this page",
+    pg_start: "Set as start page", pg_rename: "Rename", pg_delete: "Delete page",
+    grid_hint: "Click a key to edit it. Drag it onto another to swap them.",
+    start_page: "Start page", new_page_title: "New page", new_page_btn: "+ Page",
+    name_empty: "Type a name.", name_reserved: "“back” is reserved.", name_taken: "There is already a page with that name.",
+    ask_new_page: "Name of the new page:", back_label: "Back",
+    page_created: "Page created with a “Back” key. Add a key on another page that leads here.",
+    ask_rename: "New name for “{name}”:", ask_delete_page: "Delete the page “{name}”?",
+    delete_page_refs: " {n} key(s) that lead to it will lose that action.",
+    save_page_first: "Save the changes to this page first.",
+    n_actions: "{n} actions", key_n: "Key {n}", key_empty: " (empty)", label_hidden: " (text hidden)",
+    note_key: "This is how it will look on the DisplayPad. Changes apply when you press Save.",
+    note_empty: "Empty key. Choose an emoji, a picture or a text, then what it does.",
+    note_anim: "{frames}-frame animation ({secs} s) that loops. ",
+    not_image: "That file is not an image or a Lottie animation.", too_big: "The file is too large (12 MB max).",
+    preparing_lottie: "Preparing the Lottie animation…", upload_failed: "Could not upload: {msg}",
+    icon_type: "Icon type", mode_emoji: "Emoji", mode_image: "Image", mode_text: "Text only",
+    more_emoji: "More emoji: click the field and press ⌃⌘Space.",
+    drop_text: "Click here or drop a picture (PNG, JPG, WebP), an animated GIF or a Lottie animation (.json, .lottie)",
+    change_image: "Change image…", choose_image: "Choose image…", fill_key: "Cover the whole key when there is no text",
+    crop_btn: "Adjust framing…", crop_state_auto: "Framing: the middle of the picture", crop_state_custom: "Framing: adjusted by you",
+    crop_title: "Adjust the picture", crop_help: "Keys are square. Drag to move the picture and zoom with the slider, the scroll wheel or a pinch: it is never stretched.",
+    crop_label_note: "This key also shows text, so the picture is drawn smaller above it.",
+    crop_stage: "Picture inside the key. Arrow keys move it, + and − zoom.", crop_zoom: "Zoom", crop_result: "On the DisplayPad",
+    crop_whole: "Whole picture", crop_fill: "Fill the key", crop_apply: "Apply", crop_failed: "Could not open the picture: {msg}",
+    icon_size: "Icon size", size_reset_title: "Back to normal size", size_normal: "Normal",
+    size_hint_image: "Over 100 % zooms into the picture (crops the edges); under 100 % zooms out.",
+    size_hint_icon: "Over 100 % makes the icon bigger; if there is text, the text stays on top.",
+    page_ref: "page “{name}”", copy: "Copy", copy_title: "Copy this key", copied_key: "Key copied.",
+    paste: "Paste", paste_title: "Paste onto this key", clear: "Clear", clear_title: "Make this key empty",
+    appearance: "Appearance", text_field: "Text", text_ph: "E.g. Outlook",
+    hide_text: "Hide the text on the key (it is kept so you can show it again)",
+    bg: "Background", fg: "Text color", default_colors: "Default colors",
+    actions_h: "Actions ", actions_sub: "· run in order when the key is pressed",
+    add_action: "+ Add action", test: "▶ Test", no_actions: "This key does nothing yet.",
+    action_type: "Action type", move_up: "Move up", move_down: "Move down", remove_action: "Remove action",
+    g_apps: "Apps and files", g_keyboard: "Keyboard", g_screen: "Screen and DisplayPad", g_auto: "Automation",
+    t_open: "Open app, website or folder", t_shortcut: "Keyboard shortcut", t_text: "Type text", t_media: "Media key",
+    t_screen_brightness: "Screen brightness", t_page: "Go to another page", t_brightness: "DisplayPad brightness",
+    t_configurator: "Open this configurator", t_shell: "Terminal command", t_applescript: "AppleScript", t_delay: "Wait",
+    m_play_pause: "Play / pause", m_next: "Next", m_previous: "Previous", m_volume_up: "Volume up",
+    m_volume_down: "Volume down", m_mute: "Mute", key_space: "space",
+    needs_access: "Needs the Accessibility permission (see the notice above).",
+    open_hint: "Type an app name (suggestions appear), a web address or a folder/file.",
+    record: "Record", recording: "Press the combination…",
+    shortcut_hint: "Press “Record”, then the combination. Some (⌘Q, ⌘W, ⌘T) are taken by the browser: type them by hand, e.g. cmd+q.",
+    text_ph2: "Best regards,", text_hint: "Typed as is where the cursor is, with accents, emoji and line breaks.",
+    shell_hint: "Runs with zsh. Press “Test” to see the output and errors.",
+    as_ph: 'display notification "Hello" with title "DisplayPad"', as_hint: "Press “Test” to see the result or the error.",
+    page_back: "⬅ Back to the previous page", percent: "percent",
+    disp_all: "All displays", disp_builtin: "Only the MacBook display", disp_external: "Only external monitors",
+    ddc_hint: "External monitors must have DDC/CI turned on in their menu.",
+    pad_bright_hint: "Changes the light of the DisplayPad keys, not the screen.",
+    ms: "milliseconds", delay_hint: "Useful between two actions, e.g. open an app and then send it a shortcut.",
+    conf_hint: "Opens this window in your browser.", lvl_up: "Raise", lvl_down: "Lower", lvl_set: "Set to",
+    testing: "Testing…", not_run: "The following actions were not run.",
+    saved_toast: "Saved. The DisplayPad is updating.", not_saved: "Not saved: ",
+    ask_discard: "Discard all unsaved changes?",
+    conflict: "The configuration was changed outside this window (for example by an AI assistant).",
+    conflict_load: "Load the new version", conflict_keep: "Save mine anyway",
+    conflict_hint: " Loading it discards the unsaved changes here; saving yours replaces the other changes.",
+    updated_elsewhere: "The configuration was updated from outside this window.",
+    svc_down: "The service is not responding", connected: "● Connected · page “{page}”", disconnected: "○ DisplayPad disconnected",
+    restart: "Restart service", open_settings: "Open System Settings", restarting: "Restarting the service…",
+    perm_input_b: "The “Input Monitoring” permission is missing. ",
+    perm_input_1: "Without it the service cannot read the DisplayPad keys. In System Settings → Privacy & Security → Input Monitoring, turn on “Python”. If it is not listed, press + and choose ",
+    perm_input_2: " (⌘⇧G to paste the path).",
+    perm_ax_b: "The “Accessibility” permission is missing. ",
+    perm_ax_1: "Shortcuts, text and media keys will not work until you turn on “Python” in System Settings → Privacy & Security → Accessibility. If it is not listed, press + and choose ",
+    config_err: "The configuration file has an error: ",
+    cancel: "Cancel", ok: "OK",
+    set_general: "General", set_language: "Language", set_theme: "Appearance",
+    theme_system: "Same as macOS", theme_light: "Light", theme_dark: "Dark",
+    set_applied: "Settings are saved as soon as you change them.", setting_failed: "Could not save the setting: {msg}",
+    set_bright: "DisplayPad key brightness",
+    set_bright_hint: "For the brightness of the Mac's screens, use the “Screen brightness” action on a key.",
+    set_feedback: "Darken a key while it is pressed",
+    set_ai: "AI assistants (MCP)",
+    ai_intro: "Let an AI assistant (Claude, Cursor, VS Code or any app on this Mac that supports the Model Context Protocol) see and change your DisplayPad setup: it can create pages and keys, pick icons and build automations with you. The connection only works on this Mac (127.0.0.1).",
+    ai_enable: "Allow AI assistants to connect",
+    ai_run: "Let assistants run actions right away to test them (commands, shortcuts, AppleScript)",
+    ai_run_hint: "When off, assistants can only save actions on keys: nothing runs until you press the key.",
+    ai_url: "Server address", ai_token: "Access key", ai_show: "Show", ai_hide: "Hide", ai_new: "New key",
+    ai_new_ask: "Create a new access key? Assistants that use the current one stop working until you give them the new one.",
+    ai_new_done: "New access key created.", copied: "Copied.",
+    ai_how: "How to connect", ai_other: "Other apps", ai_cc_hint: "Run this in Terminal, then start Claude Code:",
+    ai_cd_hint: "In Claude Desktop open Settings → Developer → Edit Config, add the “displaypad” entry inside “mcpServers” and restart Claude. It starts a small bridge that reads the access key itself.",
+    ai_other_http: "Apps that connect to a server address (“Streamable HTTP”): use this address and send the access key in the Authorization header:",
+    ai_other_stdio: "Apps that start a local command (stdio): run this program, no arguments:",
+    ai_no_bridge: "The bridge program is missing: run install.sh again, or use the server address.",
+    ai_off_note: "Turn it on to see how to connect.",
+    ai_try: "Then ask, for example: “Add a page to my DisplayPad with my meeting apps.”",
+    ai_warn: "Anyone with the access key can change your keys, and keys can run commands when you press them. Only give it to assistants you trust.",
+    set_about: "About", about_version: "Version", about_service: "Service", about_running: "Running",
+    about_device: "DisplayPad", about_connected: "Connected", about_not_connected: "Not connected",
+    about_input: "Input Monitoring", about_ax: "Accessibility", allowed: "Allowed", not_allowed: "Not allowed",
+    about_anim: "Animations", about_anim_v: "{keys} animated key(s), {fps} frames/s",
+    about_config: "Configuration", about_log: "Log",
+    about_ai: "Made with AI: this project was written with Claude Code (Anthropic) and tested by a person on a real DisplayPad.",
+    about_source: "Source code, help and updates",
+  },
+  es: {
+    gate_title: "Abre el configurador desde la app",
+    gate_text: "Por seguridad esta página necesita una clave que solo tiene tu Mac. Ábrela con la app <b>DisplayPad</b> (en Aplicaciones o con Spotlight) o con la tecla <b>⚙️ Configurar</b> del pad.",
+    gate_bad_token: "La clave no es válida. Vuelve a abrir el configurador desde la app DisplayPad.",
+    gate_no_service: "No se pudo conectar con el servicio DisplayPad: {msg}",
+    connecting: "Conectando…", unsaved: "Cambios sin guardar", discard: "Descartar", save: "Guardar", save_title: "Guardar (⌘S)",
+    nav_keys: "Teclas", nav_settings: "Ajustes", nav_label: "Sección",
+    pages_label: "Páginas", pg_show: "Mostrar en el pad", pg_show_title: "Cambia el DisplayPad a esta página",
+    pg_start: "Usar como inicial", pg_rename: "Renombrar", pg_delete: "Eliminar página",
+    grid_hint: "Haz clic en una tecla para editarla. Arrástrala sobre otra para intercambiarlas.",
+    start_page: "Página inicial", new_page_title: "Nueva página", new_page_btn: "+ Página",
+    name_empty: "Escribe un nombre.", name_reserved: "«back» está reservado.", name_taken: "Ya hay una página con ese nombre.",
+    ask_new_page: "Nombre de la nueva página:", back_label: "Volver",
+    page_created: "Página creada con una tecla «Volver». Añade en otra página una tecla que lleve aquí.",
+    ask_rename: "Nuevo nombre para «{name}»:", ask_delete_page: "¿Eliminar la página «{name}»?",
+    delete_page_refs: " {n} tecla(s) que llevan a ella perderán esa acción.",
+    save_page_first: "Guarda primero los cambios de esta página.",
+    n_actions: "{n} acciones", key_n: "Tecla {n}", key_empty: " (vacía)", label_hidden: " (texto oculto)",
+    note_key: "Así se verá en el DisplayPad. Los cambios se aplican al pulsar Guardar.",
+    note_empty: "Tecla vacía. Elige un emoji, una imagen o un texto y luego qué hace.",
+    note_anim: "Animación de {frames} cuadros ({secs} s) que se repite. ",
+    not_image: "Ese archivo no es una imagen ni una animación Lottie.", too_big: "El archivo es demasiado grande (máximo 12 MB).",
+    preparing_lottie: "Preparando la animación Lottie…", upload_failed: "No se pudo subir: {msg}",
+    icon_type: "Tipo de ícono", mode_emoji: "Emoji", mode_image: "Imagen", mode_text: "Solo texto",
+    more_emoji: "Más emojis: haz clic en el campo y pulsa ⌃⌘Espacio.",
+    drop_text: "Haz clic aquí o arrastra una imagen (PNG, JPG, WebP), un GIF animado o una animación Lottie (.json, .lottie)",
+    change_image: "Cambiar imagen…", choose_image: "Elegir imagen…", fill_key: "Cubrir toda la tecla cuando no hay texto",
+    crop_btn: "Ajustar encuadre…", crop_state_auto: "Encuadre: el centro de la imagen", crop_state_custom: "Encuadre: ajustado por ti",
+    crop_title: "Ajustar la imagen", crop_help: "Las teclas son cuadradas. Arrastra para mover la imagen y acerca o aleja con el control, la rueda del ratón o pellizcando: nunca se estira.",
+    crop_label_note: "Esta tecla también muestra texto, así que la imagen se dibuja más pequeña encima.",
+    crop_stage: "Imagen dentro de la tecla. Las flechas la mueven; + y − acercan o alejan.", crop_zoom: "Zoom", crop_result: "En el DisplayPad",
+    crop_whole: "Imagen completa", crop_fill: "Llenar la tecla", crop_apply: "Aplicar", crop_failed: "No se pudo abrir la imagen: {msg}",
+    icon_size: "Tamaño del ícono", size_reset_title: "Volver al tamaño normal", size_normal: "Normal",
+    size_hint_image: "Más de 100 % acerca la imagen (recorta los bordes); menos de 100 % la aleja.",
+    size_hint_icon: "Más de 100 % agranda el ícono; si hay texto, el texto queda encima.",
+    page_ref: "página «{name}»", copy: "Copiar", copy_title: "Copiar esta tecla", copied_key: "Tecla copiada.",
+    paste: "Pegar", paste_title: "Pegar sobre esta tecla", clear: "Vaciar", clear_title: "Dejar esta tecla vacía",
+    appearance: "Apariencia", text_field: "Texto", text_ph: "Ej.: Outlook",
+    hide_text: "Ocultar el texto en la tecla (se conserva para volver a mostrarlo)",
+    bg: "Fondo", fg: "Color del texto", default_colors: "Colores por defecto",
+    actions_h: "Acciones ", actions_sub: "· se ejecutan en orden al presionar la tecla",
+    add_action: "+ Agregar acción", test: "▶ Probar", no_actions: "Esta tecla todavía no hace nada.",
+    action_type: "Tipo de acción", move_up: "Subir", move_down: "Bajar", remove_action: "Quitar acción",
+    g_apps: "Apps y archivos", g_keyboard: "Teclado", g_screen: "Pantalla y DisplayPad", g_auto: "Automatización",
+    t_open: "Abrir app, web o carpeta", t_shortcut: "Atajo de teclado", t_text: "Escribir texto", t_media: "Tecla multimedia",
+    t_screen_brightness: "Brillo de la pantalla", t_page: "Ir a otra página", t_brightness: "Brillo del DisplayPad",
+    t_configurator: "Abrir este configurador", t_shell: "Comando de terminal", t_applescript: "AppleScript", t_delay: "Esperar",
+    m_play_pause: "Reproducir / pausa", m_next: "Siguiente", m_previous: "Anterior", m_volume_up: "Subir volumen",
+    m_volume_down: "Bajar volumen", m_mute: "Silenciar", key_space: "espacio",
+    needs_access: "Necesita el permiso de Accesibilidad (ver aviso arriba).",
+    open_hint: "Escribe el nombre de una app (aparecen sugerencias), una dirección web o una carpeta/archivo.",
+    record: "Grabar", recording: "Pulsa la combinación…",
+    shortcut_hint: "Pulsa «Grabar» y luego la combinación. Algunas (⌘Q, ⌘W, ⌘T) las reserva el navegador: escríbelas a mano, p. ej. cmd+q.",
+    text_ph2: "Saludos cordiales,", text_hint: "Se escribe tal cual donde esté el cursor, con acentos, emojis y saltos de línea.",
+    shell_hint: "Se ejecuta con zsh. Pulsa «Probar» para ver la salida y los errores.",
+    as_ph: 'display notification "Hola" with title "DisplayPad"', as_hint: "Pulsa «Probar» para ver el resultado o el error.",
+    page_back: "⬅ Volver a la página anterior", percent: "por ciento",
+    disp_all: "Todas las pantallas", disp_builtin: "Solo la pantalla del MacBook", disp_external: "Solo monitores externos",
+    ddc_hint: "Los monitores externos deben tener DDC/CI activado en su menú.",
+    pad_bright_hint: "Cambia la luz de las teclas del DisplayPad, no la de la pantalla.",
+    ms: "milisegundos", delay_hint: "Útil entre dos acciones, p. ej. abrir una app y luego enviarle un atajo.",
+    conf_hint: "Abre esta ventana en tu navegador.", lvl_up: "Subir", lvl_down: "Bajar", lvl_set: "Fijar en",
+    testing: "Probando…", not_run: "Las acciones siguientes no se ejecutaron.",
+    saved_toast: "Guardado. El DisplayPad ya se está actualizando.", not_saved: "No se guardó: ",
+    ask_discard: "¿Descartar todos los cambios sin guardar?",
+    conflict: "La configuración cambió fuera de esta ventana (por ejemplo, la cambió un asistente de IA).",
+    conflict_load: "Cargar la nueva versión", conflict_keep: "Guardar los míos de todos modos",
+    conflict_hint: " Al cargarla se pierden los cambios sin guardar de aquí; al guardar los tuyos se reemplazan los otros cambios.",
+    updated_elsewhere: "La configuración se actualizó desde fuera de esta ventana.",
+    svc_down: "El servicio no responde", connected: "● Conectado · página «{page}»", disconnected: "○ DisplayPad desconectado",
+    restart: "Reiniciar servicio", open_settings: "Abrir Ajustes", restarting: "Reiniciando el servicio…",
+    perm_input_b: "Falta el permiso «Monitoreo de entrada». ",
+    perm_input_1: "Sin él el servicio no puede leer las teclas del DisplayPad. En Ajustes del Sistema → Privacidad y seguridad → Monitoreo de entrada, activa «Python». Si no aparece, pulsa + y elige ",
+    perm_input_2: " (⌘⇧G para pegar la ruta).",
+    perm_ax_b: "Falta el permiso «Accesibilidad». ",
+    perm_ax_1: "Los atajos, el texto y las teclas multimedia no funcionarán hasta que actives «Python» en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad. Si no aparece, pulsa + y elige ",
+    config_err: "El archivo de configuración tiene un error: ",
+    cancel: "Cancelar", ok: "Aceptar",
+    set_general: "General", set_language: "Idioma", set_theme: "Apariencia",
+    theme_system: "Igual que macOS", theme_light: "Clara", theme_dark: "Oscura",
+    set_applied: "Los ajustes se guardan en cuanto los cambias.", setting_failed: "No se pudo guardar el ajuste: {msg}",
+    set_bright: "Brillo de las teclas del DisplayPad",
+    set_bright_hint: "Para el brillo de las pantallas del Mac usa la acción «Brillo de la pantalla» en una tecla.",
+    set_feedback: "Oscurecer la tecla mientras está presionada",
+    set_ai: "Asistentes de IA (MCP)",
+    ai_intro: "Deja que un asistente de IA (Claude, Cursor, VS Code o cualquier app de este Mac compatible con Model Context Protocol) vea y cambie la configuración de tu DisplayPad: puede crear páginas y teclas, elegir íconos y armar automatizaciones contigo. La conexión solo funciona en este Mac (127.0.0.1).",
+    ai_enable: "Permitir que los asistentes de IA se conecten",
+    ai_run: "Permitir que los asistentes ejecuten acciones al momento para probarlas (comandos, atajos, AppleScript)",
+    ai_run_hint: "Si está desactivado, los asistentes solo pueden guardar acciones en las teclas: nada se ejecuta hasta que pulses la tecla.",
+    ai_url: "Dirección del servidor", ai_token: "Clave de acceso", ai_show: "Mostrar", ai_hide: "Ocultar", ai_new: "Nueva clave",
+    ai_new_ask: "¿Crear una clave de acceso nueva? Los asistentes que usan la actual dejan de funcionar hasta que les des la nueva.",
+    ai_new_done: "Clave de acceso nueva creada.", copied: "Copiado.",
+    ai_how: "Cómo conectar", ai_other: "Otras apps", ai_cc_hint: "Ejecuta esto en Terminal y luego abre Claude Code:",
+    ai_cd_hint: "En Claude Desktop abre Ajustes → Desarrollador → Editar configuración, agrega la entrada «displaypad» dentro de «mcpServers» y reinicia Claude. Arranca un pequeño puente que lee la clave por su cuenta.",
+    ai_other_http: "Apps que se conectan a una dirección de servidor («Streamable HTTP»): usa esta dirección y envía la clave en la cabecera Authorization:",
+    ai_other_stdio: "Apps que arrancan un comando local (stdio): usa este programa, sin argumentos:",
+    ai_no_bridge: "Falta el programa puente: vuelve a ejecutar install.sh o usa la dirección del servidor.",
+    ai_off_note: "Actívalo para ver cómo conectar.",
+    ai_try: "Luego pide, por ejemplo: «Agrega a mi DisplayPad una página con mis apps de reuniones».",
+    ai_warn: "Quien tenga la clave de acceso puede cambiar tus teclas, y las teclas pueden ejecutar comandos al pulsarlas. Dásela solo a asistentes de confianza.",
+    set_about: "Acerca de", about_version: "Versión", about_service: "Servicio", about_running: "En marcha",
+    about_device: "DisplayPad", about_connected: "Conectado", about_not_connected: "Sin conectar",
+    about_input: "Monitoreo de entrada", about_ax: "Accesibilidad", allowed: "Permitido", not_allowed: "Sin permiso",
+    about_anim: "Animaciones", about_anim_v: "{keys} tecla(s) animada(s), {fps} cuadros/s",
+    about_config: "Configuración", about_log: "Registro",
+    about_ai: "Hecho con IA: este proyecto se escribió con Claude Code (Anthropic) y una persona lo probó en un DisplayPad real.",
+    about_source: "Código fuente, ayuda y actualizaciones",
+  },
+};
+let LANG = (() => { try { return localStorage.getItem("dp-lang") === "es" ? "es" : "en"; } catch { return "en"; } })();
+function t(key, vars) {
+  const s = STRINGS[LANG]?.[key] ?? STRINGS.en[key] ?? key;
+  return vars ? s.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m) : s;
+}
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t-html]").forEach(el => { el.innerHTML = t(el.dataset.tHtml); });
+  document.querySelectorAll("[data-t-title]").forEach(el => { el.title = t(el.dataset.tTitle); });
+  document.querySelectorAll("[data-t-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.tAria)); });
+}
+
+// ---------------------------------------------------------------- token
+// "#settings" (alone or after the token, "#t=...&settings") opens the Settings view.
+const START_VIEW = /(^#|&)settings\b/.test(location.hash) ? "settings" : "keys";
+const TOKEN = (() => {
+  const m = location.hash.match(/t=([\w-]+)/);
+  if (m) { try { sessionStorage.setItem("dp-token", m[1]); } catch {} history.replaceState(null, "", location.pathname); return m[1]; }
+  try { return sessionStorage.getItem("dp-token") || ""; } catch { return ""; }
+})();
+
+const $ = (s, el = document) => el.querySelector(s);
+function h(tag, props = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k in el && k !== "list" && k !== "spellcheck") el[k] = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(c));
+  return el;
+}
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "X-Token": TOKEN, "Content-Type": "application/json", ...(opts.headers || {}) } });
+  if (!r.ok) {
+    let msg = "";
+    try { msg = (await r.json()).error; } catch {}
+    const err = new Error(msg || `error ${r.status}`);
+    err.status = r.status;
+    throw err;
+  }
+  return r;
+}
+const getJSON = (p) => api(p).then(r => r.json());
+const postJSON = (p, body) => api(p, { method: "POST", body: JSON.stringify(body) }).then(r => r.json());
+
+let toastTimer;
+function toast(msg) {
+  const el = $("#toast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+function ask(msg, value = null) {
+  const d = $("#dlg"), inp = $("#dlg-input");
+  $("#dlg-msg").textContent = msg;
+  inp.hidden = value === null; inp.value = value ?? "";
+  d.returnValue = "";
+  d.showModal(); if (value !== null) { inp.focus(); inp.select(); }
+  return new Promise(res => d.addEventListener("close", () => res(d.returnValue === "ok" ? (value === null ? true : inp.value.trim()) : null), { once: true }));
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = h("textarea", { value: text, style: "position:fixed;opacity:0" });
+    document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  toast(t("copied"));
+}
+
+// ---------------------------------------------------------------- data
+const TYPES = () => [
+  [t("g_apps"), ["open"]],
+  [t("g_keyboard"), ["shortcut", "text", "media"]],
+  [t("g_screen"), ["screen_brightness", "page", "brightness", "configurator"]],
+  [t("g_auto"), ["shell", "applescript", "delay"]],
+];
+const typeName = (v) => STRINGS.en["t_" + v] ? t("t_" + v) : v;
+const MEDIA = ["play_pause", "next", "previous", "volume_up", "volume_down", "mute"];
+const NEEDS_ACCESS = new Set(["shortcut", "text", "media"]);
+const EMOJI = "📧 💬 📊 📈 📉 🌐 📁 🗂️ 📄 📋 🧮 🧾 💰 💵 🏦 💳 📸 🔒 🔓 🔍 ⏯️ ⏮️ ⏭️ 🔉 🔊 🔇 🎧 🎤 📷 📞 🔅 🔆 💡 🖥️ 💻 ⌨️ 🖨️ 🪟 📝 ✍️ 📅 ⏰ 🔔 ✅ ❌ ⭐ 🚀 ⚙️ 🛠️ 🔄 🔗 ☕ 🏠 ➡️ ⬅️ ⬆️ ⬇️ 🎨 🧑‍💻".split(" ");
+const DEFAULT_BG = "#1c1c24", DEFAULT_FG = "#ffffff";
+const KEY_NAMES = { Space: "space", Enter: "return", NumpadEnter: "return", Tab: "tab", Backspace: "delete", Delete: "forwarddelete",
+  Escape: "esc", ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Home: "home", End: "end",
+  PageUp: "pageup", PageDown: "pagedown", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\",
+  Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backquote: "`" };
+const PRETTY = { cmd: "⌘", command: "⌘", shift: "⇧", ctrl: "⌃", control: "⌃", alt: "⌥", option: "⌥", opt: "⌥", fn: "fn",
+  return: "↩", enter: "↩", tab: "⇥", delete: "⌫", backspace: "⌫", forwarddelete: "⌦", esc: "esc", escape: "esc",
+  up: "↑", down: "↓", left: "←", right: "→", pageup: "⇞", pagedown: "⇟", home: "↖", end: "↘" };
+const pretty = (p) => p === "space" ? t("key_space") : PRETTY[p] || p.toUpperCase();
+
+let cfg = null, saved = "", rev = "", busy = 0, page = null, sel = "1", status = {}, apps = [], clip = null, recording = null;
+let view = "keys", mcpInfo = null, showToken = false;
+
+function normalise(c) {
+  c.pages ??= {};
+  for (const p of Object.values(c.pages)) {
+    p.keys ??= {};
+    for (const k of Object.values(p.keys)) {
+      if (k && k.action) { k.actions = [k.action]; delete k.action; }
+      if (k) k.actions ??= [];
+    }
+  }
+  return c;
+}
+const keys = () => cfg.pages[page].keys;
+const spec = (n = sel) => keys()[n];
+function ensure(n = sel) { return keys()[n] ??= { actions: [] }; }
+function prune(n = sel) {
+  const k = keys()[n];
+  if (k && !k.emoji && !k.image && !k.label && !k.color && !(k.actions || []).length) delete keys()[n];
+}
+function look(k) {
+  if (!k) return {};
+  const o = Object.fromEntries(["emoji", "image", "crop", "label", "hide_label", "color", "text_color", "fill", "icon_scale"].filter(f => k[f] !== undefined && k[f] !== "").map(f => [f, k[f]]));
+  if (!o.color) o.color = DEFAULT_BG; // a key that exists is drawn on the default background
+  return o;
+}
+
+// ---------------------------------------------------------------- previews
+const previews = new Map();
+function preview(k) {
+  const body = JSON.stringify(look(k));
+  if (!previews.has(body)) {
+    const p = api("/api/render", { method: "POST", body }).then(async r => ({
+      url: URL.createObjectURL(await r.blob()),
+      frames: +(r.headers.get("X-Frames") || 0), ms: +(r.headers.get("X-Duration") || 0) }));
+    p.catch(() => previews.delete(body));
+    previews.set(body, p);
+  }
+  return previews.get(body);
+}
+function paintKey(n) {
+  const btn = $(`.key[data-n="${n}"]`);
+  if (!btn) return;
+  const k = spec(n);
+  preview(k).then(p => { btn.querySelector("img").src = p.url; }).catch(() => {});
+  btn.querySelector(".acts").textContent = (k?.actions?.length || 0) > 1 ? t("n_actions", { n: k.actions.length }) : "";
+  btn.setAttribute("aria-label", t("key_n", { n }) + (k?.label ? ": " + k.label : k?.emoji ? ": " + k.emoji : t("key_empty")));
+  btn.title = k?.label ? k.label + (k.hide_label ? t("label_hidden") : "") : "";
+  if (n === sel) {
+    const note = $("#ed-note");
+    if (note) note.textContent = k ? t("note_key") : t("note_empty");
+    preview(k).then(p => {
+      const im = $("#ed-img"); if (im) im.src = p.url;
+      if (note && p.frames > 1 && n === sel)
+        note.textContent = t("note_anim", { frames: p.frames, secs: (p.ms / 1000).toLocaleString(LANG, { maximumFractionDigits: 1 }) }) + t("note_key");
+    }).catch(() => {});
+  }
+}
+
+// ---------------------------------------------------------------- dirty state
+const isDirty = () => !!cfg && JSON.stringify(cfg) !== saved;
+function changed(repaint = true) {
+  const dirty = isDirty();
+  $("#dirty").hidden = !dirty; $("#save").disabled = !dirty; $("#discard").disabled = !dirty;
+  if (repaint) paintKey(sel);
+}
+addEventListener("beforeunload", e => { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
+
+// ---------------------------------------------------------------- pages
+function renderTabs() {
+  const box = $("#tabs"); box.replaceChildren();
+  for (const name of Object.keys(cfg.pages)) {
+    box.append(h("button", { class: "tab" + (name === page ? " active" : ""), role: "tab", "aria-selected": String(name === page),
+      onclick: () => showPage(name), ondblclick: () => renamePage(name) },
+      name, name === cfg.start_page ? h("span", { class: "star", title: t("start_page"), text: "★" }) : null));
+  }
+  box.append(h("button", { class: "tab", title: t("new_page_title"), onclick: addPage, text: t("new_page_btn") }));
+  $("#pg-start").disabled = page === cfg.start_page;
+  $("#pg-delete").disabled = Object.keys(cfg.pages).length < 2;
+  $("#page-name").textContent = page.toUpperCase();
+}
+function showPage(name) { page = name; sel = "1"; iconUi = null; renderTabs(); renderGrid(); renderEditor(); }
+function pageRefs(name) {
+  const refs = [];
+  for (const [pn, p] of Object.entries(cfg.pages)) for (const [kn, k] of Object.entries(p.keys))
+    for (const a of k.actions || []) if (a.type === "page" && a.page === name) refs.push([pn, kn, k, a]);
+  return refs;
+}
+function validName(name, except) {
+  if (!name) return t("name_empty");
+  if (name === "back") return t("name_reserved");
+  if (name !== except && cfg.pages[name]) return t("name_taken");
+  return "";
+}
+async function addPage() {
+  const name = await ask(t("ask_new_page"), "");
+  if (name == null) return;
+  const err = validName(name); if (err) return toast(err);
+  cfg.pages[name] = { keys: { "1": { emoji: "⬅️", label: t("back_label"), color: "#2B2B33", actions: [{ type: "page", page: "back" }] } } };
+  showPage(name); changed(false);
+  toast(t("page_created"));
+}
+async function renamePage(old = page) {
+  const name = await ask(t("ask_rename", { name: old }), old);
+  if (name == null || name === old) return;
+  const err = validName(name, old); if (err) return toast(err);
+  const pages = {};
+  for (const [k, v] of Object.entries(cfg.pages)) pages[k === old ? name : k] = v;
+  cfg.pages = pages;
+  for (const [, , , a] of pageRefs(old)) a.page = name;
+  if (cfg.start_page === old) cfg.start_page = name;
+  if (page === old) page = name;
+  renderTabs(); renderEditor(); changed(false);
+}
+async function deletePage() {
+  const refs = pageRefs(page).filter(r => r[0] !== page);
+  const msg = t("ask_delete_page", { name: page }) + (refs.length ? t("delete_page_refs", { n: refs.length }) : "");
+  if (!await ask(msg)) return;
+  for (const [, , k, a] of refs) k.actions.splice(k.actions.indexOf(a), 1);
+  delete cfg.pages[page];
+  if (!cfg.pages[cfg.start_page]) cfg.start_page = Object.keys(cfg.pages)[0];
+  showPage(cfg.start_page); changed(false);
+}
+
+// ---------------------------------------------------------------- grid
+let dragFrom = null;
+function renderGrid() {
+  const g = $("#grid"); g.replaceChildren();
+  for (let i = 1; i <= 12; i++) {
+    const n = String(i);
+    const b = h("button", { class: "key" + (n === sel ? " sel" : ""), "data-n": n, draggable: "true",
+      onclick: () => { sel = n; iconUi = null; document.querySelectorAll(".key").forEach(k => k.classList.toggle("sel", k.dataset.n === n)); renderEditor(); },
+      ondragstart: e => { dragFrom = n; e.dataTransfer.effectAllowed = "move"; },
+      ondragover: e => { if (dragFrom || e.dataTransfer.types.includes("Files")) { e.preventDefault(); b.classList.add("over"); } },
+      ondragleave: () => b.classList.remove("over"),
+      ondrop: e => { e.preventDefault(); b.classList.remove("over"); onKeyDrop(n, e); } },
+      h("img", { alt: "" }), h("span", { class: "n", text: n }), h("span", { class: "acts" }));
+    g.append(b);
+    paintKey(n);
+  }
+}
+function onKeyDrop(n, e) {
+  const file = e.dataTransfer.files?.[0];
+  if (file) { sel = n; renderGrid(); renderEditor(); return uploadImage(file); }
+  if (!dragFrom || dragFrom === n) return;
+  const ks = keys(), a = ks[dragFrom], b = ks[n];
+  delete ks[dragFrom]; delete ks[n];
+  if (b) ks[dragFrom] = b;
+  if (a) ks[n] = a;
+  sel = n; dragFrom = null;
+  renderGrid(); renderEditor(); changed(false);
+}
+
+// ---------------------------------------------------------------- editor
+// The tab the user picked, kept until it matches the data (e.g. "Image" before a picture is chosen).
+let iconUi = null;
+function iconMode(k) {
+  if (iconUi && iconUi.key === page + "/" + sel) return iconUi.mode;
+  return k?.image ? "image" : k?.emoji ? "emoji" : "text";
+}
+function setIconMode(mode) {
+  const k = ensure();
+  iconUi = { key: page + "/" + sel, mode };
+  if (mode === "emoji") { delete k.image; delete k.crop; delete k.fill; k.emoji ||= "⭐"; }
+  if (mode === "text") { delete k.emoji; delete k.image; delete k.crop; delete k.fill; delete k.icon_scale; }
+  // "image" keeps the current look until a picture is actually chosen
+  prune(); renderEditor(); changed();
+  if (mode === "image" && !k.image) openPicker();
+}
+function openPicker() {
+  const f = $("#file");
+  if (!f) return;
+  f.value = "";
+  try { f.showPicker(); } catch { f.click(); }
+}
+let paintTimer;
+function paintSoon() { clearTimeout(paintTimer); paintTimer = setTimeout(() => paintKey(sel), 60); }
+const LOTTIE_EXT = /\.(json|lottie|tgs)$/i;
+async function uploadImage(file) {
+  const lottie = LOTTIE_EXT.test(file.name);
+  if (!file.type.startsWith("image/") && !lottie) return toast(t("not_image"));
+  if (file.size > 12e6) return toast(t("too_big"));
+  if (lottie) toast(t("preparing_lottie"));
+  try {
+    const { path } = await api("/api/upload", { method: "POST", body: file,
+      headers: { "Content-Type": file.type || "application/octet-stream" } }).then(r => r.json());
+    const k = ensure(); delete k.emoji; delete k.crop; k.image = path;
+    iconUi = null;
+    renderEditor(); changed();
+    openCrop(true); // a picture that is not square opens the framing editor
+  } catch (e) { toast(t("upload_failed", { msg: e.message })); }
+}
+
+// ---------------------------------------------------------------- framing (crop)
+// Keys are square. The user picks which square part of a picture the key shows by
+// moving and zooming it (never stretching it); the result is the key's "crop":
+// [left, top, right, bottom] as fractions of the picture, past 0-1 when zoomed out.
+async function openCrop(auto = false) {
+  const k = spec();
+  if (!k?.image) return;
+  const pageAt = page, target = sel, imagePath = k.image;
+  let url;
+  try {
+    url = URL.createObjectURL(await api("/api/image?path=" + encodeURIComponent(imagePath)).then(r => r.blob()));
+  } catch (e) { if (!auto) toast(t("crop_failed", { msg: e.message })); return; }
+  const pic = h("img", { alt: "", draggable: false });
+  try { // the load event, not decode(): decode() can wait forever while the page is not being painted
+    await new Promise((ok, fail) => { pic.onload = ok; pic.onerror = () => fail(new Error(t("not_image"))); pic.src = url; });
+  } catch (e) { URL.revokeObjectURL(url); if (!auto) toast(t("crop_failed", { msg: e.message })); return; }
+  const W = pic.naturalWidth, H = pic.naturalHeight;
+  if (auto && W === H) { URL.revokeObjectURL(url); return; }
+
+  // what the key shows: a square of side c (picture pixels) centred on (cx, cy)
+  const cMax = Math.max(W, H), cCover = Math.min(W, H), cMin = cCover / 4;
+  const withText = !!(k.label && !k.hide_label);
+  const cDefault = withText || k.fill === false ? cMax : cCover; // what the key shows without a crop
+  let c = cDefault, cx = W / 2, cy = H / 2;
+  if (Array.isArray(k.crop) && k.crop.length === 4) {
+    const [l, tp, r, b] = k.crop;
+    c = Math.max((r - l) * W, (b - tp) * H); cx = (l + r) / 2 * W; cy = (tp + b) / 2 * H;
+  }
+  const clampAll = () => {
+    c = Math.min(cMax, Math.max(cMin, c));
+    const lim = (v, size) => Math.min(Math.max(v, Math.min(c / 2, size - c / 2)), Math.max(c / 2, size - c / 2));
+    cx = lim(cx, W); cy = lim(cy, H);
+  };
+  const isDefault = () => Math.abs(c - cDefault) < 0.5 && Math.abs(cx - W / 2) < 0.5 && Math.abs(cy - H / 2) < 0.5;
+  const r4 = v => Math.round(v * 10000) / 10000;
+  const cropNow = () => isDefault() ? undefined : [r4((cx - c / 2) / W), r4((cy - c / 2) / H), r4((cx + c / 2) / W), r4((cy + c / 2) / H)];
+  const toSlider = () => Math.round(1000 * Math.log(cMax / c) / Math.log(cMax / cMin));
+  const fromSlider = v => cMax * Math.pow(cMin / cMax, v / 1000);
+
+  const stage = h("div", { class: "crop-stage", tabindex: 0, role: "application", "aria-label": t("crop_stage"),
+    style: `background:${k.color || DEFAULT_BG}` }, pic);
+  const zoom = h("input", { type: "range", min: 0, max: 1000, step: 1, "aria-label": t("crop_zoom"),
+    oninput: e => { c = fromSlider(+e.target.value); update(false); } });
+  const result = h("img", { class: "crop-result", alt: t("crop_result") });
+  let seq = 0, timer, shown = false, touched = false;
+  function update(syncSlider = true) {
+    if (shown) touched = true; // every later call comes from the user moving or zooming
+    clampAll();
+    const S = stage.clientWidth || 300, sc = S / c;
+    Object.assign(pic.style, { width: W * sc + "px", height: H * sc + "px", left: S / 2 - cx * sc + "px", top: S / 2 - cy * sc + "px" });
+    if (syncSlider) zoom.value = toSlider();
+    clearTimeout(timer);
+    timer = setTimeout(async () => { // the key as the pad draws it (first frame of an animation)
+      const n = ++seq;
+      try {
+        const blob = await api("/api/render?first=1", { method: "POST", body: JSON.stringify(look({ ...k, crop: cropNow() })) }).then(r => r.blob());
+        if (n !== seq) return;
+        if (result.src) URL.revokeObjectURL(result.src);
+        result.src = URL.createObjectURL(blob);
+      } catch {}
+    }, 120);
+  }
+
+  let drag = null;
+  stage.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY }; stage.setPointerCapture(e.pointerId); stage.classList.add("dragging"); });
+  stage.addEventListener("pointermove", e => {
+    if (!drag) return;
+    const sc = stage.clientWidth / c;
+    cx -= (e.clientX - drag.x) / sc; cy -= (e.clientY - drag.y) / sc;
+    drag = { x: e.clientX, y: e.clientY }; update();
+  });
+  const endDrag = () => { drag = null; stage.classList.remove("dragging"); };
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+  let pinch = null; // Safari sends a trackpad pinch as gesture events; Chrome and Firefox as ctrl+wheel
+  stage.addEventListener("gesturestart", e => { e.preventDefault(); pinch = c; });
+  stage.addEventListener("gesturechange", e => { e.preventDefault(); if (pinch) { c = pinch / e.scale; update(); } });
+  stage.addEventListener("gestureend", e => { e.preventDefault(); pinch = null; });
+  stage.addEventListener("wheel", e => { // zoom around the pointer
+    e.preventDefault();
+    if (pinch) return;
+    const rect = stage.getBoundingClientRect(), S = rect.width, sc = S / c;
+    const mx = e.clientX - rect.left - S / 2, my = e.clientY - rect.top - S / 2;
+    const px = cx + mx / sc, py = cy + my / sc;
+    c = Math.min(cMax, Math.max(cMin, c * Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))));
+    cx = px - mx * c / S; cy = py - my * c / S;
+    update();
+  }, { passive: false });
+  stage.addEventListener("keydown", e => { // arrows move the picture, like dragging it
+    const step = c * (e.shiftKey ? 0.1 : 0.02);
+    const move = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[e.key];
+    if (move) { cx += move[0]; cy += move[1]; }
+    else if (e.key === "+" || e.key === "=") c /= 1.1;
+    else if (e.key === "-" || e.key === "_") c *= 1.1;
+    else return;
+    e.preventDefault(); update();
+  });
+
+  const preset = (side) => { c = side; cx = W / 2; cy = H / 2; update(); };
+  const dlg = h("dialog", { class: "crop-dlg" },
+    h("h2", { text: t("crop_title") }),
+    h("p", { class: "hint", text: t("crop_help") }),
+    withText ? h("p", { class: "hint", text: t("crop_label_note") }) : null,
+    h("div", { class: "crop-main" }, stage,
+      h("div", { class: "crop-side" }, h("span", { class: "lbl", text: t("crop_result") }), result,
+        h("small", { class: "hint", text: `${W} × ${H} px` }))),
+    h("div", { class: "slider" }, h("span", { class: "hint", text: "−" }), zoom, h("span", { class: "hint", text: "+" })),
+    h("div", { class: "crop-quick" },
+      h("button", { type: "button", class: "small", text: t("crop_whole"), onclick: () => preset(cMax) }),
+      h("button", { type: "button", class: "small", text: t("crop_fill"), onclick: () => preset(cCover) })),
+    h("div", { class: "btns" },
+      h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
+      h("button", { type: "button", class: "primary", text: t("crop_apply"), onclick: () => {
+        const s = cfg.pages[pageAt]?.keys?.[target];
+        if (touched && s && s.image === imagePath) { // moved or zoomed, and still the same key and picture
+          const crop = cropNow();
+          if (crop) s.crop = crop; else delete s.crop;
+          if (page === pageAt) { if (sel === target) renderEditor(); paintKey(target); }
+          changed(false);
+        }
+        dlg.close();
+      } })));
+  dlg.addEventListener("close", () => { clearTimeout(timer); seq++; URL.revokeObjectURL(url); if (result.src) URL.revokeObjectURL(result.src); dlg.remove(); });
+  document.body.append(dlg);
+  dlg.showModal();
+  update();
+  shown = true;
+  stage.focus();
+}
+
+function renderEditor() {
+  const ed = $("#editor"), k = spec(), mode = iconMode(k);
+  const field = (lbl, el, hint) => h("label", {}, h("span", { class: "lbl", text: lbl }), el, hint ? h("small", { text: hint }) : null);
+  const set = (f, v) => { const s = ensure(); if (v === "" || v == null) delete s[f]; else s[f] = v; prune(); changed(); };
+
+  const seg = h("div", { class: "seg", role: "group", "aria-label": t("icon_type") },
+    [["emoji", t("mode_emoji")], ["image", t("mode_image")], ["text", t("mode_text")]].map(([m, label]) =>
+      h("button", { "aria-pressed": String(mode === m), onclick: () => setIconMode(m), text: label })));
+
+  let iconBox;
+  if (mode === "emoji") {
+    const inp = h("input", { id: "f-emoji", value: k.emoji || "", maxLength: 16, "aria-label": "Emoji", oninput: e => set("emoji", e.target.value.trim()) });
+    iconBox = h("div", {}, inp,
+      h("div", { class: "palette" }, EMOJI.map(em => h("button", { text: em, title: em, onclick: () => { inp.value = em; set("emoji", em); } }))),
+      h("small", { text: t("more_emoji") }));
+  } else if (mode === "image") {
+    // the file input lives outside the drop zone so its click never bubbles back into it
+    const fileIn = h("input", { type: "file", id: "file", accept: "image/png,image/jpeg,image/gif,image/webp,image/bmp,image/tiff,.json,.lottie,.tgs,application/json", hidden: true,
+      onchange: e => e.target.files[0] && uploadImage(e.target.files[0]) });
+    const drop = h("div", { class: "drop", onclick: openPicker,
+      ondragover: e => { e.preventDefault(); drop.classList.add("over"); }, ondragleave: () => drop.classList.remove("over"),
+      ondrop: e => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && uploadImage(e.dataTransfer.files[0]); } },
+      k?.image ? h("div", {}, h("code", { text: k.image })) : t("drop_text"),
+      h("div", { style: "margin-top:8px" }, h("button", { class: "small", type: "button", text: k?.image ? t("change_image") : t("choose_image") })));
+    iconBox = h("div", { class: "stack" }, drop, fileIn,
+      k?.image ? h("div", { class: "field-line" },
+        h("span", { class: "hint crop-state", text: k.crop ? t("crop_state_custom") : t("crop_state_auto") }),
+        h("button", { class: "small", type: "button", onclick: () => openCrop(), text: t("crop_btn") })) : null,
+      h("label", { class: "check" }, h("input", { type: "checkbox", checked: k?.fill !== false, onchange: e => set("fill", e.target.checked ? "" : false) }),
+        t("fill_key")));
+  }
+
+  let sizeBox = null;
+  if (mode !== "text") {
+    const cur = k?.icon_scale ?? 100;
+    const out = h("output", { text: cur + " %" });
+    const range = h("input", { type: "range", min: 30, max: 200, step: 5, value: cur, "aria-label": t("icon_size"),
+      oninput: e => { const v = +e.target.value; const s = ensure(); if (v === 100) delete s.icon_scale; else s.icon_scale = v;
+        out.textContent = v + " %"; changed(false); paintSoon(); } });
+    sizeBox = h("div", {}, h("span", { class: "lbl", text: t("icon_size") }),
+      h("div", { class: "slider" }, h("span", { class: "hint", text: "−" }), range, h("span", { class: "hint", text: "+" }), out,
+        h("button", { class: "small", type: "button", title: t("size_reset_title"),
+          onclick: () => { range.value = 100; range.dispatchEvent(new Event("input")); }, text: t("size_normal") })),
+      h("small", { text: mode === "image" && (!k?.label || k?.hide_label) && k?.fill !== false ? t("size_hint_image") : t("size_hint_icon") }));
+  }
+  const actionsBox = h("div", { id: "actions" });
+  ed.replaceChildren(
+    h("div", { class: "ed-head" }, h("h2", { text: t("key_n", { n: sel }) }), h("span", { class: "hint", text: t("page_ref", { name: page }) }),
+      h("div", { class: "tools" },
+        h("button", { class: "small", title: t("copy_title"), onclick: () => { clip = JSON.stringify(spec() || null); toast(t("copied_key")); }, text: t("copy") }),
+        h("button", { class: "small", title: t("paste_title"), disabled: !clip, onclick: () => { const v = JSON.parse(clip); if (v) keys()[sel] = v; else delete keys()[sel]; renderEditor(); changed(); }, text: t("paste") }),
+        h("button", { class: "small danger", title: t("clear_title"), disabled: !k, onclick: () => { delete keys()[sel]; renderEditor(); changed(); }, text: t("clear") }))),
+    h("div", { class: "ed-top" }, h("img", { id: "ed-img", alt: "" }), h("div", { class: "hint", id: "ed-note" })),
+    h("h3", { text: t("appearance") }),
+    h("div", { class: "stack" },
+      seg, iconBox, sizeBox,
+      h("div", {},
+        field(t("text_field"), h("input", { value: k?.label || "", maxLength: 40, placeholder: t("text_ph"), oninput: e => set("label", e.target.value) })),
+        h("label", { class: "check", style: "margin-top:6px" },
+          h("input", { type: "checkbox", id: "f-hide-label", checked: !!k?.hide_label,
+            onchange: e => { set("hide_label", e.target.checked ? true : ""); renderEditor(); } }),
+          t("hide_text"))),
+      h("div", { class: "row" },
+        field(t("bg"), h("input", { type: "color", value: (k?.color || DEFAULT_BG).toLowerCase(), oninput: e => set("color", e.target.value) })),
+        field(t("fg"), h("input", { type: "color", value: (k?.text_color || DEFAULT_FG).toLowerCase(), oninput: e => set("text_color", e.target.value) })),
+        h("div", { class: "none" }, h("button", { class: "small", onclick: () => { const s = ensure(); delete s.color; delete s.text_color; prune(); renderEditor(); changed(); }, text: t("default_colors") })))),
+    h("h3", {}, t("actions_h"), h("small", { text: t("actions_sub") })),
+    actionsBox,
+    h("div", { class: "row", style: "margin-top:10px" },
+      h("button", { onclick: addAction, text: t("add_action") }),
+      h("button", { id: "test", disabled: !(k?.actions?.length), onclick: testKey, text: t("test") })),
+    h("pre", { id: "test-out", hidden: true }));
+  renderActions();
+  paintKey(sel);
+}
+
+function renderActions() {
+  const box = $("#actions"), list = spec()?.actions || [];
+  box.replaceChildren();
+  if (!list.length) box.append(h("div", { class: "empty", text: t("no_actions") }));
+  list.forEach((a, i) => box.append(actionCard(a, i, list)));
+  const btn = $("#test"); if (btn) btn.disabled = !list.length;
+}
+function structural() { renderActions(); changed(); }
+function addAction() {
+  ensure().actions.push({ type: "open", target: "" });
+  structural();
+  const cards = document.querySelectorAll(".action"); cards[cards.length - 1]?.querySelector("select")?.focus();
+}
+
+function defaults(type) {
+  const other = Object.keys(cfg.pages).find(p => p !== page);
+  return { open: { target: "" }, shortcut: { keys: "" }, text: { text: "" }, media: { key: "play_pause" }, shell: { command: "" },
+    applescript: { script: "" }, page: { page: other || "back" }, screen_brightness: { value: "+10", display: "all" },
+    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {} }[type];
+}
+
+function actionCard(a, i, list) {
+  const sel_ = h("select", { "aria-label": t("action_type"), onchange: e => { for (const f of Object.keys(a)) delete a[f]; Object.assign(a, { type: e.target.value }, defaults(e.target.value)); structural(); } },
+    TYPES().map(([g, opts]) => h("optgroup", { label: g }, opts.map(v => h("option", { value: v, text: typeName(v), selected: a.type === v })))));
+  const move = (d) => { const j = i + d; [list[i], list[j]] = [list[j], list[i]]; structural(); };
+  return h("div", { class: "action" },
+    h("div", { class: "a-head" }, h("span", { class: "num", text: i + 1 }), sel_,
+      h("button", { class: "icon small", title: t("move_up"), disabled: i === 0, onclick: () => move(-1), text: "↑" }),
+      h("button", { class: "icon small", title: t("move_down"), disabled: i === list.length - 1, onclick: () => move(1), text: "↓" }),
+      h("button", { class: "icon small danger", title: t("remove_action"), onclick: () => { list.splice(i, 1); prune(); structural(); }, text: "✕" })),
+    h("div", { class: "a-body" }, fields(a)));
+}
+
+function fields(a) {
+  const upd = (f) => (e) => { a[f] = e.target.value; changed(false); };
+  const hint = (txt) => h("small", { text: txt });
+  const accessNote = NEEDS_ACCESS.has(a.type) && status.accessibility === false
+    ? h("small", { style: "color:var(--danger)", text: t("needs_access") }) : null;
+  switch (a.type) {
+    case "open": {
+      const id = "apps-" + Math.random().toString(36).slice(2);
+      return [h("input", { value: a.target || "", list: id, placeholder: "Safari · https://… · ~/Documents", oninput: upd("target") }),
+        h("datalist", { id }, apps.map(n => h("option", { value: n }))),
+        hint(t("open_hint"))];
+    }
+    case "shortcut": {
+      const inp = h("input", { class: "mono", value: a.keys || "", placeholder: "cmd+shift+4", oninput: e => { a.keys = e.target.value.trim().toLowerCase(); chips(); changed(false); } });
+      const kbd = h("span", { class: "kbd" });
+      const chips = () => kbd.replaceChildren(...(a.keys ? a.keys.split("+").map(p => h("span", { text: pretty(p) })) : []));
+      const btn = h("button", { class: "none", text: t("record") });
+      btn.onclick = () => recording ? stopRec() : startRec(btn, (combo) => { a.keys = combo; inp.value = combo; chips(); changed(false); });
+      chips();
+      return [h("div", { class: "row" }, inp, btn), kbd, hint(t("shortcut_hint")), accessNote];
+    }
+    case "text":
+      return [h("textarea", { value: a.text || "", rows: 3, placeholder: t("text_ph2"), oninput: upd("text") }),
+        hint(t("text_hint")), accessNote];
+    case "media":
+      return [h("select", { onchange: upd("key") }, MEDIA.map(v => h("option", { value: v, text: t("m_" + v), selected: a.key === v }))), accessNote];
+    case "shell":
+      return [h("textarea", { class: "mono", value: a.command || "", rows: 4, spellcheck: "false", placeholder: "open -a Safari https://apple.com", oninput: upd("command") }),
+        hint(t("shell_hint"))];
+    case "applescript":
+      return [h("textarea", { class: "mono", value: a.script || "", rows: 4, spellcheck: "false", placeholder: t("as_ph"), oninput: upd("script") }),
+        hint(t("as_hint"))];
+    case "page":
+      return [h("select", { onchange: upd("page") },
+        h("option", { value: "back", text: t("page_back"), selected: a.page === "back" }),
+        Object.keys(cfg.pages).map(p => h("option", { value: p, text: p, selected: a.page === p })))];
+    case "screen_brightness":
+      return [level(a, t("percent")), h("select", { onchange: upd("display") },
+        [["all", t("disp_all")], ["builtin", t("disp_builtin")], ["external", t("disp_external")]]
+          .map(([v, txt]) => h("option", { value: v, text: txt, selected: (a.display || "all") === v }))),
+        hint(t("ddc_hint"))];
+    case "brightness":
+      return [level(a, t("percent")), hint(t("pad_bright_hint"))];
+    case "delay":
+      return [h("div", { class: "row" }, h("input", { type: "number", min: 0, step: 50, value: a.ms ?? 200, oninput: e => { a.ms = Math.max(0, parseInt(e.target.value || "0", 10)); changed(false); } }),
+        h("span", { class: "none hint", text: t("ms") })), hint(t("delay_hint"))];
+    case "configurator":
+      return [hint(t("conf_hint"))];
+  }
+  return [];
+}
+
+function level(a, unit) {
+  const v = String(a.value ?? "+10");
+  let mode = v.startsWith("+") ? "up" : v.startsWith("-") ? "down" : "set";
+  let num = Math.abs(parseInt(v, 10)) || 0;
+  const write = () => { a.value = mode === "up" ? "+" + num : mode === "down" ? "-" + num : num; changed(false); };
+  return h("div", { class: "row" },
+    h("select", { onchange: e => { mode = e.target.value; write(); } },
+      [["up", t("lvl_up")], ["down", t("lvl_down")], ["set", t("lvl_set")]].map(([m, txt]) => h("option", { value: m, text: txt, selected: mode === m }))),
+    h("input", { type: "number", min: 0, max: 100, step: 5, value: num, oninput: e => { num = Math.max(0, Math.min(100, parseInt(e.target.value || "0", 10))); write(); } }),
+    h("span", { class: "none hint", text: unit }));
+}
+
+// ---------------------------------------------------------------- shortcut recorder
+function keyName(e) {
+  const c = e.code;
+  if (/^Key[A-Z]$/.test(c)) return c.slice(3).toLowerCase();
+  if (/^Digit\d$/.test(c)) return c.slice(5);
+  if (/^F\d{1,2}$/.test(c)) return c.toLowerCase();
+  return KEY_NAMES[c] || null;
+}
+function onRecKey(e) {
+  e.preventDefault(); e.stopPropagation();
+  const k = keyName(e);
+  if (!k) return; // only a modifier so far
+  const mods = [e.ctrlKey && "ctrl", e.altKey && "alt", e.shiftKey && "shift", e.metaKey && "cmd"].filter(Boolean);
+  recording.done([...mods, k].join("+"));
+  stopRec();
+}
+function startRec(btn, done) {
+  recording = { btn, done };
+  btn.classList.add("rec"); btn.textContent = t("recording");
+  addEventListener("keydown", onRecKey, true);
+}
+function stopRec() {
+  if (!recording) return;
+  removeEventListener("keydown", onRecKey, true);
+  recording.btn.classList.remove("rec"); recording.btn.textContent = t("record");
+  recording = null;
+}
+
+// ---------------------------------------------------------------- test / save
+async function testKey() {
+  const out = $("#test-out"), list = spec()?.actions || [];
+  out.hidden = false; out.textContent = t("testing");
+  try {
+    const res = await postJSON("/api/test", { spec: { actions: list }, pages: cfg.pages });
+    out.replaceChildren(...res.map((r, i) => h("div", {},
+      h("span", { class: r.ok ? "ok" : "bad", text: (r.ok ? "✓ " : "✗ ") + `${i + 1}. ${typeName(r.type)}` }),
+      r.output ? "\n" + r.output : "")));
+    if (res.length < list.length && res.every(r => r.ok) === false) out.append(h("div", { class: "hint", text: t("not_run") }));
+  } catch (e) { out.textContent = "✗ " + e.message; }
+}
+async function save(force = false) {
+  if ($("#save").disabled) return;
+  stopRec();
+  busy++;
+  try {
+    const res = await api("/api/config", { method: "PUT", body: JSON.stringify(cfg), headers: force ? {} : { "X-Config-Rev": rev } }).then(r => r.json());
+    rev = res.rev || rev;
+    saved = JSON.stringify(cfg); changed(false);
+    $("#banners .save-err")?.remove(); $("#banners .conflict")?.remove();
+    toast(t("saved_toast"));
+  } catch (e) {
+    $("#banners .save-err")?.remove();
+    if (e.status === 409) showConflict();
+    else $("#banners").prepend(h("div", { class: "banner err save-err" }, h("div", {}, h("b", { text: t("not_saved") }), e.message)));
+  } finally { busy--; }
+}
+async function discard() {
+  if (!await ask(t("ask_discard"))) return;
+  await load();
+}
+addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key === "s" && !recording) { e.preventDefault(); save(); } });
+
+// The file changed under us (another window, or an AI assistant through MCP).
+function showConflict() {
+  if ($("#banners .conflict")) return;
+  $("#banners").prepend(h("div", { class: "banner err conflict" },
+    h("div", {}, h("b", { text: t("conflict") }), t("conflict_hint")),
+    h("button", { class: "small", onclick: () => load(), text: t("conflict_load") }),
+    h("button", { class: "small", onclick: () => save(true), text: t("conflict_keep") })));
+}
+async function externalChange() {
+  if (isDirty()) return showConflict();
+  await load();
+  toast(t("updated_elsewhere"));
+}
+
+// ---------------------------------------------------------------- status & permissions
+function usesAccess() {
+  return !!cfg && Object.values(cfg.pages).some(p => Object.values(p.keys).some(k => (k.actions || []).some(a => NEEDS_ACCESS.has(a.type))));
+}
+function renderStatus(down = false) {
+  const c = $("#conn");
+  if (down) { c.className = "pill bad"; c.textContent = t("svc_down"); }
+  else if (status.connected) { c.className = "pill ok"; c.textContent = t("connected", { page: status.page }); }
+  else { c.className = "pill bad"; c.textContent = t("disconnected"); }
+  if (view === "settings") renderAbout(down);
+  const box = $("#banners");
+  const sig = down ? "down" : JSON.stringify([LANG, status.input_monitoring, status.accessibility && 1, usesAccess(), status.config_error]);
+  if (sig === renderStatus.sig) return;
+  renderStatus.sig = sig;
+  box.querySelectorAll(".perm").forEach(b => b.remove());
+  if (down) return;
+  const py = () => h("code", { text: status.python_app || "Python.app" });
+  const restart = () => h("button", { class: "small", onclick: restartService, text: t("restart") });
+  if (status.input_monitoring !== "granted")
+    box.append(h("div", { class: "banner perm" }, h("div", {},
+      h("b", { text: t("perm_input_b") }), t("perm_input_1"), py(), t("perm_input_2")),
+      h("button", { class: "small", onclick: () => perm("input"), text: t("open_settings") }), restart()));
+  if (status.accessibility === false && usesAccess())
+    box.append(h("div", { class: "banner perm" }, h("div", {},
+      h("b", { text: t("perm_ax_b") }), t("perm_ax_1"), py(), "."),
+      h("button", { class: "small", onclick: () => perm("accessibility"), text: t("open_settings") }), restart()));
+  if (status.config_error)
+    box.append(h("div", { class: "banner err perm" }, h("div", {}, h("b", { text: t("config_err") }), status.config_error)));
+}
+async function perm(which) {
+  try { status = await postJSON("/api/permissions", { which }); renderStatus(); } catch (e) { toast(e.message); }
+}
+async function restartService() {
+  try { await postJSON("/api/restart", {}); } catch {}
+  toast(t("restarting"));
+  setTimeout(poll, 6500);
+}
+let pollTimer;
+async function poll() {
+  clearTimeout(pollTimer);
+  const wasAccess = status.accessibility;
+  try { status = await getJSON("/api/status"); renderStatus(); }
+  catch { renderStatus(true); }
+  if (wasAccess !== status.accessibility && cfg) renderActions();
+  if (cfg && !busy && rev && status.config_rev && status.config_rev !== rev) await externalChange().catch(() => {});
+  pollTimer = setTimeout(poll, 3000);
+}
+
+// ---------------------------------------------------------------- settings
+function applyTheme() {
+  const th = cfg?.theme;
+  if (th === "light" || th === "dark") document.documentElement.dataset.theme = th;
+  else delete document.documentElement.dataset.theme;
+}
+function setLang(lang) {
+  LANG = lang === "es" ? "es" : "en";
+  try { localStorage.setItem("dp-lang", LANG); } catch {}
+  applyStatic();
+}
+function renderAll() {
+  applyStatic(); applyTheme();
+  renderTabs(); renderGrid(); renderEditor();
+  if (view === "settings") renderSettings();
+  renderStatus.sig = null; renderStatus();
+}
+// Settings are saved at once, apart from the keys' Save button: the same change is
+// applied to the loaded and the saved copy so it never shows up as unsaved.
+async function setSetting(patch) {
+  busy++;
+  try {
+    const res = await postJSON("/api/settings", patch);
+    const apply = (o) => { for (const [k, v] of Object.entries(patch)) o[k] = k === "mcp" ? { ...(o.mcp || {}), ...v } : v; return o; };
+    apply(cfg); saved = JSON.stringify(apply(JSON.parse(saved))); rev = res.rev || rev;
+    if ("language" in patch) { setLang(patch.language); renderAll(); }
+    if ("theme" in patch) applyTheme();
+    changed(false);
+    return true;
+  } catch (e) {
+    toast(t("setting_failed", { msg: e.message }));
+    renderSettings();
+    return false;
+  } finally { busy--; }
+}
+function setView(v) {
+  view = v;
+  $("#main").hidden = v !== "keys"; $("#settings").hidden = v !== "settings";
+  $("#nav-keys").setAttribute("aria-pressed", String(v === "keys"));
+  $("#nav-settings").setAttribute("aria-pressed", String(v === "settings"));
+  if (v === "settings") renderSettings(true);
+}
+let brightTimer;
+async function renderSettings(refresh = false) {
+  if (refresh || !mcpInfo) { try { mcpInfo = await getJSON("/api/mcp"); } catch {} }
+  const row = (label, control) => h("label", { class: "set-row" }, h("span", { text: label }), control);
+  const select = (value, opts, onchange) => h("select", { onchange }, opts.map(([v, txt]) => h("option", { value: v, text: txt, selected: value === v })));
+
+  const general = h("div", { class: "card stack" }, h("h2", { text: t("set_general") }),
+    row(t("set_language"), select(LANG, [["en", "English"], ["es", "Español"]], e => setSetting({ language: e.target.value }))),
+    row(t("set_theme"), select(cfg.theme || "system", [["system", t("theme_system")], ["light", t("theme_light")], ["dark", t("theme_dark")]],
+      e => setSetting({ theme: e.target.value }))),
+    h("small", { text: t("set_applied") }));
+
+  const out = h("output", { text: (cfg.brightness ?? 80) + " %" });
+  const pad = h("div", { class: "card stack" }, h("h2", { text: "DisplayPad" }),
+    h("div", {}, h("span", { class: "lbl", text: t("set_bright") }),
+      h("div", { class: "slider" }, h("input", { type: "range", min: 0, max: 100, step: 5, value: cfg.brightness ?? 80, "aria-label": t("set_bright"),
+        oninput: e => { out.textContent = e.target.value + " %"; clearTimeout(brightTimer);
+          brightTimer = setTimeout(() => setSetting({ brightness: +e.target.value }), 200); } }), out),
+      h("small", { text: t("set_bright_hint") })),
+    h("label", { class: "check" }, h("input", { type: "checkbox", checked: cfg.press_feedback !== false,
+      onchange: e => setSetting({ press_feedback: e.target.checked }) }), t("set_feedback")));
+
+  const m = cfg.mcp || {}, info = mcpInfo || {};
+  const secret = (s) => showToken ? s : "•".repeat(24);
+  const snippet = (shown, copied = shown) => h("pre", { class: "snippet" }, shown,
+    h("button", { class: "small", type: "button", onclick: () => copyText(copied), text: t("copy") }));
+  const bridge = info.bridge || "";
+  const desktop = (cmd) => JSON.stringify({ mcpServers: { displaypad: { command: cmd } } }, null, 2);
+  const ai = h("div", { class: "card stack" }, h("h2", { text: t("set_ai") }),
+    h("p", { class: "hint", style: "margin:0", text: t("ai_intro") }),
+    h("label", { class: "check" }, h("input", { type: "checkbox", id: "s-mcp", checked: !!m.enabled,
+      onchange: async e => { if (await setSetting({ mcp: { enabled: e.target.checked } })) renderSettings(true); } }), h("b", { text: t("ai_enable") })),
+    m.enabled ? [
+      h("div", {}, h("label", { class: "check" }, h("input", { type: "checkbox", checked: !!m.allow_run,
+        onchange: e => setSetting({ mcp: { allow_run: e.target.checked } }) }), t("ai_run")), h("small", { text: t("ai_run_hint") })),
+      h("div", {}, h("span", { class: "lbl", text: t("ai_url") }),
+        h("div", { class: "field-line" }, h("code", { text: info.url || "" }),
+          h("button", { class: "small", onclick: () => copyText(info.url || ""), text: t("copy") }))),
+      h("div", {}, h("span", { class: "lbl", text: t("ai_token") }),
+        h("div", { class: "field-line" }, h("code", { text: secret(info.token || "") }),
+          h("button", { class: "small", onclick: () => { showToken = !showToken; renderSettings(); }, text: showToken ? t("ai_hide") : t("ai_show") }),
+          h("button", { class: "small", onclick: () => copyText(info.token || ""), text: t("copy") }),
+          h("button", { class: "small danger", onclick: newToken, text: t("ai_new") }))),
+      h("h3", { text: t("ai_how") }),
+      info.bridge_installed ? [
+        h("b", { text: "Claude Code" }), h("small", { text: t("ai_cc_hint") }),
+        snippet(`claude mcp add --scope user displaypad -- "${bridge}"`),
+        h("b", { text: "Claude Desktop" }), h("small", { text: t("ai_cd_hint") }),
+        snippet(desktop(bridge)),
+      ] : h("small", { style: "color:var(--danger)", text: t("ai_no_bridge") }),
+      h("b", { text: t("ai_other") }),
+      h("small", { text: t("ai_other_http") }),
+      snippet(`URL: ${info.url}\nAuthorization: Bearer ${secret(info.token || "")}`, `URL: ${info.url}\nAuthorization: Bearer ${info.token}`),
+      info.bridge_installed ? [h("small", { text: t("ai_other_stdio") }), snippet(bridge)] : null,
+      h("small", { text: t("ai_try") }),
+      h("div", { class: "banner", style: "margin-top:0" }, h("div", { text: t("ai_warn") })),
+    ] : h("small", { text: t("ai_off_note") }));
+
+  const about = h("div", { class: "card stack" }, h("h2", { text: t("set_about") }),
+    h("dl", { class: "kv", id: "about-kv" }),
+    h("p", { class: "hint", style: "margin:0", text: t("about_ai") }),
+    h("p", { style: "margin:0" }, h("a", { href: REPO_URL, target: "_blank", rel: "noopener", text: t("about_source") })));
+
+  $("#settings").replaceChildren(general, pad, ai, about);
+  renderAbout();
+}
+function renderAbout(down = false) {
+  const kv = $("#about-kv");
+  if (!kv) return;
+  const yes = (ok, a, b) => h("span", { class: ok ? "ok-t" : "bad-t", text: ok ? a : b });
+  const rows = [
+    [t("about_version"), status.version || "—"],
+    [t("about_service"), yes(!down, t("about_running"), t("svc_down"))],
+    [t("about_device"), yes(!!status.connected, t("about_connected"), t("about_not_connected"))],
+    [t("about_input"), yes(status.input_monitoring === "granted", t("allowed"), t("not_allowed"))],
+    [t("about_ax"), yes(!!status.accessibility, t("allowed"), t("not_allowed"))],
+    status.animation?.keys ? [t("about_anim"), t("about_anim_v", { keys: status.animation.keys, fps: status.animation.fps || "…" })] : null,
+    [t("about_config"), h("code", { text: status.config_path || "" })],
+    [t("about_log"), h("code", { text: status.log_path || "" })],
+  ].filter(Boolean);
+  kv.replaceChildren(...rows.flatMap(([k, v]) => [h("dt", { text: k }), h("dd", {}, v)]));
+}
+async function newToken() {
+  if (!await ask(t("ai_new_ask"))) return;
+  try { mcpInfo = await postJSON("/api/mcp/token", {}); toast(t("ai_new_done")); renderSettings(); }
+  catch (e) { toast(e.message); }
+}
+
+// ---------------------------------------------------------------- boot
+async function load() {
+  const r = await api("/api/config");
+  rev = r.headers.get("X-Config-Rev") || "";
+  cfg = normalise(await r.json());
+  cfg.start_page = cfg.pages[cfg.start_page] ? cfg.start_page : Object.keys(cfg.pages)[0];
+  saved = JSON.stringify(cfg);
+  if (!page || !cfg.pages[page]) page = status.page && cfg.pages[status.page] ? status.page : cfg.start_page;
+  setLang(cfg.language || "en");
+  $("#banners .conflict")?.remove();
+  renderAll(); changed(false);
+}
+
+applyStatic();
+$("#dlg-cancel").onclick = () => $("#dlg").close("cancel");
+$("#save").onclick = () => save();
+$("#discard").onclick = discard;
+$("#nav-keys").onclick = () => setView("keys");
+$("#nav-settings").onclick = () => setView("settings");
+$("#pg-show").onclick = async () => {
+  if (JSON.stringify(cfg.pages[page]) !== JSON.stringify(JSON.parse(saved).pages[page])) return toast(t("save_page_first"));
+  await postJSON("/api/show-page", { page }); setTimeout(poll, 600);
+};
+$("#pg-start").onclick = () => { cfg.start_page = page; renderTabs(); changed(false); };
+$("#pg-rename").onclick = () => renamePage();
+$("#pg-delete").onclick = deletePage;
+
+(async () => {
+  if (!TOKEN) { $("#gate").hidden = false; return; }
+  $("#app").hidden = false;
+  try {
+    status = await getJSON("/api/status");
+    renderStatus();
+    getJSON("/api/apps").then(a => { apps = a; }).catch(() => {});
+    await load();
+    if (START_VIEW === "settings") setView("settings");
+    pollTimer = setTimeout(poll, 3000);
+  } catch (e) {
+    $("#app").hidden = true; $("#gate").hidden = false;
+    $("#gate p").textContent = e.status === 401 ? t("gate_bad_token") : t("gate_no_service", { msg: e.message });
+  }
+})();
+</script>
+</body>
+</html>

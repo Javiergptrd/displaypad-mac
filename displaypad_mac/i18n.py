@@ -1,0 +1,104 @@
+"""Messages the user can see (errors shown in the configurator), in English or Spanish.
+
+The code is written in English; t("English text {x}", x=...) looks the text up in
+the Spanish table when the language is "es". The language comes from config.json
+("language"), or DISPLAYPAD_LANG for child processes. A thread can force a
+language with `override("en")` (the MCP server always answers in English).
+"""
+
+import os
+import threading
+from contextlib import contextmanager
+
+LANGS = ("en", "es")
+_local = threading.local()
+_lang = os.environ.get("DISPLAYPAD_LANG") if os.environ.get("DISPLAYPAD_LANG") in LANGS else "en"
+
+
+def set_language(lang: str):
+    global _lang
+    _lang = lang if lang in LANGS else "en"
+
+
+def language() -> str:
+    return getattr(_local, "lang", None) or _lang
+
+
+@contextmanager
+def override(lang: str):
+    old = getattr(_local, "lang", None)
+    _local.lang = lang
+    try:
+        yield
+    finally:
+        _local.lang = old
+
+
+def t(msg: str, **kw) -> str:
+    text = ES.get(msg, msg) if language() == "es" else msg
+    return text.format(**kw) if kw else text
+
+
+ES = {
+    "that picture is not part of the configuration": "esa imagen no forma parte de la configuración",
+    "picture not found: {path}": "no se encontró la imagen: {path}",
+    # actions.py
+    "unknown action type '{kind}'": "tipo de acción desconocido '{kind}'",
+    "the '{kind}' action is missing '{field}'": "a la acción '{kind}' le falta '{field}'",
+    "invalid shortcut “{keys}”: use modifiers (cmd, shift, ctrl, alt) and one key, e.g. cmd+shift+4, ctrl+up, f5, return":
+        "atajo inválido «{keys}»: usa modificadores (cmd, shift, ctrl, alt) y una tecla, p. ej. cmd+shift+4, ctrl+up, f5, return",
+    "unknown media key '{key}'": "tecla multimedia desconocida '{key}'",
+    "the page '{page}' does not exist": "la página '{page}' no existe",
+    "brightness must be a number (50) or a change (+10 / -10)": "el brillo debe ser un número (50) o un cambio (+10 / -10)",
+    "display must be all, builtin or external": "pantalla debe ser all, builtin o external",
+    "the wait must be a number of milliseconds": "la espera debe ser un número de milisegundos",
+    "stopped: it took more than 30 seconds": "se detuvo: tardó más de 30 segundos",
+    "ended with code {code}": "terminó con código {code}",
+    "the Accessibility permission is needed to control the keyboard": "falta el permiso de Accesibilidad para controlar el teclado",
+    "no compatible display was found": "no se encontró ninguna pantalla compatible",
+    # daemon.py
+    "the configuration must be a JSON object": "la configuración debe ser un objeto JSON",
+    "at least one page is needed": "se necesita al menos una página",
+    "there is a page without a name": "hay una página sin nombre",
+    "page '{page}': key '{key}' must be from 1 to 12": "página '{page}': la tecla '{key}' debe ser del 1 al 12",
+    "page '{page}', key {key}: the key must be an object": "página '{page}', tecla {key}: la tecla debe ser un objeto",
+    "page '{page}', key {key}: the icon size must be a number from 30 to 200":
+        "página '{page}', tecla {key}: el tamaño del ícono debe ser un número entre 30 y 200",
+    "page '{page}', key {key}: hide_label must be true or false": "página '{page}', tecla {key}: hide_label debe ser true o false",
+    "page '{page}', key {key}: crop must be [left, top, right, bottom] as fractions of the picture, with right > left and bottom > top":
+        "página '{page}', tecla {key}: crop debe ser [izquierda, arriba, derecha, abajo] en fracciones de la imagen, con derecha > izquierda y abajo > arriba",
+    "page '{page}', key {key}: {error}": "página '{page}', tecla {key}: {error}",
+    "the start page '{page}' does not exist": "la página inicial '{page}' no existe",
+    "language must be one of: {values}": "language debe ser uno de: {values}",
+    "theme must be one of: {values}": "theme debe ser uno de: {values}",
+    "brightness must be a number from 0 to 100": "brightness debe ser un número del 0 al 100",
+    "mcp must be an object with true/false values": "mcp debe ser un objeto con valores true/false",
+    "{path}: invalid JSON at line {line}, column {col}: {msg}": "{path}: JSON inválido en la línea {line}, columna {col}: {msg}",
+    "the configuration was changed somewhere else (for example by an AI assistant); load it again before saving":
+        "la configuración cambió en otro lugar (por ejemplo, la cambió un asistente de IA); vuelve a cargarla antes de guardar",
+    # web.py
+    "file too large (12 MB max)": "archivo demasiado grande (máximo 12 MB)",
+    "invalid key: open the configurator from the DisplayPad app": "clave inválida: abre el configurador desde la app DisplayPad",
+    "could not read config.json: {error}": "no se pudo leer config.json: {error}",
+    "the file is not a valid image or animation (use PNG, JPG, GIF, WebP or Lottie .json / .lottie / .tgs)":
+        "el archivo no es una imagen ni una animación válida (usa PNG, JPG, GIF, WebP o Lottie .json / .lottie / .tgs)",
+    "unknown setting '{name}'": "ajuste desconocido '{name}'",
+    # anim.py
+    "the .lottie file is too large": "el archivo .lottie es demasiado grande",
+    "the .lottie file is damaged": "el archivo .lottie está dañado",
+    "the .lottie file contains no animation": "el archivo .lottie no contiene ninguna animación",
+    "the .tgs file is damaged": "el archivo .tgs está dañado",
+    "the animation is too large": "la animación es demasiado grande",
+    "the .lottie file does not contain a valid Lottie animation": "el archivo .lottie no contiene una animación Lottie válida",
+    "the JSON file cannot be read: {error}": "el archivo JSON no se puede leer: {error}",
+    "that JSON is not a Lottie animation (it has no “layers” and “op”)":
+        "ese JSON no es una animación Lottie (le faltan «layers» y «op»)",
+    "the Lottie animation is empty": "la animación Lottie está vacía",
+    "this Lottie animation was drawn without movement: it may use features the Lottie reader does not support. Try exporting it as a GIF.":
+        "esta animación Lottie se dibujó sin movimiento: puede usar funciones que el lector de Lottie no admite. "
+        "Prueba exportarla como GIF.",
+    "the animation took more than {seconds} s to prepare": "la animación tardó más de {seconds} s en prepararse",
+    "the Lottie animation could not be drawn (it may use features the pad does not support)":
+        "no se pudo dibujar la animación Lottie (puede usar funciones que el pad no admite)",
+    "the Lottie component is missing: run install.sh again": "falta el componente para Lottie: vuelve a ejecutar install.sh",
+}

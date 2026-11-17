@@ -1,0 +1,345 @@
+"""Local configurator and MCP endpoint: a small HTTP server inside the service.
+
+Security: binds to 127.0.0.1 only; the Host header must be 127.0.0.1/localhost so
+a DNS-rebinding page cannot reach it.
+- /api/*: the browser UI. Every call must carry the secret token (X-Token header)
+  that the launcher passes in the URL. Without it, any website could POST a
+  "shell" action through the browser.
+- /mcp: the MCP server for AI assistants (see mcp.py). Off until the user turns it
+  on in Settings; needs "Authorization: Bearer <.mcp-token>" and rejects requests
+  that a web page sends (Origin header from another site).
+"""
+
+import hmac
+import io
+import json
+import logging
+import os
+import secrets
+import subprocess
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+
+from PIL import Image
+
+from . import anim, daemon, i18n, macos, mcp  # daemon: circular, used at call time only
+from .actions import test_actions
+from .i18n import t
+from .render import frame_durations, render_key
+
+log = logging.getLogger(__name__)
+
+PORT = int(os.environ.get("DISPLAYPAD_PORT", "8765"))
+STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+MAX_BODY = 12 * 1024 * 1024
+APP_DIRS = ("/Applications", "/Applications/Utilities", "/System/Applications",
+            "/System/Applications/Utilities", os.path.expanduser("~/Applications"))
+SETTINGS_PANES = {
+    "input": "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent",
+    "accessibility": "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+}
+
+
+def load_token(base_dir: str, name: str = ".token", renew: bool = False) -> str:
+    path = os.path.join(base_dir, name)
+    if not renew:
+        try:
+            with open(path) as f:
+                tok = f.read().strip()
+            if len(tok) >= 32:
+                return tok
+        except OSError:
+            pass
+    tok = secrets.token_urlsafe(32)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(tok)
+    return tok
+
+
+def configurator_url(token: str) -> str:
+    return f"http://127.0.0.1:{PORT}/#t={token}"
+
+
+def mcp_url() -> str:
+    return f"http://127.0.0.1:{PORT}/mcp"
+
+
+def list_apps():
+    names = set()
+    for d in APP_DIRS:
+        try:
+            for n in os.listdir(d):
+                if n.endswith(".app"):
+                    names.add(n[:-4])
+        except OSError:
+            pass
+    return sorted(names, key=str.lower)
+
+
+IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
+               ".webp": "image/webp", ".bmp": "image/bmp", ".tif": "image/tiff", ".tiff": "image/tiff"}
+
+
+def key_image_path(service, rel: str) -> str:
+    """The file of a key picture, for the crop editor: only pictures in icons/ or ones
+    the configuration already uses, and only image types."""
+    base = service.cfg["base_dir"]
+    path = os.path.realpath(os.path.join(base, os.path.expanduser(rel or "")))
+    icons = os.path.realpath(os.path.join(base, "icons"))
+    used = {os.path.realpath(os.path.join(base, os.path.expanduser(s["image"])))
+            for slots in service.cfg["pages"].values() for s in slots if s and s.get("image")}
+    if not (path.startswith(icons + os.sep) or path in used):
+        raise PermissionError(t("that picture is not part of the configuration"))
+    if os.path.splitext(path)[1].lower() not in IMAGE_TYPES or not os.path.isfile(path):
+        raise FileNotFoundError(t("picture not found: {path}", path=rel))
+    return path
+
+
+def save_upload(data: bytes, base_dir: str) -> str:
+    """Store an uploaded picture under icons/: stills as PNG, animations
+    (GIF, WebP, APNG, Lottie .json/.lottie/.tgs) as animated WebP."""
+    icons = os.path.join(base_dir, "icons")
+    os.makedirs(icons, exist_ok=True)
+    stem = "icono-" + secrets.token_hex(4)
+    lottie = anim.lottie_json(data)
+    if lottie is not None:
+        info = anim.convert_lottie(lottie, os.path.join(icons, stem + ".webp"))
+        log.info("Lottie saved as %s.webp (%d frames, %d ms)", stem, info["frames"], info["ms"])
+        return f"icons/{stem}.webp"
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.load()
+    except Exception:
+        raise ValueError(t("the file is not a valid image or animation "
+                           "(use PNG, JPG, GIF, WebP or Lottie .json / .lottie / .tgs)"))
+    if getattr(img, "n_frames", 1) > 1:
+        frames = anim.read_frames(img, upload=True)
+        anim.save_webp(frames, os.path.join(icons, stem + ".webp"))
+        log.info("animation saved as %s.webp (%d frames)", stem, len(frames))
+        return f"icons/{stem}.webp"
+    # 3x the key size on the shorter side is plenty, also once a wide picture is cropped to a square
+    img = anim.limit_size(img.convert("RGBA"), 306, 4 * 306)
+    img.save(os.path.join(icons, stem + ".png"))
+    return f"icons/{stem}.png"
+
+
+class _Handler(BaseHTTPRequestHandler):
+    service = None  # set by start()
+    token = ""
+    server_version = "DisplayPadMac"
+
+    def log_message(self, fmt, *args):
+        log.debug("web: " + fmt, *args)
+
+    # ------------------------------------------------------------ helpers
+    def _host_ok(self) -> bool:
+        host = (self.headers.get("Host") or "").lower()
+        return host in (f"127.0.0.1:{PORT}", f"localhost:{PORT}")
+
+    def _origin_ok(self) -> bool:
+        origin = (self.headers.get("Origin") or "").lower()
+        return origin in ("", "null", f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}")
+
+    def _auth_ok(self) -> bool:
+        return hmac.compare_digest(self.headers.get("X-Token", ""), self.token)
+
+    def _send(self, code: int, body: bytes, ctype: str, headers: dict = None):
+        self.send_response(code)
+        for k, v in (headers or {}).items():
+            self.send_header(k, str(v))
+        if body or code != 202:
+            self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _json(self, obj, code: int = 200, headers: dict = None):
+        self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8", headers)
+
+    def _body(self) -> bytes:
+        n = int(self.headers.get("Content-Length") or 0)
+        if n > MAX_BODY:
+            raise ValueError(t("file too large (12 MB max)"))
+        return self.rfile.read(n)
+
+    def _guard(self) -> bool:
+        if not self._host_ok():
+            self._send(403, b"forbidden", "text/plain")
+            return False
+        if urlparse(self.path).path.startswith("/api/") and not self._auth_ok():
+            self._json({"error": t("invalid key: open the configurator from the DisplayPad app")}, 401)
+            return False
+        return True
+
+    def _mcp_info(self) -> dict:
+        svc = self.service
+        base = svc.cfg["base_dir"]
+        bridge = os.path.join(base, "displaypad-mcp")
+        return {"url": mcp_url(), "token": svc.mcp_token, "bridge": bridge,
+                "bridge_installed": os.access(bridge, os.X_OK), "enabled": svc.cfg["mcp"]["enabled"]}
+
+    # ------------------------------------------------------------ MCP (AI assistants)
+    def _mcp_error(self, code: int, message: str):
+        self._json({"jsonrpc": "2.0", "id": None, "error": {"code": -32001, "message": message}}, code)
+
+    def _mcp(self, method: str):
+        svc = self.service
+        if not self._host_ok() or not self._origin_ok():
+            return self._send(403, b"forbidden", "text/plain")
+        if method != "POST":  # no server-to-client stream: every answer comes back on the POST
+            return self._send(405, b"method not allowed", "text/plain", {"Allow": "POST"})
+        if not svc.cfg["mcp"]["enabled"]:
+            return self._mcp_error(403, "AI assistants are turned off: turn on \"Allow AI assistants to connect\" "
+                                        "in the DisplayPad app, Settings > AI assistants")
+        if not hmac.compare_digest(self.headers.get("Authorization", ""), "Bearer " + svc.mcp_token):
+            return self._mcp_error(401, "missing or wrong access key: copy it from the DisplayPad app, "
+                                        "Settings > AI assistants (header \"Authorization: Bearer <key>\")")
+        try:
+            msg = json.loads(self._body() or b"null")
+        except ValueError as e:
+            return self._json({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {e}"}}, 400)
+        with i18n.override("en"):  # assistants get English, whatever the UI language
+            if isinstance(msg, list):  # JSON-RPC batch (protocol 2025-03-26)
+                out = [r for r in (mcp.handle(m, svc) for m in msg) if r is not None]
+            else:
+                out = mcp.handle(msg, svc)
+        if not out:
+            return self._send(202, b"", "")
+        self._json(out)
+
+    # ------------------------------------------------------------ routes
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path == "/mcp":
+            return self._mcp("GET")
+        if not self._guard():
+            return
+        svc = self.service
+        if path in ("/", "/index.html"):
+            with open(os.path.join(STATIC, "index.html"), "rb") as f:
+                self._send(200, f.read(), "text/html; charset=utf-8")
+        elif path == "/api/config":
+            try:
+                with open(svc.config_path, "rb") as f:
+                    data = f.read()
+                rev = svc.config_rev()
+                self._json(json.loads(data), headers={"X-Config-Rev": rev})
+            except (OSError, ValueError) as e:
+                self._json({"error": t("could not read config.json: {error}", error=e)}, 500)
+        elif path == "/api/status":
+            self._json(svc.status())
+        elif path == "/api/apps":
+            self._json(list_apps())
+        elif path == "/api/mcp":
+            self._json(self._mcp_info())
+        elif path == "/api/image":  # the original picture of a key, for the crop editor
+            rel = parse_qs(urlparse(self.path).query).get("path", [""])[0]
+            try:
+                file = key_image_path(svc, rel)
+            except PermissionError as e:
+                return self._json({"error": str(e)}, 403)
+            except FileNotFoundError as e:
+                return self._json({"error": str(e)}, 404)
+            with open(file, "rb") as f:
+                self._send(200, f.read(), IMAGE_TYPES[os.path.splitext(file)[1].lower()])
+        else:
+            self._send(404, b"not found", "text/plain")
+
+    def do_DELETE(self):
+        if urlparse(self.path).path == "/mcp":
+            return self._mcp("DELETE")
+        self._send(405, b"method not allowed", "text/plain")
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        if path == "/mcp":
+            return self._mcp("POST")
+        if not self._guard():
+            return
+        svc = self.service
+        try:
+            if path == "/api/render":
+                spec = json.loads(self._body() or b"{}") or None
+                base = svc.cfg["base_dir"]
+                if parse_qs(urlparse(self.path).query).get("first"):  # quick still, e.g. while cropping
+                    buf = io.BytesIO()
+                    render_key(spec, base, first_only=True).save(buf, "PNG")
+                    return self._send(200, buf.getvalue(), "image/png")
+                durs = frame_durations(spec, base)
+                buf = io.BytesIO()
+                if durs:  # animated preview, frame for frame what the pad shows
+                    frames = [render_key(spec, base, frame=i) for i in range(len(durs))]
+                    frames[0].save(buf, "WEBP", save_all=True, append_images=frames[1:], duration=durs,
+                                   loop=0, lossless=True, quality=0, method=0)
+                    self._send(200, buf.getvalue(), "image/webp",
+                               {"X-Frames": len(durs), "X-Duration": sum(durs)})
+                else:
+                    render_key(spec, base).save(buf, "PNG")
+                    self._send(200, buf.getvalue(), "image/png")
+            elif path == "/api/upload":
+                self._json({"path": save_upload(self._body(), svc.cfg["base_dir"])})
+            elif path == "/api/test":
+                body = json.loads(self._body())
+                pages = (body.get("pages") or svc.cfg["pages"])
+                self._json(test_actions(body.get("spec") or {}, svc, pages))
+            elif path == "/api/settings":
+                self._json({"rev": svc.update_settings(json.loads(self._body() or b"{}"))})
+            elif path == "/api/mcp/token":
+                svc.mcp_token = load_token(svc.cfg["base_dir"], ".mcp-token", renew=True)
+                log.info("new MCP access key created")
+                self._json(self._mcp_info())
+            elif path == "/api/show-page":
+                page = json.loads(self._body()).get("page")
+                if page in svc.cfg["pages"]:
+                    svc.request_page(page)
+                self._json({"ok": True})
+            elif path == "/api/permissions":
+                which = json.loads(self._body() or b"{}").get("which")
+                if which == "input":
+                    macos.request_input_monitoring()
+                elif which == "accessibility":
+                    macos.request_post_events()
+                if which in SETTINGS_PANES:
+                    subprocess.Popen(["open", SETTINGS_PANES[which]])
+                self._json(svc.status())
+            elif path == "/api/restart":
+                # launchd (KeepAlive) starts the service again; needed after granting a permission
+                self._json({"ok": True})
+                threading.Timer(0.3, svc.stop).start()
+            else:
+                self._send(404, b"not found", "text/plain")
+        except Exception as e:
+            log.warning("web %s failed: %s", path, e)
+            self._json({"error": str(e)}, 400)
+
+    def do_PUT(self):
+        if not self._guard():
+            return
+        if urlparse(self.path).path != "/api/config":
+            self._send(404, b"not found", "text/plain")
+            return
+        try:
+            raw = json.loads(self._body())
+            rev = self.service.save_config(raw, self.headers.get("X-Config-Rev", ""))
+            self._json({"ok": True, "rev": rev})
+        except daemon.ConfigConflict as e:
+            self._json({"error": str(e), "conflict": True}, 409)
+        except Exception as e:
+            self._json({"error": str(e)}, 400)
+
+
+def start(service, token: str):
+    handler = type("Handler", (_Handler,), {"service": service, "token": token})
+    try:
+        httpd = ThreadingHTTPServer(("127.0.0.1", PORT), handler)
+    except OSError as e:
+        log.error("configurator could not listen on 127.0.0.1:%d: %s", PORT, e)
+        return None
+    threading.Thread(target=httpd.serve_forever, daemon=True, name="configurator").start()
+    log.info("configurator on http://127.0.0.1:%d", PORT)
+    return httpd

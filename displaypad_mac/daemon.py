@@ -1,0 +1,463 @@
+"""Background service: keeps the DisplayPad drawn and runs key actions.
+
+- Reconnects by itself after unplug, sleep/wake or a device reset.
+- Reloads config.json on save (no restart needed).
+- A watchdog exits the process if a USB write ever hangs; launchd restarts it.
+- Animated keys: the pad keeps no animation of its own, so the main loop sends
+  one frame at a time to whichever key is most overdue, and reads key presses
+  between frames. The pad takes ~18 ms per key image, so ~50 frames per second
+  are shared by all the animated keys of the page; when they ask for more,
+  frames are skipped so every animation keeps its real speed.
+"""
+
+import bisect
+import fcntl
+import hashlib
+import itertools
+import json
+import logging
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from typing import Dict, List, Optional
+
+from . import __version__, i18n, macos, web
+from .actions import NEEDS_POST_EVENTS, actions_of, run_actions, validate_action
+from .driver import NUM_KEYS, DisplayPad, DisplayPadError, device_present
+from .i18n import t
+from .render import crop_of, frame_durations, render_key, to_bgr
+
+log = logging.getLogger(__name__)
+
+APP_DIR = os.path.expanduser("~/Library/Application Support/DisplayPadMac")
+DEFAULT_CONFIG = os.path.join(APP_DIR, "config.json")
+WATCHDOG_SECONDS = 8
+THEMES = ("system", "light", "dark")
+SETTINGS = ("language", "theme", "brightness", "press_feedback", "mcp")
+
+
+class ConfigError(Exception):
+    pass
+
+
+class ConfigConflict(ConfigError):
+    """The file changed since the caller read it (another window or an AI assistant saved)."""
+
+
+def _crop_ok(crop) -> bool:
+    """[left, top, right, bottom] as fractions of the picture; it may reach past the
+    edges (zoomed out), within reason."""
+    c = crop_of({"crop": crop})
+    return c is not None and all(-10 <= v <= 11 for v in c) and c[2] - c[0] <= 12 and c[3] - c[1] <= 12
+
+
+def parse_config(cfg: dict, base_dir: str) -> dict:
+    """Validate a raw config dict and return the normalised form the service uses."""
+    if not isinstance(cfg, dict):
+        raise ConfigError(t("the configuration must be a JSON object"))
+    pages = cfg.get("pages")
+    if not isinstance(pages, dict) or not pages:
+        raise ConfigError(t("at least one page is needed"))
+    norm: Dict[str, List[Optional[dict]]] = {}
+    for name, page in pages.items():
+        if not str(name).strip():
+            raise ConfigError(t("there is a page without a name"))
+        keys = (page or {}).get("keys", {})
+        slots: List[Optional[dict]] = [None] * NUM_KEYS
+        for k, spec in keys.items():
+            if not str(k).isdigit() or not 1 <= int(k) <= NUM_KEYS:
+                raise ConfigError(t("page '{page}': key '{key}' must be from 1 to 12", page=name, key=k))
+            if spec is not None and not isinstance(spec, dict):
+                raise ConfigError(t("page '{page}', key {key}: the key must be an object", page=name, key=k))
+            slots[int(k) - 1] = spec or None
+            scale = (spec or {}).get("icon_scale", 100)
+            if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not 30 <= scale <= 200:
+                raise ConfigError(t("page '{page}', key {key}: the icon size must be a number from 30 to 200", page=name, key=k))
+            if not isinstance((spec or {}).get("hide_label", False), bool):
+                raise ConfigError(t("page '{page}', key {key}: hide_label must be true or false", page=name, key=k))
+            if (spec or {}).get("crop") is not None and not _crop_ok(spec["crop"]):
+                raise ConfigError(t("page '{page}', key {key}: crop must be [left, top, right, bottom] as fractions "
+                                    "of the picture, with right > left and bottom > top", page=name, key=k))
+            for a in actions_of(spec or {}):
+                err = validate_action(a, pages)
+                if err:
+                    raise ConfigError(t("page '{page}', key {key}: {error}", page=name, key=k, error=err))
+        norm[name] = slots
+    start = cfg.get("start_page", next(iter(pages)))
+    if start not in norm:
+        raise ConfigError(t("the start page '{page}' does not exist", page=start))
+    lang = cfg.get("language", "en")
+    if lang not in i18n.LANGS:
+        raise ConfigError(t("language must be one of: {values}", values=", ".join(i18n.LANGS)))
+    theme = cfg.get("theme", "system")
+    if theme not in THEMES:
+        raise ConfigError(t("theme must be one of: {values}", values=", ".join(THEMES)))
+    bright = cfg.get("brightness", 80)
+    if isinstance(bright, bool) or not isinstance(bright, (int, float)):
+        raise ConfigError(t("brightness must be a number from 0 to 100"))
+    mcp = cfg.get("mcp", {})
+    if not isinstance(mcp, dict) or not all(isinstance(v, bool) for v in mcp.values()):
+        raise ConfigError(t("mcp must be an object with true/false values"))
+    return {"pages": norm, "start_page": start,
+            "brightness": max(0, min(100, int(bright))),
+            "press_feedback": bool(cfg.get("press_feedback", True)),
+            "language": lang, "theme": theme,
+            "mcp": {"enabled": mcp.get("enabled", False), "allow_run": mcp.get("allow_run", False)},
+            "base_dir": base_dir}
+
+
+def load_config(path: str) -> dict:
+    try:
+        with open(path, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ConfigError(t("{path}: invalid JSON at line {line}, column {col}: {msg}",
+                            path=path, line=e.lineno, col=e.colno, msg=e.msg))
+    return parse_config(cfg, os.path.dirname(os.path.abspath(path)))
+
+
+class Service:
+    def __init__(self, config_path: str):
+        self.config_path = config_path
+        self.pad = DisplayPad()
+        self.config_error = ""
+        try:
+            self.cfg = load_config(config_path)
+        except Exception as e:  # keep running so the configurator can fix it
+            log.error("config error, starting with an empty page: %s", e)
+            self.config_error = str(e)
+            self.cfg = parse_config({"pages": {"home": {"keys": {}}}},
+                                    os.path.dirname(os.path.abspath(config_path)))
+        i18n.set_language(self.cfg["language"])
+        self._mtime = os.path.getmtime(config_path)
+        self.page = self.cfg["start_page"]
+        self.history: List[str] = []
+        self.brightness = self.cfg["brightness"]
+        self._pending_page: Optional[str] = None
+        self._pending_brightness: Optional[int] = None
+        self._faces: Dict[tuple, bytes] = {}
+        self._anims: Dict[int, dict] = {}        # key index -> timeline, frame shown, next due time
+        self._anim_faces: Dict[tuple, bytes] = {}  # (key index, frame, pressed) -> BGR, current page only
+        self._anim_stats = (0.0, 0.0)              # (frames per second sent, ms per frame) for the status
+        self._anim_window: List[tuple] = []
+        self._pressed: set = set()
+        self._stop = threading.Event()
+        self._reload = threading.Event()
+        self._cfg_lock = threading.Lock()  # one read-modify-write of config.json at a time
+        self.token = web.load_token(self.cfg["base_dir"])
+        self.mcp_token = web.load_token(self.cfg["base_dir"], ".mcp-token")
+
+    # -------------------------------------------------- called from actions
+    def request_page(self, name: str):
+        if name == "back" or name in self.cfg["pages"]:
+            self._pending_page = name
+
+    def open_configurator(self):
+        subprocess.Popen(["open", web.configurator_url(self.token)])
+
+    # -------------------------------------------------- called from the configurator
+    def status(self) -> dict:
+        return {"connected": self.pad.connected, "page": self.page, "brightness": self.brightness,
+                "input_monitoring": macos.input_monitoring_status(),
+                "accessibility": macos.post_events_allowed(),
+                "python_app": os.path.join(sys.base_prefix, "Resources", "Python.app"),
+                "config_error": self.config_error, "version": __version__,
+                "config_rev": self.config_rev(), "config_path": self.config_path,
+                "log_path": os.path.expanduser("~/Library/Logs/DisplayPadMac.log"),
+                "language": self.cfg["language"], "mcp": self.cfg["mcp"],
+                "animation": {"keys": len(self._anims), "fps": self._anim_stats[0],
+                              "ms_per_frame": self._anim_stats[1]}}
+
+    def config_rev(self) -> str:
+        """Short hash of config.json, so a window or an assistant can tell it changed under them."""
+        try:
+            with open(self.config_path, "rb") as f:
+                return hashlib.sha1(f.read()).hexdigest()[:12]
+        except OSError:
+            return ""
+
+    def read_config(self) -> dict:
+        with open(self.config_path, encoding="utf-8") as f:
+            return json.load(f)
+
+    def _write_config(self, raw: dict) -> str:
+        parse_config(raw, self.cfg["base_dir"])  # raises ConfigError with a readable message
+        if os.path.exists(self.config_path):
+            shutil.copy2(self.config_path, self.config_path + ".previous")
+        tmp = self.config_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(raw, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        os.replace(tmp, self.config_path)
+        self._reload.set()
+        return self.config_rev()
+
+    def save_config(self, raw: dict, expect_rev: str = "") -> str:
+        """Replace the whole config (the configurator's Save). With expect_rev, refuse when
+        the file changed since the caller loaded it. Returns the new revision."""
+        with self._cfg_lock:
+            if expect_rev and expect_rev != self.config_rev():
+                raise ConfigConflict(t("the configuration was changed somewhere else (for example by an AI "
+                                       "assistant); load it again before saving"))
+            return self._write_config(raw)
+
+    def update_config(self, change) -> str:
+        """Read config.json, let change(raw) edit it in place, validate and save it."""
+        with self._cfg_lock:
+            raw = self.read_config()
+            change(raw)
+            return self._write_config(raw)
+
+    def update_settings(self, patch: dict) -> str:
+        """Save general settings at once, leaving pages and keys (and unsaved edits) alone."""
+        for name in patch:
+            if name not in SETTINGS:
+                raise ConfigError(t("unknown setting '{name}'", name=name))
+        if "mcp" in patch and not isinstance(patch["mcp"], dict):
+            raise ConfigError(t("mcp must be an object with true/false values"))
+
+        def change(raw):
+            for name, value in patch.items():
+                if name == "mcp":
+                    raw["mcp"] = {**(raw.get("mcp") or {}), **value}
+                else:
+                    raw[name] = value
+        rev = self.update_config(change)
+        if "language" in patch:
+            i18n.set_language(patch["language"])
+        if "mcp" in patch:  # at once, not after the main loop's reload: the next request may be an assistant's
+            self.cfg["mcp"] = {**self.cfg["mcp"], **patch["mcp"]}
+        return rev
+
+    def change_brightness(self, value):
+        if isinstance(value, str) and value[:1] in "+-":
+            self._pending_brightness = max(0, min(100, self.brightness + int(value)))
+        else:
+            self._pending_brightness = max(0, min(100, int(value)))
+
+    # -------------------------------------------------- drawing
+    def _face(self, page: str, idx: int, pressed: bool = False) -> bytes:
+        a = self._anims.get(idx) if page == self.page else None
+        if a:  # animated: the frame currently shown
+            key = (idx, a["i"], pressed)
+            if key not in self._anim_faces:
+                spec = self.cfg["pages"][page][idx]
+                self._anim_faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed, frame=a["i"]))
+            return self._anim_faces[key]
+        key = (page, idx, pressed)
+        if key not in self._faces:
+            spec = self.cfg["pages"][page][idx]
+            self._faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed))
+        return self._faces[key]
+
+    def draw_page(self):
+        t = time.monotonic()
+        self._anims, self._anim_faces, self._anim_window, self._anim_stats = {}, {}, [], (0.0, 0.0)
+        for i, spec in enumerate(self.cfg["pages"][self.page]):
+            durs = frame_durations(spec, self.cfg["base_dir"]) if spec else None
+            if durs:
+                ends = list(itertools.accumulate(durs))  # ms from the loop start at which each frame ends
+                self._anims[i] = {"ends": ends, "total": ends[-1], "i": 0, "t0": 0.0, "due": 0.0, "sent": None}
+        for i in range(NUM_KEYS):
+            face = self._face(self.page, i)
+            self.pad.upload(i, face)
+            if i in self._anims:
+                a = self._anims[i]
+                a["t0"], a["sent"] = time.monotonic(), face
+                a["due"] = a["t0"] + a["ends"][0] / 1000
+        log.info("page '%s' drawn in %.2fs%s", self.page, time.monotonic() - t,
+                 f", {len(self._anims)} animated key(s)" if self._anims else "")
+
+    def _animate(self) -> float:
+        """Send the frame that should be showing now on the most overdue animated key.
+        Returns the seconds until another frame is due (0 right after sending one)."""
+        hold = self._pressed if self.cfg["press_feedback"] else set()
+        due = [(a["due"], i) for i, a in self._anims.items() if i not in hold]
+        if not due:
+            return 0.04
+        when, idx = min(due)
+        now = time.monotonic()
+        if when > now:
+            return when - now
+        a = self._anims[idx]
+        pos = ((now - a["t0"]) * 1000 + 0.5) % a["total"]  # ms into the loop; frames in between are skipped
+        i = min(bisect.bisect_right(a["ends"], pos), len(a["ends"]) - 1)
+        end = now + (a["ends"][i] - pos) / 1000
+        if i == a["i"]:
+            a["due"] = end
+            return 0.0
+        a["i"] = i
+        face = self._face(self.page, idx)
+        if face == a["sent"]:  # nothing changed on this key, keep the USB time for the others
+            a["due"] = end
+            return 0.0
+        t = time.monotonic()
+        self.pad.upload(idx, face)
+        done = time.monotonic()
+        a["sent"], a["due"] = face, max(end, done)
+        self._anim_window.append((done, done - t))
+        if len(self._anim_window) >= 60:
+            w = self._anim_window
+            span = w[-1][0] - w[0][0]
+            self._anim_stats = (round((len(w) - 1) / span, 1) if span > 0 else 0.0,
+                                round(1000 * sum(d for _, d in w) / len(w), 1))
+            self._anim_window = []
+        return 0.0
+
+    # -------------------------------------------------- main loop
+    def _connect(self):
+        self.pad.open()
+        self.pad.set_brightness(self.brightness)
+        self._pressed = set()
+        self.draw_page()
+
+    def _check_config(self):
+        try:
+            mtime = os.path.getmtime(self.config_path)
+        except OSError:
+            return
+        if mtime == self._mtime:
+            return
+        self._mtime = mtime
+        try:
+            cfg = load_config(self.config_path)
+        except Exception as e:
+            self.config_error = str(e)
+            log.error("config not reloaded: %s", e)
+            return
+        self.config_error = ""
+        self.cfg, self._faces = cfg, {}
+        i18n.set_language(cfg["language"])
+        if self.page not in cfg["pages"]:
+            self.page, self.history = cfg["start_page"], []
+        if cfg["brightness"] != self.brightness:
+            self._pending_brightness = cfg["brightness"]
+        log.info("config reloaded")
+        if self.pad.connected:
+            self.draw_page()
+
+    def _on_keys(self, keys: set):
+        for k in sorted(keys - self._pressed):
+            spec = self.cfg["pages"][self.page][k]
+            log.info("key %d pressed on '%s'", k + 1, self.page)
+            if spec and self.cfg["press_feedback"]:
+                self.pad.upload(k, self._face(self.page, k, pressed=True))
+            if spec:
+                threading.Thread(target=run_actions, args=(spec, self), daemon=True).start()
+        for k in sorted(self._pressed - keys):
+            spec = self.cfg["pages"][self.page][k]
+            if spec and self.cfg["press_feedback"] and self._pending_page is None:
+                self.pad.upload(k, self._face(self.page, k))
+        self._pressed = keys
+
+    def _apply_pending(self):
+        if self._pending_brightness is not None:
+            self.brightness, self._pending_brightness = self._pending_brightness, None
+            self.pad.set_brightness(self.brightness)
+            log.info("brightness %d%%", self.brightness)
+        if self._pending_page is not None and not self._pressed:
+            target, self._pending_page = self._pending_page, None
+            if target == "back":
+                target = self.history.pop() if self.history else self.cfg["start_page"]
+            elif target != self.page:
+                self.history = (self.history + [self.page])[-20:]
+            if target not in self.cfg["pages"]:  # page deleted in the configurator
+                target, self.history = self.cfg["start_page"], []
+            self.page = target
+            self.draw_page()
+
+    def _watchdog(self):
+        while not self._stop.wait(1):
+            since = self.pad.busy_since
+            if since and time.monotonic() - since > WATCHDOG_SECONDS:
+                log.critical("USB write hung for %ss, exiting so launchd restarts the service", WATCHDOG_SECONDS)
+                os._exit(3)
+
+    def run(self):
+        threading.Thread(target=self._watchdog, daemon=True).start()
+        web.start(self, self.token)
+        last_cfg_check = 0.0
+        waiting_logged = False
+        while not self._stop.is_set():
+            if self._reload.is_set() or time.monotonic() - last_cfg_check > 1:
+                self._reload.clear()
+                last_cfg_check = time.monotonic()
+                self._check_config()
+            if not self.pad.connected:
+                if not device_present():
+                    if not waiting_logged:
+                        log.info("waiting for the DisplayPad to be connected...")
+                        waiting_logged = True
+                    self._stop.wait(1.5)
+                    continue
+                try:
+                    self._connect()
+                    waiting_logged = False
+                    log.info("DisplayPad ready")
+                except PermissionError as e:
+                    log.error("%s", e)
+                    self.pad.close()
+                    self._stop.wait(10)
+                except Exception as e:
+                    log.warning("connect failed: %s", e)
+                    self.pad.close()
+                    self._stop.wait(2)
+                continue
+            try:
+                self._apply_pending()
+                wait = self._animate()
+                keys = self.pad.read_keys(max(1, min(40, int(wait * 1000))))
+                if keys is not None:
+                    self._on_keys(keys)
+            except (DisplayPadError, OSError, ValueError) as e:
+                log.warning("device lost: %s", e)
+                self.pad.close()
+            except Exception as e:  # pyusb errors and anything unexpected
+                log.warning("device error: %s", e)
+                self.pad.close()
+        self.pad.close()
+
+    def stop(self, *_):
+        self._stop.set()
+
+
+def check_permissions(cfg: dict):
+    if os.environ.get("DISPLAYPAD_NO_PROMPT"):
+        return
+    status = macos.input_monitoring_status()
+    if status != "granted":
+        log.warning("Input Monitoring is %s; asking macOS for it", status)
+        macos.request_input_monitoring()
+    uses_events = any(a.get("type") in NEEDS_POST_EVENTS
+                      for page in cfg["pages"].values() for spec in page if spec
+                      for a in actions_of(spec))
+    if uses_events and not macos.post_events_allowed():
+        log.warning("Accessibility (keyboard control) not granted; shortcuts/text/media keys "
+                    "will not work until it is allowed in System Settings > Privacy & Security")
+        macos.request_post_events()
+
+
+def single_instance():
+    fh = open(os.path.join(tempfile.gettempdir(), f"displaypadmac-{os.getuid()}.lock"), "w")
+    try:
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit("Another DisplayPadMac instance is already running "
+                         "(stop it with: launchctl bootout gui/$(id -u)/com.displaypadmac.agent)")
+    return fh
+
+
+def main(config_path: str):
+    lock = single_instance()  # noqa: F841 (held for the life of the process)
+    svc = Service(config_path)
+    signal.signal(signal.SIGTERM, svc.stop)
+    signal.signal(signal.SIGINT, svc.stop)
+    check_permissions(svc.cfg)
+    log.info("DisplayPadMac running with %s", config_path)
+    svc.run()
+    log.info("stopped")

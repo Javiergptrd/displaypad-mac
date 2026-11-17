@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Your own setup (the installer creates it in ~/Library/Application Support/DisplayPadMac)
+config.json
+config.json.previous
+.token
+.mcp-token
+icons/*
+!icons/.keep
+
+# Generated
+preview-*.png
+*.zip
+
+# macOS
+.DS_Store

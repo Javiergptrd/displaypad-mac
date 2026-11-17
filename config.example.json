@@ -1,0 +1,42 @@
+{
+  "language": "en",
+  "theme": "system",
+  "brightness": 80,
+  "press_feedback": true,
+  "mcp": {"enabled": false, "allow_run": false},
+  "start_page": "home",
+  "pages": {
+    "home": {
+      "keys": {
+        "1":  {"emoji": "📧", "label": "Outlook",    "color": "#0B3A66", "action": {"type": "open", "target": "Microsoft Outlook"}},
+        "2":  {"emoji": "💬", "label": "Teams",      "color": "#33356E", "action": {"type": "open", "target": "Microsoft Teams"}},
+        "3":  {"emoji": "📊", "label": "Excel",      "color": "#0E4D2A", "action": {"type": "open", "target": "Microsoft Excel"}},
+        "4":  {"emoji": "🌐", "label": "Chrome",     "color": "#1D3557", "action": {"type": "open", "target": "Google Chrome"}},
+        "5":  {"emoji": "📁", "label": "Finder",     "color": "#26323F", "action": {"type": "open", "target": "~"}},
+        "6":  {"emoji": "🧮", "label": "Calculator", "color": "#3A2E1F", "action": {"type": "open", "target": "Calculator"}},
+        "7":  {"emoji": "📸", "label": "Screenshot", "color": "#2E2440", "action": {"type": "shortcut", "keys": "cmd+shift+4"}},
+        "8":  {"emoji": "🔒", "label": "Lock",       "color": "#3F1F24", "action": {"type": "shortcut", "keys": "ctrl+cmd+q"}},
+        "9":  {"emoji": "⏯️", "label": "Music",      "color": "#1F2A24", "action": {"type": "media", "key": "play_pause"}},
+        "10": {"emoji": "🔉", "label": "Vol −",      "color": "#1F2A24", "action": {"type": "media", "key": "volume_down"}},
+        "11": {"emoji": "🔊", "label": "Vol +",      "color": "#1F2A24", "action": {"type": "media", "key": "volume_up"}},
+        "12": {"emoji": "➡️", "label": "More",       "color": "#2B2B33", "action": {"type": "page", "page": "more"}}
+      }
+    },
+    "more": {
+      "keys": {
+        "1":  {"emoji": "⬅️", "label": "Back",       "color": "#2B2B33", "action": {"type": "page", "page": "back"}},
+        "2":  {"emoji": "🔅", "label": "Screen −",   "color": "#3A341C", "action": {"type": "screen_brightness", "value": "-10", "display": "all"}},
+        "3":  {"emoji": "🔆", "label": "Screen +",   "color": "#3A341C", "action": {"type": "screen_brightness", "value": "+10", "display": "all"}},
+        "4":  {"emoji": "⏮️", "label": "Previous",   "color": "#1F2A24", "action": {"type": "media", "key": "previous"}},
+        "5":  {"emoji": "⏭️", "label": "Next",       "color": "#1F2A24", "action": {"type": "media", "key": "next"}},
+        "6":  {"emoji": "🔇", "label": "Mute",       "color": "#1F2A24", "action": {"type": "media", "key": "mute"}},
+        "7":  {"emoji": "📝", "label": "Notes",      "color": "#3A341C", "action": {"type": "open", "target": "Notes"}},
+        "8":  {"emoji": "📅", "label": "Calendar",   "color": "#3F1F24", "action": {"type": "open", "target": "Calendar"}},
+        "9":  {"emoji": "🎨", "label": "Figma",      "color": "#2E2440", "action": {"type": "open", "target": "Figma"}},
+        "10": {"emoji": "⚙️", "label": "Configure",  "color": "#26323F", "action": {"type": "configurator"}},
+        "11": {"emoji": "✍️", "label": "Sign-off",   "color": "#0B3A66", "action": {"type": "text", "text": "Best regards,\n"}},
+        "12": {"emoji": "🪟", "label": "Windows",    "color": "#26323F", "action": {"type": "shortcut", "keys": "ctrl+up"}}
+      }
+    }
+  }
+}
