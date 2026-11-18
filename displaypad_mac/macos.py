@@ -7,6 +7,7 @@ Everything here uses ctypes against system frameworks, so no PyObjC is needed.
 import ctypes
 import ctypes.util
 import logging
+import threading
 import time
 
 log = logging.getLogger(__name__)
@@ -175,13 +176,25 @@ _cg.CGEventPost.argtypes = [ctypes.c_uint32, vp]
 _cg.CGEventKeyboardSetUnicodeString.argtypes = [vp, ctypes.c_ulong, ctypes.POINTER(ctypes.c_uint16)]
 _kCGHIDEventTap = 0
 
-MODIFIERS = {
-    "cmd": 0x100000, "command": 0x100000, "⌘": 0x100000,
-    "shift": 0x20000, "⇧": 0x20000,
-    "ctrl": 0x40000, "control": 0x40000, "⌃": 0x40000,
-    "alt": 0x80000, "option": 0x80000, "opt": 0x80000, "⌥": 0x80000,
-    "fn": 0x800000,
+# Modifier keys: name -> (virtual key code, flag, device-dependent flag of that side).
+# Plain names are the left keys; "r" names are the right ones. macOS turns a posted
+# event for one of these codes into a real "modifier changed" event with that side's bit,
+# so apps that tell the sides apart (push-to-talk, "right ⌘ alone") see the real key.
+MOD_KEYS = {
+    "cmd": (55, 0x100000, 0x08), "rcmd": (54, 0x100000, 0x10),
+    "shift": (56, 0x20000, 0x02), "rshift": (60, 0x20000, 0x04),
+    "ctrl": (59, 0x40000, 0x01), "rctrl": (62, 0x40000, 0x2000),
+    "alt": (58, 0x80000, 0x20), "ralt": (61, 0x80000, 0x40),
+    "fn": (63, 0x800000, 0),
 }
+MOD_ALIASES = {
+    "command": "cmd", "⌘": "cmd", "lcmd": "cmd", "rcommand": "rcmd",
+    "⇧": "shift", "lshift": "shift",
+    "control": "ctrl", "⌃": "ctrl", "lctrl": "ctrl", "rcontrol": "rctrl",
+    "option": "alt", "opt": "alt", "⌥": "alt", "lalt": "alt", "loption": "alt",
+    "roption": "ralt", "ropt": "ralt",
+}
+MODIFIERS = {name: flag for name, (_, flag, _) in MOD_KEYS.items()}  # kept for older callers
 
 # US-ANSI virtual key codes (physical positions).
 KEYCODES = {
@@ -196,34 +209,105 @@ KEYCODES = {
     "f9": 101, "f10": 109, "f11": 103, "f12": 111, "f13": 105, "f14": 107, "f15": 113,
     "f16": 106, "f17": 64, "f18": 79, "f19": 80, "f20": 90,
     "home": 115, "end": 119, "pageup": 116, "pagedown": 121, "forwarddelete": 117,
-    "left": 123, "right": 124, "down": 125, "up": 126,
+    "help": 114, "left": 123, "right": 124, "down": 125, "up": 126,
+    "section": 10, "eisu": 102, "kana": 104,
+    "kp0": 82, "kp1": 83, "kp2": 84, "kp3": 85, "kp4": 86, "kp5": 87, "kp6": 88, "kp7": 89,
+    "kp8": 91, "kp9": 92, "kpdecimal": 65, "kpmultiply": 67, "kpplus": 69, "kpclear": 71,
+    "kpdivide": 75, "kpenter": 76, "kpminus": 78, "kpequals": 81,
 }
+
+MAX_HOLD = 600  # seconds: a held key is let go after 10 minutes even if the pad never says so
 
 
 def parse_shortcut(spec: str):
-    """'cmd+shift+4' -> (keycode, flags). Raises ValueError on unknown names."""
-    parts = [p.strip().lower() for p in spec.replace(" ", "").split("+") if p.strip()]
+    """'cmd+shift+4' -> (["cmd", "shift"], "4"); 'rcmd' -> (["rcmd"], None).
+
+    Any number of modifiers, then one key; or modifiers alone, pressed together and let
+    go together (a single modifier is pressed by itself). Raises ValueError."""
+    parts = [p.strip().lower() for p in str(spec).replace(" ", "").split("+") if p.strip()]
     if not parts:
         raise ValueError("empty shortcut")
-    flags = 0
-    for mod in parts[:-1]:
-        if mod not in MODIFIERS:
-            raise ValueError(f"unknown modifier '{mod}' in '{spec}'")
-        flags |= MODIFIERS[mod]
-    key = parts[-1]
-    if key not in KEYCODES:
-        raise ValueError(f"unknown key '{key}' in '{spec}'")
-    return KEYCODES[key], flags
+    mods, key = [], None
+    for i, part in enumerate(parts):
+        name = MOD_ALIASES.get(part, part)
+        if name in MOD_KEYS:
+            if name not in mods:
+                mods.append(name)
+        elif i == len(parts) - 1 and part in KEYCODES:
+            key = part
+        elif part in KEYCODES:
+            raise ValueError(f"'{part}' must be the last key in '{spec}'")
+        else:
+            raise ValueError(f"unknown key '{part}' in '{spec}'")
+    return mods, key
 
 
-def press_shortcut(spec: str):
-    keycode, flags = parse_shortcut(spec)
-    for down in (True, False):
-        ev = _cg.CGEventCreateKeyboardEvent(None, keycode, down)
-        _cg.CGEventSetFlags(ev, flags)
-        _cg.CGEventPost(_kCGHIDEventTap, ev)
-        _cf.CFRelease(ev)
-        time.sleep(0.01)
+_down: dict = {}  # key code -> flags, for every key this process is holding down
+_down_lock = threading.Lock()
+
+
+def _post(code: int, down: bool, flags: int):
+    ev = _cg.CGEventCreateKeyboardEvent(None, code, down)
+    _cg.CGEventSetFlags(ev, flags)
+    _cg.CGEventPost(_kCGHIDEventTap, ev)
+    _cf.CFRelease(ev)
+    with _down_lock:
+        if down:
+            _down[code] = flags
+        else:
+            _down.pop(code, None)
+
+
+def _up(code: int, flags: int):
+    """Key up, only if this process still holds the key (release_all may have let it go)."""
+    with _down_lock:
+        if code not in _down:
+            return
+    _post(code, False, flags)
+
+
+def _flags(mods) -> int:
+    f = 0
+    for m in mods:
+        f |= MOD_KEYS[m][1] | MOD_KEYS[m][2]
+    return f
+
+
+def press_shortcut(spec: str, hold=None, max_hold: float = MAX_HOLD):
+    """Press a shortcut like a keyboard does: modifiers down, the key down and up, modifiers up.
+
+    hold: a threading.Event; the keys stay down until it is set (the pad key is let go)
+    or for max_hold seconds."""
+    mods, key = parse_shortcut(spec)
+    # fn with another key is only a flag (like the keyboard sends it); fn alone is its own key
+    pressed_mods = [m for m in mods if m != "fn" or key is None and len(mods) == 1]
+    held = []
+    try:
+        for m in pressed_mods:
+            held.append(m)
+            _post(MOD_KEYS[m][0], True, _flags(held))
+            time.sleep(0.008)
+        if key is not None:
+            _post(KEYCODES[key], True, _flags(mods))
+        if hold is not None:
+            hold.wait(max_hold)
+        else:
+            time.sleep(0.01)
+    finally:
+        if key is not None:
+            _up(KEYCODES[key], _flags(mods))
+        while held:
+            m = held.pop()
+            time.sleep(0.008)
+            _up(MOD_KEYS[m][0], _flags(held))
+
+
+def release_all():
+    """Let go of every key still held (service stopping or the pad unplugged mid-hold)."""
+    with _down_lock:
+        codes = list(_down)
+    for code in reversed(codes):  # the key first, then its modifiers
+        _post(code, False, 0)
 
 
 def type_text(text: str, delay: float = 0.004):

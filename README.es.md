@@ -2,7 +2,7 @@
 
 Usa el **Mountain DisplayPad** (USB `3282:0009`) en macOS sin BaseCamp: una imagen o
 animación en cada una de las 12 teclas, varias páginas y una o varias acciones por tecla
-(abrir apps, atajos de teclado, texto, teclas multimedia, scripts, brillo de las
+(abrir apps, atajos de teclado, texto, teclas multimedia, macros, scripts, brillo de las
 pantallas). Funciona como un servicio en segundo plano, con un **configurador gráfico**
 en el navegador y un **servidor MCP** opcional para que un asistente de IA te ayude a
 configurar tus teclas.
@@ -23,13 +23,19 @@ configurar tus teclas.
 - **Las imágenes nunca se estiran:** las teclas son cuadradas, así que una imagen ancha o
   alta abre un editor de encuadre donde la mueves y la acercas para elegir la parte que
   muestra la tecla, o la muestras completa. Funciona igual con GIF y Lottie.
+- **Carpetas:** cualquier tecla puede ser una carpeta con 11 teclas más, y puedes poner
+  carpetas dentro de carpetas. La tecla 1 de una carpeta siempre te lleva atrás.
 - **Páginas:** todas las que quieras, con tecla «Volver» y página inicial.
 - **Acciones:** abrir una app, web o carpeta; atajos de teclado; escribir texto;
   reproducir/pausar, volumen y otras teclas multimedia; comandos de terminal; AppleScript;
   cambiar de página; brillo de las pantallas del Mac (la integrada y las externas por
   DDC/CI) y del pad; pausas entre acciones. Varias acciones por tecla, en orden.
+- **Macros:** graba lo que haces con el teclado y el mouse (teclas, clics, arrastres,
+  desplazamiento), edita los pasos y las esperas, y reprodúcelo desde una tecla una vez,
+  varias veces, mientras mantienes la tecla, o encendido y apagado con cada pulsación.
 - **Configurador:** arrastra teclas para intercambiarlas, suelta imágenes sobre ellas,
-  graba atajos y prueba las acciones antes de guardar. En inglés y español, claro y oscuro.
+  graba atajos (una sola tecla, o los modificadores izquierdo y derecho por separado) o
+  elígelos en un teclado en pantalla, y prueba las acciones antes de guardar. En inglés y español, claro y oscuro.
 - **Asistentes de IA (MCP):** Claude, Cursor, VS Code o cualquier app MCP de tu Mac puede
   leer y cambiar tu configuración si lo permites. Desactivado por defecto.
 - **Servicio:** arranca al iniciar sesión, se reconecta solo después de dormir el Mac o
@@ -68,7 +74,7 @@ macOS pide dos permisos para **Python**. El instalador muestra la ruta del `Pyth
 que los necesita.
 
 - **Monitoreo de entrada:** sin él, el servicio no puede activar el DisplayPad.
-- **Accesibilidad:** lo necesitan las acciones de atajo, texto y teclas multimedia.
+- **Accesibilidad:** lo necesitan las acciones de atajo, texto, teclas multimedia y macro.
 
 Si macOS no lo pide, abre *Ajustes del Sistema → Privacidad y seguridad*, abre la
 sección, pulsa **+** y elige ese `Python.app`. Después pulsa **Restart service**
@@ -93,19 +99,41 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
   (★) o muéstrala en el pad.
 - **Teclas:** haz clic en una para editarla. Arrastra una tecla sobre otra para
   intercambiarlas, o suelta una imagen sobre ella. Copia y pega teclas entre páginas.
+- **Carpetas:** en el editor de la tecla, **Convertir esta tecla en carpeta** y luego
+  **Abrir carpeta ›** (o doble clic en la tecla). Dentro, la tecla 1 es una tecla
+  **Volver** fija y la ruta de arriba (`inicio › Trabajo`) te lleva hacia arriba. Para
+  mover una tecla a una carpeta, arrástrala y mantenla sobre la carpeta hasta que se abra,
+  y suéltala donde quieras. Igual con **Volver**, un paso de la ruta o la pestaña de una
+  página; si la sueltas justo encima, va a la primera tecla libre de ahí. En el pad, al
+  pulsar una tecla carpeta se abre.
 - **Apariencia:** emoji (con paleta rápida), imagen o solo texto; texto, colores y tamaño
   del ícono. Marca **Ocultar el texto en la tecla** para conservar el texto sin dibujarlo.
   La vista previa es exactamente lo que dibuja el pad.
 - **Ajustar encuadre:** al añadir una imagen o animación que no es cuadrada, se abre una
-  ventana donde la arrastras y la acercas o alejas (control, rueda del ratón, pellizco en
+  ventana donde la arrastras y la acercas o alejas (control, rueda del mouse, pellizco en
   el trackpad, o flechas y + / −) dentro de un cuadrado del tamaño de la tecla. **Imagen
   completa** la muestra entera con el color de la tecla alrededor; **Llenar la tecla**
   cubre la tecla con su centro. La imagen mantiene sus proporciones y el archivo original
   no cambia, así que puedes volver a encuadrarla con **Ajustar encuadre…** en la pestaña
   Imagen.
-- **Acciones:** varias por tecla, en orden. El grabador de atajos captura las teclas que
-  pulses. **▶ Probar** ejecuta las acciones y muestra la salida o el error de los comandos
+- **Acciones:** varias por tecla, en orden. **Grabar** captura las teclas que pulses: una
+  combinación como ⌘⇧4, una sola tecla como F13 o un modificador solo, y distingue la
+  izquierda de la derecha (⌘ derecho se guarda como `rcmd`). **Teclado…** abre un teclado
+  en pantalla para elegir las teclas con el mouse, para las que el navegador se reserva
+  (⌘Q, ⌘W, fn) y para el teclado numérico. **Mantener las teclas pulsadas mientras
+  mantienes la tecla del pad** sirve para apps que reaccionan a una tecla mantenida, como
+  el dictado de pulsar para hablar. **▶ Probar** ejecuta las acciones y muestra la salida o el error de los comandos
   de terminal y AppleScript.
+- **Macros:** agrega una acción **Macro (teclado y mouse)** y pulsa **● Grabar…**. Elige
+  qué grabar (el teclado; los clics, arrastres y desplazamiento del mouse; y el movimiento
+  del puntero si lo necesitas) y pulsa **Empezar a grabar**: tienes 3 segundos para
+  cambiar a tu app. Haz lo que debe hacer la macro y luego pulsa cualquier tecla del
+  DisplayPad (o **Detener** en el configurador). **Editar pasos…** muestra cada paso:
+  cambia teclas, botones, posiciones y esperas, agrega o mueve pasos, o pon la misma
+  espera en todo. **Reproducción** la reproduce una vez, varias veces, mientras mantienes
+  la tecla del pad o de una pulsación a la siguiente; **Esperas** mantiene las grabadas,
+  usa una espera fija o ninguna. **▶ Probar** la reproduce una vez a los 3 segundos, y
+  mientras una macro se reproduce aparece un aviso con **Detener**.
 - **Guardar** (⌘S) revisa todo antes y te dice qué tecla tiene un problema. La versión
   anterior queda en `config.json.previous`.
 
@@ -262,13 +290,14 @@ completo.
 | `color` | Color de fondo, por ejemplo `#1C1C24` |
 | `text_color` | Color del texto |
 | `action` / `actions` | Una acción, o una lista que se ejecuta en orden |
+| `folder` | Convierte la tecla en carpeta: `{"keys": {"2": {...}, "3": {...}}}`, con las teclas 2 a 12 (la 1 es su tecla Volver). Una carpeta puede tener carpetas. Sus propias acciones, si tiene, se ejecutan antes de abrirla |
 
 **Acciones**
 
 | `type` | Campos | Ejemplo |
 |---|---|---|
 | `open` | `target`: app, URL o carpeta | `"Microsoft Excel"`, `"https://..."`, `"~/Documents"` |
-| `shortcut` | `keys` | `"cmd+shift+4"`, `"ctrl+cmd+q"`, `"cmd+alt+esc"`, `"f5"` |
+| `shortcut` | `keys`; `hold`: `true` las mantiene pulsadas mientras mantienes la tecla del pad | `"cmd+shift+4"`, `"f5"`, `"rcmd"`, `"ctrl+rshift"` |
 | `text` | `text` (`\n` pulsa Enter) | `"Saludos cordiales,\n"` |
 | `media` | `key` | `play_pause`, `next`, `previous`, `volume_up`, `volume_down`, `mute`, `brightness_up`, `brightness_down` |
 | `shell` | `command` | `"say listo"` |
@@ -277,14 +306,52 @@ completo.
 | `screen_brightness` | `value`: un nivel o `"+10"` / `"-10"`; `display`: `all`, `builtin` o `external` | `{"value": "-10", "display": "all"}` |
 | `brightness` | `value`: brillo del propio pad, un nivel o `"+10"` / `"-10"` | `"+20"` |
 | `delay` | `ms`: espera entre acciones | `250` |
+| `macro` | `steps`; `play`: `once`, `repeat` (con `times`), `while_held` o `toggle`; `delays`: `recorded`, `fixed` (con `delay_ms`) o `none` | ver abajo |
 | `configurator` | ninguno: abre el configurador | |
 
 `screen_brightness` cambia la pantalla del MacBook (como F1/F2) y los monitores externos
 por DDC/CI (activa DDC/CI en el menú del monitor si no responde).
 
-Modificadores de `shortcut`: `cmd`, `shift`, `ctrl`, `alt`/`option`, `fn`. Teclas: letras,
-números, `f1` a `f20`, `return`, `tab`, `space`, `esc`, `delete`, `forwarddelete`, flechas
-(`up`, `down`, `left`, `right`), `home`, `end`, `pageup`, `pagedown` y signos.
+Modificadores de `shortcut`: `cmd`, `shift`, `ctrl`, `alt`/`option`, `fn` (los de la
+izquierda) y `rcmd`, `rshift`, `rctrl`, `ralt` (los de la derecha). Teclas: letras, números,
+`f1` a `f20`, `return`, `tab`, `space`, `esc`, `delete`, `forwarddelete`, flechas (`up`,
+`down`, `left`, `right`), `home`, `end`, `pageup`, `pagedown`, `help`, `section` (§), el
+teclado numérico (`kp0` a `kp9`, `kpdecimal`, `kpplus`, `kpminus`, `kpmultiply`,
+`kpdivide`, `kpequals`, `kpenter`, `kpclear`) y signos.
+
+Un atajo también puede ser una sola tecla (`"f13"`) o modificadores solos (`"rcmd"`), para
+apps que empiezan a escuchar cuando pulsas una tecla. Añade `"hold": true` para mantener
+las teclas pulsadas mientras mantienes la tecla del pad; se sueltan cuando la sueltas
+(como mucho a los 10 minutos). Sin esto, las teclas se pulsan y se sueltan enseguida.
+
+```json
+{"type": "shortcut", "keys": "rcmd", "hold": true}
+```
+
+Una macro es una lista de pasos que se reproducen en orden. El configurador los graba por
+ti, pero también puedes escribirlos:
+
+| Paso | Campos |
+|---|---|
+| `keys` | `keys`: un atajo completo, pulsado y soltado (`"cmd+c"`) |
+| `key_down`, `key_up` | `key`: una tecla o modificador (`"rcmd"`, `"a"`) |
+| `text` | `text`: se escribe tal cual |
+| `click` | `button` (`left`, `right`, `middle`, `back`, `forward`), `count` (2 es doble clic), `x`, `y` |
+| `mouse_down`, `mouse_up` | `button`, `x`, `y` |
+| `move` | `x`, `y` (arrastra si hay un botón presionado) |
+| `scroll` | `dy`, `dx` en píxeles (`dy` positivo desplaza hacia arriba), `x`, `y` |
+| `wait` | `ms` |
+
+`x` e `y` son puntos de pantalla desde la esquina superior izquierda de la pantalla
+principal; si los omites, se usa donde esté el puntero. Pulsar la tecla otra vez mientras
+una macro se reproduce no hace nada, salvo detener una `toggle`. Las teclas o botones que
+una macro tenga presionados se sueltan cuando termina o se detiene.
+
+```json
+{"type": "macro", "play": "repeat", "times": 3, "steps": [
+  {"do": "keys", "keys": "cmd+a"}, {"do": "wait", "ms": 100},
+  {"do": "text", "text": "Hola"}, {"do": "click", "x": 640, "y": 400}]}
+```
 
 ## Comandos útiles
 

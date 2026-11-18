@@ -1,7 +1,8 @@
 """Key actions. Each key has "action": {...} or "actions": [{...}, ...].
 
   {"type": "open", "target": "Safari" | "https://..." | "~/Documents"}
-  {"type": "shortcut", "keys": "cmd+shift+4"}
+  {"type": "shortcut", "keys": "cmd+shift+4"}                (also one key: "rcmd", "f13")
+  {"type": "shortcut", "keys": "ralt", "hold": true}          (held while the pad key is held)
   {"type": "text", "text": "Hello\\n"}
   {"type": "media", "key": "play_pause|next|previous|volume_up|volume_down|mute"}
   {"type": "shell", "command": "say hello"}
@@ -11,24 +12,26 @@
   {"type": "brightness", "value": 60 | "+10" | "-10"}      (DisplayPad backlight)
   {"type": "configurator"}                                 (open the settings page)
   {"type": "delay", "ms": 250}
+  {"type": "macro", "steps": [...], "play": "once|repeat|while_held|toggle"}   (see macro.py)
 """
 
 import logging
 import os
 import subprocess
+import threading
 import time
 
-from . import macos, screens
+from . import macos, macro, screens
 from .i18n import t
 
 log = logging.getLogger(__name__)
 
-NEEDS_POST_EVENTS = {"shortcut", "text", "media"}
+NEEDS_POST_EVENTS = {"shortcut", "text", "media", "macro"}
 
 
 _REQUIRED = {"open": "target", "shortcut": "keys", "text": "text", "media": "key", "shell": "command",
              "applescript": "script", "page": "page", "brightness": "value",
-             "screen_brightness": "value", "delay": "ms", "configurator": None}
+             "screen_brightness": "value", "delay": "ms", "configurator": None, "macro": None}
 
 
 def _is_level(value) -> bool:
@@ -48,8 +51,11 @@ def validate_action(action: dict, pages: dict) -> str:
         try:
             macos.parse_shortcut(action["keys"])
         except ValueError:
-            return t("invalid shortcut “{keys}”: use modifiers (cmd, shift, ctrl, alt) and one key, "
-                     "e.g. cmd+shift+4, ctrl+up, f5, return", keys=action["keys"])
+            return t("invalid shortcut “{keys}”: use modifiers (cmd, shift, ctrl, alt, fn; rcmd, rshift, "
+                     "rctrl, ralt for the right ones) and one key, or a single key, e.g. cmd+shift+4, f5, rcmd",
+                     keys=action["keys"])
+        if action.get("hold") not in (None, True, False):
+            return t("hold must be true or false")
     if kind == "media" and action["key"] not in macos.MEDIA_KEYS:
         return t("unknown media key '{key}'", key=action["key"])
     if kind == "page" and action["page"] != "back" and action["page"] not in pages:
@@ -60,6 +66,8 @@ def validate_action(action: dict, pages: dict) -> str:
         return t("display must be all, builtin or external")
     if kind == "delay" and not str(action["ms"]).isdigit():
         return t("the wait must be a number of milliseconds")
+    if kind == "macro":
+        return macro.validate(action)
     return ""
 
 
@@ -88,12 +96,17 @@ def _background(cmd: list):
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
 
-def run_action(action: dict, ctx):
+def run_action(action: dict, ctx, released=None):
+    """released: a threading.Event set when the pad key is let go (for "hold" shortcuts)."""
     kind = action.get("type")
     if kind == "open":
         _open(action["target"])
     elif kind == "shortcut":
-        macos.press_shortcut(action["keys"])
+        if action.get("hold"):
+            macos.press_shortcut(action["keys"], hold=released or threading.Event(),
+                                 max_hold=macos.MAX_HOLD if released else 0.3)
+        else:
+            macos.press_shortcut(action["keys"])
     elif kind == "text":
         macos.type_text(action["text"])
     elif kind == "media":
@@ -113,14 +126,16 @@ def run_action(action: dict, ctx):
         ctx.open_configurator()
     elif kind == "delay":
         time.sleep(float(action.get("ms", 100)) / 1000)
+    elif kind == "macro":
+        macro.play(action, released)
     else:
         raise ValueError(f"unknown action type '{kind}'")
 
 
-def run_actions(spec: dict, ctx):
+def run_actions(spec: dict, ctx, released=None):
     for action in actions_of(spec):
         try:
-            run_action(action, ctx)
+            run_action(action, ctx, released)
         except Exception as e:
             log.error("action %s failed: %s", action, e)
             break
@@ -156,6 +171,16 @@ def test_actions(spec: dict, ctx, pages: dict) -> list:
             elif kind == "screen_brightness":
                 lines = screens.change_brightness(str(action["value"]), action.get("display", "all"))
                 res = {"ok": bool(lines), "output": "\n".join(lines) or t("no compatible display was found")}
+            elif kind == "shortcut" and action.get("hold"):  # no pad key to let go: hold it for a second
+                macos.press_shortcut(action["keys"], hold=threading.Event(), max_hold=1.0)
+                res = {"ok": True, "output": t("held down for 1 second")}
+            elif kind == "macro":  # after a countdown, so the user can switch to the app it is for
+                r = macro.play(action, test=True)
+                if r["stopped"]:
+                    res = {"ok": False, "output": t("stopped after {seconds} s", seconds=r["seconds"])}
+                else:
+                    res = {"ok": True, "output": t("played {steps} steps in {seconds} s", steps=r["steps"],
+                                                     seconds=r["seconds"])}
             else:
                 run_action(action, ctx)
                 res = {"ok": True, "output": ""}

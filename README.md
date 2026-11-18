@@ -2,7 +2,7 @@
 
 Use the **Mountain DisplayPad** (USB `3282:0009`) on macOS, without BaseCamp: a picture
 or animation on each of the 12 keys, several pages, and one or more actions per key
-(open apps, keyboard shortcuts, typed text, media keys, scripts, screen brightness).
+(open apps, keyboard shortcuts, typed text, media keys, macros, scripts, screen brightness).
 It runs as a background service and comes with a **visual configurator** in the browser
 and an optional **MCP server**, so an AI assistant can help you set up your keys.
 
@@ -22,12 +22,18 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
 - **Pictures are never stretched:** keys are square, so a wide or tall picture opens a
   framing editor where you move and zoom it to choose the part the key shows, or show
   it whole. It works the same for GIF and Lottie animations.
+- **Folders:** any key can be a folder with 11 more keys, and folders can go inside
+  folders. Key 1 in a folder always takes you back.
 - **Pages:** as many as you like, with a "back" key and a start page.
 - **Actions:** open an app, URL or folder; keyboard shortcuts; type text; play/pause,
   volume and other media keys; shell commands; AppleScript; change page; brightness of the
   Mac's screens (built-in and external over DDC/CI) and of the pad; pauses between actions.
   Several actions per key run in order.
-- **Configurator:** drag keys to swap them, drop pictures on them, record shortcuts,
+- **Macros:** record what you do with the keyboard and the mouse (keys, clicks, drags,
+  scrolling), edit the steps and the delays, and play it from a key once, several times,
+  while the key is held, or on and off with each press.
+- **Configurator:** drag keys to swap them, drop pictures on them, record shortcuts
+  (a single key, or left and right modifiers apart) or pick them on an on-screen keyboard,
   test actions and see their output before you save. English and Spanish, light and dark.
 - **AI assistants (MCP):** Claude, Cursor, VS Code or any MCP app on your Mac can read
   and change your setup when you allow it. Off by default.
@@ -66,7 +72,7 @@ macOS asks for two permissions for **Python**. The installer prints the path of 
 `Python.app` that needs them.
 
 - **Input Monitoring:** without it the service cannot switch the DisplayPad on.
-- **Accessibility:** needed by the shortcut, text and media key actions.
+- **Accessibility:** needed by the shortcut, text, media key and macro actions.
 
 If macOS doesn't ask, open *System Settings → Privacy & Security*, open the section,
 press **+** and choose that `Python.app`. Then press **Restart service** in the
@@ -89,6 +95,12 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   or show a page on the pad.
 - **Keys:** click a key to edit it. Drag a key onto another to swap them, or drop a
   picture on it. Copy and paste keys between pages.
+- **Folders:** in the key editor, **Make this key a folder**, then **Open folder ›** (or
+  double-click the key). Inside, key 1 is a fixed **Back** key and the path at the top
+  (`home › Work`) takes you up. To move a key into a folder, drag it and hold it over the
+  folder until it opens, then drop it where you want it. Holding it over **Back**, a step
+  of the path or a page tab works the same way, and dropping it right on one of them
+  puts it in the first free key there. On the pad, pressing a folder key opens it.
 - **Appearance:** emoji (with a quick palette), image or text only; label, colors and
   icon size. Tick **Hide the text on the key** to keep the label without drawing it.
   The preview is exactly what the pad draws.
@@ -98,9 +110,22 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   with the key color around it; **Fill the key** covers the key with its middle. The
   picture keeps its proportions; the original file is not changed, so you can reframe
   it later with **Adjust framing…** in the Image tab.
-- **Actions:** several per key, in order. The shortcut recorder captures the keys you
-  press. **▶ Test** runs the actions and shows the output or error of shell commands and
+- **Actions:** several per key, in order. **Record** captures the keys you press: a
+  combination like ⌘⇧4, a single key like F13, or a modifier on its own, and it tells left
+  from right (Right ⌘ is saved as `rcmd`). **Keyboard…** opens an on-screen keyboard to
+  pick keys with the mouse, for the ones the browser keeps for itself (⌘Q, ⌘W, fn) and
+  for the numeric keypad. **Hold the keys down while the pad key is held** is for apps
+  that react to a held key, like push-to-talk dictation. **▶ Test** runs the actions and shows the output or error of shell commands and
   AppleScript.
+- **Macros:** add a **Macro (keyboard and mouse)** action and press **● Record…**. Choose
+  what to record (the keyboard, mouse clicks, drags and scrolling, and pointer moves if
+  you need them) and press **Start recording**: you have 3 seconds to switch to your app.
+  Do what the macro should do, then press any key on the DisplayPad (or **Stop** in the
+  configurator). **Edit steps…** lists every step: change keys, buttons, positions and
+  waits, add or move steps, or put the same wait everywhere. **Playback** plays it once,
+  a number of times, while the pad key is held, or from one press to the next;
+  **Delays** keeps the recorded waits, uses one fixed wait, or none. **▶ Test** plays it
+  once after 3 seconds, and a banner with **Stop** shows while a macro is playing.
 - **Save** (⌘S) checks everything first and tells you which key has a problem. The
   previous file is kept as `config.json.previous`.
 
@@ -255,13 +280,14 @@ reloaded as soon as you save it.** Keys are numbered 1 to 12: 1-6 on the top row
 | `color` | Background color, e.g. `#1C1C24` |
 | `text_color` | Text color |
 | `action` / `actions` | One action, or a list run in order |
+| `folder` | Makes the key a folder: `{"keys": {"2": {...}, "3": {...}}}`, with keys 2 to 12 (key 1 is its Back key). A folder can hold folders. Its own actions, if any, run before it opens |
 
 **Actions**
 
 | `type` | Fields | Example |
 |---|---|---|
 | `open` | `target`: app, URL or folder | `"Microsoft Excel"`, `"https://..."`, `"~/Documents"` |
-| `shortcut` | `keys` | `"cmd+shift+4"`, `"ctrl+cmd+q"`, `"cmd+alt+esc"`, `"f5"` |
+| `shortcut` | `keys`; `hold`: `true` keeps them down while the pad key is held | `"cmd+shift+4"`, `"f5"`, `"rcmd"`, `"ctrl+rshift"` |
 | `text` | `text` (`\n` presses Return) | `"Best regards,\n"` |
 | `media` | `key` | `play_pause`, `next`, `previous`, `volume_up`, `volume_down`, `mute`, `brightness_up`, `brightness_down` |
 | `shell` | `command` | `"say done"` |
@@ -270,15 +296,52 @@ reloaded as soon as you save it.** Keys are numbered 1 to 12: 1-6 on the top row
 | `screen_brightness` | `value`: a level or `"+10"` / `"-10"`; `display`: `all`, `builtin` or `external` | `{"value": "-10", "display": "all"}` |
 | `brightness` | `value`: the pad's own brightness, a level or `"+10"` / `"-10"` | `"+20"` |
 | `delay` | `ms`: wait between actions | `250` |
+| `macro` | `steps`; `play`: `once`, `repeat` (with `times`), `while_held` or `toggle`; `delays`: `recorded`, `fixed` (with `delay_ms`) or `none` | see below |
 | `configurator` | none: opens the configurator | |
 
 `screen_brightness` changes the MacBook screen (like F1/F2) and external monitors over
 DDC/CI (turn DDC/CI on in the monitor's menu if it doesn't respond).
 
-Shortcut modifiers: `cmd`, `shift`, `ctrl`, `alt`/`option`, `fn`. Keys: letters,
-numbers, `f1` to `f20`, `return`, `tab`, `space`, `esc`, `delete`, `forwarddelete`,
-arrows (`up`, `down`, `left`, `right`), `home`, `end`, `pageup`, `pagedown` and
-punctuation.
+Shortcut modifiers: `cmd`, `shift`, `ctrl`, `alt`/`option`, `fn` (the left keys) and
+`rcmd`, `rshift`, `rctrl`, `ralt` (the right ones). Keys: letters, numbers, `f1` to `f20`,
+`return`, `tab`, `space`, `esc`, `delete`, `forwarddelete`, arrows (`up`, `down`, `left`,
+`right`), `home`, `end`, `pageup`, `pagedown`, `help`, `section` (§), the numeric keypad
+(`kp0` to `kp9`, `kpdecimal`, `kpplus`, `kpminus`, `kpmultiply`, `kpdivide`, `kpequals`,
+`kpenter`, `kpclear`) and punctuation.
+
+A shortcut can also be a single key (`"f13"`) or modifiers alone (`"rcmd"`), for apps
+that start listening when you press one key. Add `"hold": true` to keep the keys down for
+as long as you hold the pad key; they come up when you let go (after 10 minutes at most).
+Without it, the keys are pressed and let go at once.
+
+```json
+{"type": "shortcut", "keys": "rcmd", "hold": true}
+```
+
+A macro is a list of steps played in order. The configurator records them for you, but
+you can also write them:
+
+| Step | Fields |
+|---|---|
+| `keys` | `keys`: a whole shortcut, pressed and let go (`"cmd+c"`) |
+| `key_down`, `key_up` | `key`: one key or modifier (`"rcmd"`, `"a"`) |
+| `text` | `text`: typed as is |
+| `click` | `button` (`left`, `right`, `middle`, `back`, `forward`), `count` (2 is a double click), `x`, `y` |
+| `mouse_down`, `mouse_up` | `button`, `x`, `y` |
+| `move` | `x`, `y` (it drags while a button is down) |
+| `scroll` | `dy`, `dx` in pixels (positive `dy` scrolls up), `x`, `y` |
+| `wait` | `ms` |
+
+`x` and `y` are screen points from the top-left corner of the main display; leave them
+out to use wherever the pointer is. Pressing the key again while a macro plays does
+nothing, except to stop a `toggle` one. Any key or button a macro holds is let go when it
+ends or is stopped.
+
+```json
+{"type": "macro", "play": "repeat", "times": 3, "steps": [
+  {"do": "keys", "keys": "cmd+a"}, {"do": "wait", "ms": 100},
+  {"do": "text", "text": "Hello"}, {"do": "click", "x": 640, "y": 400}]}
+```
 
 ## Useful commands
 

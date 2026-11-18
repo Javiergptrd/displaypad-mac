@@ -92,6 +92,13 @@ h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .key.sel { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
 .key.over { border-color: #fff; border-style: dashed; }
 .key:hover:not(.sel) { border-color: rgba(255,255,255,.35); }
+.key .fold { position: absolute; top: 3px; right: 4px; font-size: 10px; line-height: 15px; padding: 0 4px; border-radius: 6px; color: #fff; background: rgba(0,0,0,.6); }
+.key.back { border-style: dashed; border-color: rgba(255,255,255,.25); }
+.tab.over, .crumbs button.over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: -4px 0 12px; font-size: 13px; }
+.crumbs button { border-radius: 99px; padding: 3px 12px; }
+.crumbs .sep { color: var(--muted); }
+.crumbs .here { font-weight: 600; padding: 3px 6px; }
 .device-foot { display: flex; justify-content: space-between; color: #8a8a96; font-size: 11px; margin-top: 14px; letter-spacing: .05em; }
 
 .left > * + * { margin-top: 16px; }
@@ -131,6 +138,58 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .kbd { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .kbd span { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 7px; background: var(--panel); font-size: 13px; min-width: 24px; text-align: center; }
 button.rec { background: var(--danger); border-color: var(--danger); color: #fff; }
+dialog.osk-dlg { width: min(780px, 96vw); }
+dialog.osk-dlg h2 { margin: 0 0 6px; }
+.osk { display: flex; flex-direction: column; gap: 4px; user-select: none; -webkit-user-select: none; }
+.osk-row { display: flex; gap: 4px; }
+.osk-key { flex: 1 1 0; min-width: 0; height: 34px; padding: 0 3px; font-size: 12px; border-radius: 6px;
+  border-bottom-width: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.osk-key.mod { font-size: 15px; }
+.osk-key.word { font-size: 11px; }
+.osk-key.on, .osk-key.mod.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.osk-key.gap { visibility: hidden; }
+.osk-more { display: flex; flex-wrap: wrap; gap: 4px; }
+.osk-more .osk-key { flex: 0 0 auto; min-width: 46px; }
+.osk-out { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 32px; margin: 2px 0 10px; }
+.osk-sec { font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+.osk-extra { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.osk-extra > div:first-child { flex: 1 1 260px; }
+.osk-pad { display: flex; flex-direction: column; gap: 4px; width: 200px; }
+.msum { font-weight: 600; }
+.mprev { margin: 0; padding-left: 22px; font-size: 12px; color: var(--muted); }
+.mprev li.more { list-style: none; }
+button.rec-btn { color: var(--danger); font-weight: 600; }
+dialog.mrec-dlg { width: min(520px, 94vw); }
+dialog.mrec-dlg h2, dialog.msteps-dlg h2 { margin: 0 0 8px; }
+.mrec-steps { margin: 0 0 14px; padding-left: 22px; }
+.mrec-steps li + li { margin-top: 4px; }
+.mrec-opts { display: flex; flex-direction: column; gap: 6px; }
+.mrec-opts small { margin-left: 26px; }
+.mrec-mode { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.mrec-big { font-size: 64px; font-weight: 700; text-align: center; line-height: 1.1; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.mrec-live { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 22px; font-weight: 700; color: var(--danger); margin: 10px 0 4px; }
+.mrec-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--danger); animation: mrec-blink 1s infinite; }
+@keyframes mrec-blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .mrec-dot { animation: none; } }
+.center { text-align: center; }
+dialog.msteps-dlg { width: min(900px, 96vw); max-height: 90vh; }
+dialog.msteps-dlg[open] { display: flex; flex-direction: column; }
+.msteps-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.msteps-bar select { width: auto; }
+.msteps { overflow: auto; flex: 1; min-height: 120px; border: 1px solid var(--line); border-radius: 10px; }
+.mstep { display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+.mstep:last-child { border-bottom: 0; }
+.mstep.sel { background: var(--accent-soft); }
+.mstep .num { width: 34px; flex: none; color: var(--muted); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.mstep .mkind { width: 150px; flex: none; font-size: 13px; white-space: nowrap; }
+.mstep.wait .mkind { color: var(--muted); }
+.mfields { flex: 1; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.mfields input, .mfields select { width: auto; padding: 4px 8px; }
+.mfields .mnum { width: 84px; }
+.mfields .mkey { width: 120px; }
+.mfields .mtext { flex: 1; min-width: 140px; }
+.mtools { display: flex; gap: 2px; flex: none; }
+@media (max-width: 640px) { .mstep { flex-wrap: wrap; } .mstep .mkind { width: auto; } }
 .empty { text-align: center; color: var(--muted); padding: 14px; border: 1.5px dashed var(--line); border-radius: 10px; }
 #test-out { margin: 10px 0 0; white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 220px; overflow: auto; }
 #test-out .ok { color: var(--ok); } #test-out .bad { color: var(--danger); }
@@ -201,6 +260,7 @@ a { color: var(--accent); }
         <button class="small" id="pg-rename" data-t="pg_rename"></button>
         <button class="small danger" id="pg-delete" data-t="pg_delete"></button>
       </div>
+      <nav class="crumbs" id="crumbs" hidden data-t-aria="crumbs_label"></nav>
       <div class="device">
         <div class="grid" id="grid"></div>
         <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span id="page-name"></span></div>
@@ -239,7 +299,20 @@ const STRINGS = {
     nav_keys: "Keys", nav_settings: "Settings", nav_label: "Section",
     pages_label: "Pages", pg_show: "Show on the pad", pg_show_title: "Switch the DisplayPad to this page",
     pg_start: "Set as start page", pg_rename: "Rename", pg_delete: "Delete page",
-    grid_hint: "Click a key to edit it. Drag it onto another to swap them.",
+    grid_hint: "Click a key to edit it. Drag it onto another to swap them. Double-click a folder to open it; to move a key into a folder or another page, drag it and hold it over the folder, the page or “Back” until it opens.",
+    crumbs_label: "Where you are", folder_h: "Folder", folder_make: "Make this key a folder", folder_default: "Folder",
+    folder_hint: "A folder holds 11 more keys and opens when you press this key on the pad. Key 1 inside it always takes you back. Folders can go inside folders.",
+    folder_info: "This key is a folder with {n} keys inside. Pressing it on the pad opens it (after its own actions, if it has any).",
+    folder_info_0: "This key is an empty folder. Open it to add keys. Pressing it on the pad opens it (after its own actions, if it has any).",
+    folder_open: "Open folder ›", folder_remove: "Remove folder",
+    ask_remove_folder: "Remove the folder and the {n} keys inside it? The key itself stays.",
+    ask_clear_folder: "This key is a folder with {n} keys inside. Replace it and delete what is inside?",
+    folder_badge: "Folder with {n} keys: double-click to open it",
+    back_key_title: "Back: key 1 of a folder always takes you out of it. Click to go back.",
+    back_key_note: "In a folder, key 1 is always the Back key: on the pad it takes you back to “{name}”. Its look is fixed. Drop a key on it to move that key out of the folder.",
+    back_go: "‹ Back to “{name}”",
+    into_itself: "A folder can't go inside itself.", no_free_key: "“{name}” has no free key.", moved_to: "Moved to “{name}”, key {n}.",
+    name_slash: "Page names can't contain “/”.",
     start_page: "Start page", new_page_title: "New page", new_page_btn: "+ Page",
     name_empty: "Type a name.", name_reserved: "“back” is reserved.", name_taken: "There is already a page with that name.",
     ask_new_page: "Name of the new page:", back_label: "Back",
@@ -247,7 +320,7 @@ const STRINGS = {
     ask_rename: "New name for “{name}”:", ask_delete_page: "Delete the page “{name}”?",
     delete_page_refs: " {n} key(s) that lead to it will lose that action.",
     save_page_first: "Save the changes to this page first.",
-    n_actions: "{n} actions", key_n: "Key {n}", key_empty: " (empty)", label_hidden: " (text hidden)",
+    n_actions: "{n} actions", n_actions_1: "1 action", key_n: "Key {n}", key_empty: " (empty)", label_hidden: " (text hidden)",
     note_key: "This is how it will look on the DisplayPad. Changes apply when you press Save.",
     note_empty: "Empty key. Choose an emoji, a picture or a text, then what it does.",
     note_anim: "{frames}-frame animation ({secs} s) that loops. ",
@@ -281,8 +354,47 @@ const STRINGS = {
     m_volume_down: "Volume down", m_mute: "Mute", key_space: "space",
     needs_access: "Needs the Accessibility permission (see the notice above).",
     open_hint: "Type an app name (suggestions appear), a web address or a folder/file.",
-    record: "Record", recording: "Press the combination…",
-    shortcut_hint: "Press “Record”, then the combination. Some (⌘Q, ⌘W, ⌘T) are taken by the browser: type them by hand, e.g. cmd+q.",
+    record: "Record", recording: "Press the keys… (click to cancel)",
+    shortcut_hint: "Press “Record”, then a combination (⌘⇧4) or a single key, even a modifier on its own like Right ⌘. Left and right keys are kept apart. Keys the browser keeps for itself (⌘Q, ⌘W, ⌘T, fn) can be chosen with “Keyboard…”.",
+    osk_btn: "Keyboard…", osk_title: "Choose the keys on a keyboard on the screen", osk_head: "Choose the keys",
+    osk_help: "Click the modifiers you want (left and right are different keys), then one key. To send modifiers on their own, choose only them.",
+    osk_more: "More keys", osk_keypad: "Numeric keypad", osk_none: "No keys chosen yet", osk_use: "Use these keys", osk_clear: "Clear",
+    side_left: "Left {k}", side_right: "Right {k}", kp: "Keypad",
+    n_cmd: "Command", n_shift: "Shift", n_ctrl: "Control", n_alt: "Option", n_fn: "fn (Globe)",
+    hold_key: "Hold the keys down while the pad key is held",
+    hold_hint: "For apps that react while a key is held down, like push-to-talk dictation. Without it, the keys are pressed and let go at once.",
+    t_macro: "Macro (keyboard and mouse)",
+    mac_empty: "No steps yet. Record what you do with the keyboard and mouse, or add steps by hand.",
+    mac_summary: "{n} actions · {secs} s", mac_summary_1: "1 action · {secs} s", mac_more: "…and {n} more", mac_record: "● Record…", mac_edit: "Edit steps…",
+    mac_play: "Playback", play_once: "Play once", play_repeat: "Repeat a number of times",
+    play_while_held: "Repeat while the pad key is held", play_toggle: "Press to start, press again to stop",
+    mac_times: "times", mac_delays: "Delays", delays_recorded: "As recorded", delays_fixed: "The same wait between steps",
+    delays_none: "No waits (as fast as possible)",
+    mac_play_hint: "“While held” plays at least once and stops when you let go. “Press to start” keeps repeating until you press the key again, or Stop in this window.",
+    mac_needs_input: "Recording needs the Input Monitoring permission (see the notice above).",
+    rec_title: "Record a macro", rec_step1: "Choose what to record.", rec_step2: "Press Start: you have 3 seconds to switch to the app you want.",
+    rec_step3: "Do what the macro should do: type, use shortcuts, click, drag, scroll.",
+    rec_step4: "Press any key on the DisplayPad to stop, or come back here and press Stop.",
+    rec_keys: "Keyboard", rec_mouse: "Mouse clicks, drags and scrolling", rec_moves: "Mouse movement",
+    rec_moves_hint: "Only needed for menus that open when the pointer is over them, or for drawing. Drags are always recorded.",
+    rec_replace: "Replace the {n} steps it has now", rec_replace_1: "Replace the step it has now", rec_append: "Add after the steps it has now",
+    rec_start: "● Start recording", rec_countdown: "Switch to your app now. Recording starts in…",
+    rec_now: "Recording", rec_count: "{n} actions · {secs}", rec_count_1: "1 action · {secs}", rec_stop_hint: "Press any key on the DisplayPad to stop.",
+    rec_stop: "■ Stop", rec_done: "Recorded {n} actions in {secs}.", rec_done_1: "Recorded 1 action in {secs}.", rec_done_hint: "You can edit the steps and the delays afterwards.",
+    rec_nothing: "Nothing was recorded.", rec_again: "Record again", rec_use: "Use this recording",
+    rec_limit: "The recording reached its limit (10 minutes or 5000 steps).", rec_failed: "Could not record: {msg}",
+    rec_need_one: "Choose the keyboard, the mouse or both.",
+    steps_title: "Macro steps", steps_hint: "Click a step to select it: new steps are added after it. Changes apply when you press Done, then Save.",
+    steps_add: "+ Add step…", steps_all_waits: "Same wait everywhere…", steps_ask_wait: "Wait between every two steps, in milliseconds:",
+    steps_no_waits: "Remove the waits", steps_clear: "Remove all", steps_ask_clear: "Remove all the steps?", steps_done: "Done",
+    steps_none: "No steps yet.",
+    s_key_down: "Key down", s_key_up: "Key up", s_keys: "Press keys", s_text: "Type text", s_click: "Click",
+    s_mouse_down: "Button down", s_mouse_up: "Button up", s_move: "Move pointer", s_scroll: "Scroll", s_wait: "Wait",
+    bn_left: "Left button", bn_right: "Right button", bn_middle: "Middle button", bn_back: "Back button", bn_forward: "Forward button",
+    cnt_1: "Single", cnt_2: "Double", cnt_3: "Triple", at_xy: "at {x}, {y}", here: "where the pointer is",
+    scroll_dy: "Vertical (+ up, − down)", scroll_dx: "Horizontal (+ left, − right)", pick_key: "Choose the key on a keyboard on the screen",
+    playing: "▶ {n} macros playing.", playing_1: "▶ A macro is playing.", stop_macros: "Stop",
+    mac_test_wait: "Switch to the app the macro is for: it plays in 3 seconds.",
     text_ph2: "Best regards,", text_hint: "Typed as is where the cursor is, with accents, emoji and line breaks.",
     shell_hint: "Runs with zsh. Press “Test” to see the output and errors.",
     as_ph: 'display notification "Hello" with title "DisplayPad"', as_hint: "Press “Test” to see the result or the error.",
@@ -347,7 +459,20 @@ const STRINGS = {
     nav_keys: "Teclas", nav_settings: "Ajustes", nav_label: "Sección",
     pages_label: "Páginas", pg_show: "Mostrar en el pad", pg_show_title: "Cambia el DisplayPad a esta página",
     pg_start: "Usar como inicial", pg_rename: "Renombrar", pg_delete: "Eliminar página",
-    grid_hint: "Haz clic en una tecla para editarla. Arrástrala sobre otra para intercambiarlas.",
+    grid_hint: "Haz clic en una tecla para editarla. Arrástrala sobre otra para intercambiarlas. Doble clic en una carpeta para abrirla; para mover una tecla a una carpeta o a otra página, arrástrala y mantenla sobre la carpeta, la página o «Volver» hasta que se abra.",
+    crumbs_label: "Dónde estás", folder_h: "Carpeta", folder_make: "Convertir esta tecla en carpeta", folder_default: "Carpeta",
+    folder_hint: "Una carpeta guarda 11 teclas más y se abre al pulsar esta tecla en el pad. La tecla 1 dentro de ella siempre te lleva atrás. Puedes poner carpetas dentro de carpetas.",
+    folder_info: "Esta tecla es una carpeta con {n} teclas dentro. Al pulsarla en el pad se abre (después de sus propias acciones, si tiene).",
+    folder_info_0: "Esta tecla es una carpeta vacía. Ábrela para añadir teclas. Al pulsarla en el pad se abre (después de sus propias acciones, si tiene).",
+    folder_open: "Abrir carpeta ›", folder_remove: "Quitar carpeta",
+    ask_remove_folder: "¿Quitar la carpeta y las {n} teclas que tiene dentro? La tecla en sí se queda.",
+    ask_clear_folder: "Esta tecla es una carpeta con {n} teclas dentro. ¿Reemplazarla y borrar lo que tiene dentro?",
+    folder_badge: "Carpeta con {n} teclas: doble clic para abrirla",
+    back_key_title: "Volver: la tecla 1 de una carpeta siempre te saca de ella. Haz clic para volver.",
+    back_key_note: "En una carpeta, la tecla 1 es siempre la de Volver: en el pad te lleva de vuelta a «{name}». Su aspecto es fijo. Suelta una tecla sobre ella para sacarla de la carpeta.",
+    back_go: "‹ Volver a «{name}»",
+    into_itself: "Una carpeta no puede ir dentro de sí misma.", no_free_key: "«{name}» no tiene teclas libres.", moved_to: "Movida a «{name}», tecla {n}.",
+    name_slash: "Los nombres de página no pueden llevar «/».",
     start_page: "Página inicial", new_page_title: "Nueva página", new_page_btn: "+ Página",
     name_empty: "Escribe un nombre.", name_reserved: "«back» está reservado.", name_taken: "Ya hay una página con ese nombre.",
     ask_new_page: "Nombre de la nueva página:", back_label: "Volver",
@@ -355,7 +480,7 @@ const STRINGS = {
     ask_rename: "Nuevo nombre para «{name}»:", ask_delete_page: "¿Eliminar la página «{name}»?",
     delete_page_refs: " {n} tecla(s) que llevan a ella perderán esa acción.",
     save_page_first: "Guarda primero los cambios de esta página.",
-    n_actions: "{n} acciones", key_n: "Tecla {n}", key_empty: " (vacía)", label_hidden: " (texto oculto)",
+    n_actions: "{n} acciones", n_actions_1: "1 acción", key_n: "Tecla {n}", key_empty: " (vacía)", label_hidden: " (texto oculto)",
     note_key: "Así se verá en el DisplayPad. Los cambios se aplican al pulsar Guardar.",
     note_empty: "Tecla vacía. Elige un emoji, una imagen o un texto y luego qué hace.",
     note_anim: "Animación de {frames} cuadros ({secs} s) que se repite. ",
@@ -366,7 +491,7 @@ const STRINGS = {
     drop_text: "Haz clic aquí o arrastra una imagen (PNG, JPG, WebP), un GIF animado o una animación Lottie (.json, .lottie)",
     change_image: "Cambiar imagen…", choose_image: "Elegir imagen…", fill_key: "Cubrir toda la tecla cuando no hay texto",
     crop_btn: "Ajustar encuadre…", crop_state_auto: "Encuadre: el centro de la imagen", crop_state_custom: "Encuadre: ajustado por ti",
-    crop_title: "Ajustar la imagen", crop_help: "Las teclas son cuadradas. Arrastra para mover la imagen y acerca o aleja con el control, la rueda del ratón o pellizcando: nunca se estira.",
+    crop_title: "Ajustar la imagen", crop_help: "Las teclas son cuadradas. Arrastra para mover la imagen y acerca o aleja con el control, la rueda del mouse o pellizcando: nunca se estira.",
     crop_label_note: "Esta tecla también muestra texto, así que la imagen se dibuja más pequeña encima.",
     crop_stage: "Imagen dentro de la tecla. Las flechas la mueven; + y − acercan o alejan.", crop_zoom: "Zoom", crop_result: "En el DisplayPad",
     crop_whole: "Imagen completa", crop_fill: "Llenar la tecla", crop_apply: "Aplicar", crop_failed: "No se pudo abrir la imagen: {msg}",
@@ -389,8 +514,47 @@ const STRINGS = {
     m_volume_down: "Bajar volumen", m_mute: "Silenciar", key_space: "espacio",
     needs_access: "Necesita el permiso de Accesibilidad (ver aviso arriba).",
     open_hint: "Escribe el nombre de una app (aparecen sugerencias), una dirección web o una carpeta/archivo.",
-    record: "Grabar", recording: "Pulsa la combinación…",
-    shortcut_hint: "Pulsa «Grabar» y luego la combinación. Algunas (⌘Q, ⌘W, ⌘T) las reserva el navegador: escríbelas a mano, p. ej. cmd+q.",
+    record: "Grabar", recording: "Pulsa las teclas… (clic para cancelar)",
+    shortcut_hint: "Pulsa «Grabar» y luego una combinación (⌘⇧4) o una sola tecla, incluso un modificador solo como ⌘ derecho. Las teclas izquierda y derecha se distinguen. Las que el navegador se reserva (⌘Q, ⌘W, ⌘T, fn) se eligen con «Teclado…».",
+    osk_btn: "Teclado…", osk_title: "Elegir las teclas en un teclado en pantalla", osk_head: "Elige las teclas",
+    osk_help: "Haz clic en los modificadores que quieras (izquierdo y derecho son teclas distintas) y luego en una tecla. Para enviar solo modificadores, elige solo esos.",
+    osk_more: "Más teclas", osk_keypad: "Teclado numérico", osk_none: "Aún no has elegido teclas", osk_use: "Usar estas teclas", osk_clear: "Borrar",
+    side_left: "{k} izquierdo", side_right: "{k} derecho", kp: "Numérico",
+    n_cmd: "Comando", n_shift: "Mayúsculas", n_ctrl: "Control", n_alt: "Opción", n_fn: "fn (Globo)",
+    hold_key: "Mantener las teclas pulsadas mientras mantienes la tecla del pad",
+    hold_hint: "Para apps que reaccionan mientras mantienes una tecla, como el dictado de pulsar para hablar. Sin esto, las teclas se pulsan y se sueltan enseguida.",
+    t_macro: "Macro (teclado y mouse)",
+    mac_empty: "Todavía no tiene pasos. Graba lo que haces con el teclado y el mouse, o agrega pasos a mano.",
+    mac_summary: "{n} acciones · {secs} s", mac_summary_1: "1 acción · {secs} s", mac_more: "…y {n} más", mac_record: "● Grabar…", mac_edit: "Editar pasos…",
+    mac_play: "Reproducción", play_once: "Una vez", play_repeat: "Repetir varias veces",
+    play_while_held: "Repetir mientras mantienes la tecla del pad", play_toggle: "Pulsar para empezar, pulsar otra vez para parar",
+    mac_times: "veces", mac_delays: "Esperas", delays_recorded: "Como se grabaron", delays_fixed: "La misma espera entre pasos",
+    delays_none: "Sin esperas (lo más rápido posible)",
+    mac_play_hint: "«Mientras mantienes» se reproduce al menos una vez y para al soltar la tecla. «Pulsar para empezar» se repite hasta que vuelves a pulsar la tecla, o Detener en esta ventana.",
+    mac_needs_input: "Para grabar hace falta el permiso de Monitoreo de entrada (ver aviso arriba).",
+    rec_title: "Grabar una macro", rec_step1: "Elige qué grabar.", rec_step2: "Pulsa Empezar: tienes 3 segundos para cambiar a la app que quieras.",
+    rec_step3: "Haz lo que debe hacer la macro: escribir, usar atajos, hacer clic, arrastrar, desplazar.",
+    rec_step4: "Pulsa cualquier tecla del DisplayPad para terminar, o vuelve aquí y pulsa Detener.",
+    rec_keys: "Teclado", rec_mouse: "Clics, arrastres y desplazamiento del mouse", rec_moves: "Movimiento del mouse",
+    rec_moves_hint: "Solo hace falta para menús que se abren al pasar el puntero, o para dibujar. Los arrastres siempre se graban.",
+    rec_replace: "Reemplazar los {n} pasos que tiene ahora", rec_replace_1: "Reemplazar el paso que tiene ahora", rec_append: "Agregar después de los pasos que tiene ahora",
+    rec_start: "● Empezar a grabar", rec_countdown: "Cambia a tu app ahora. La grabación empieza en…",
+    rec_now: "Grabando", rec_count: "{n} acciones · {secs}", rec_count_1: "1 acción · {secs}", rec_stop_hint: "Pulsa cualquier tecla del DisplayPad para terminar.",
+    rec_stop: "■ Detener", rec_done: "Se grabaron {n} acciones en {secs}.", rec_done_1: "Se grabó 1 acción en {secs}.", rec_done_hint: "Después puedes editar los pasos y las esperas.",
+    rec_nothing: "No se grabó nada.", rec_again: "Grabar de nuevo", rec_use: "Usar esta grabación",
+    rec_limit: "La grabación llegó a su límite (10 minutos o 5000 pasos).", rec_failed: "No se pudo grabar: {msg}",
+    rec_need_one: "Elige el teclado, el mouse o ambos.",
+    steps_title: "Pasos de la macro", steps_hint: "Haz clic en un paso para seleccionarlo: los pasos nuevos se agregan después. Los cambios se aplican al pulsar Listo y luego Guardar.",
+    steps_add: "+ Agregar paso…", steps_all_waits: "Misma espera en todo…", steps_ask_wait: "Espera entre cada dos pasos, en milisegundos:",
+    steps_no_waits: "Quitar las esperas", steps_clear: "Quitar todo", steps_ask_clear: "¿Quitar todos los pasos?", steps_done: "Listo",
+    steps_none: "Todavía no hay pasos.",
+    s_key_down: "Tecla presionada", s_key_up: "Tecla soltada", s_keys: "Pulsar teclas", s_text: "Escribir texto", s_click: "Clic",
+    s_mouse_down: "Botón presionado", s_mouse_up: "Botón soltado", s_move: "Mover puntero", s_scroll: "Desplazar", s_wait: "Esperar",
+    bn_left: "Botón izquierdo", bn_right: "Botón derecho", bn_middle: "Botón central", bn_back: "Botón atrás", bn_forward: "Botón adelante",
+    cnt_1: "Sencillo", cnt_2: "Doble", cnt_3: "Triple", at_xy: "en {x}, {y}", here: "donde esté el puntero",
+    scroll_dy: "Vertical (+ arriba, − abajo)", scroll_dx: "Horizontal (+ izquierda, − derecha)", pick_key: "Elegir la tecla en un teclado en pantalla",
+    playing: "▶ {n} macros en reproducción.", playing_1: "▶ Hay una macro en reproducción.", stop_macros: "Detener",
+    mac_test_wait: "Cambia a la app para la que es la macro: se reproduce en 3 segundos.",
     text_ph2: "Saludos cordiales,", text_hint: "Se escribe tal cual donde esté el cursor, con acentos, emojis y saltos de línea.",
     shell_hint: "Se ejecuta con zsh. Pulsa «Probar» para ver la salida y los errores.",
     as_ph: 'display notification "Hola" with title "DisplayPad"', as_hint: "Pulsa «Probar» para ver el resultado o el error.",
@@ -449,6 +613,7 @@ const STRINGS = {
 };
 let LANG = (() => { try { return localStorage.getItem("dp-lang") === "es" ? "es" : "en"; } catch { return "en"; } })();
 function t(key, vars) {
+  if (vars && +vars.n === 1 && STRINGS.en[key + "_1"]) key += "_1";   // singular wording
   const s = STRINGS[LANG]?.[key] ?? STRINGS.en[key] ?? key;
   return vars ? s.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m) : s;
 }
@@ -523,44 +688,112 @@ async function copyText(text) {
 // ---------------------------------------------------------------- data
 const TYPES = () => [
   [t("g_apps"), ["open"]],
-  [t("g_keyboard"), ["shortcut", "text", "media"]],
+  [t("g_keyboard"), ["shortcut", "text", "media", "macro"]],
   [t("g_screen"), ["screen_brightness", "page", "brightness", "configurator"]],
   [t("g_auto"), ["shell", "applescript", "delay"]],
 ];
 const typeName = (v) => STRINGS.en["t_" + v] ? t("t_" + v) : v;
 const MEDIA = ["play_pause", "next", "previous", "volume_up", "volume_down", "mute"];
-const NEEDS_ACCESS = new Set(["shortcut", "text", "media"]);
+const NEEDS_ACCESS = new Set(["shortcut", "text", "media", "macro"]);
 const EMOJI = "📧 💬 📊 📈 📉 🌐 📁 🗂️ 📄 📋 🧮 🧾 💰 💵 🏦 💳 📸 🔒 🔓 🔍 ⏯️ ⏮️ ⏭️ 🔉 🔊 🔇 🎧 🎤 📷 📞 🔅 🔆 💡 🖥️ 💻 ⌨️ 🖨️ 🪟 📝 ✍️ 📅 ⏰ 🔔 ✅ ❌ ⭐ 🚀 ⚙️ 🛠️ 🔄 🔗 ☕ 🏠 ➡️ ⬅️ ⬆️ ⬇️ 🎨 🧑‍💻".split(" ");
 const DEFAULT_BG = "#1c1c24", DEFAULT_FG = "#ffffff";
-const KEY_NAMES = { Space: "space", Enter: "return", NumpadEnter: "return", Tab: "tab", Backspace: "delete", Delete: "forwarddelete",
+// Key names as the service knows them (macos.py). Plain modifier names are the left keys.
+const KEY_NAMES = { Space: "space", Enter: "return", NumpadEnter: "kpenter", Tab: "tab", Backspace: "delete", Delete: "forwarddelete",
   Escape: "esc", ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Home: "home", End: "end",
   PageUp: "pageup", PageDown: "pagedown", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\",
-  Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backquote: "`" };
-const PRETTY = { cmd: "⌘", command: "⌘", shift: "⇧", ctrl: "⌃", control: "⌃", alt: "⌥", option: "⌥", opt: "⌥", fn: "fn",
-  return: "↩", enter: "↩", tab: "⇥", delete: "⌫", backspace: "⌫", forwarddelete: "⌦", esc: "esc", escape: "esc",
-  up: "↑", down: "↓", left: "←", right: "→", pageup: "⇞", pagedown: "⇟", home: "↖", end: "↘" };
-const pretty = (p) => p === "space" ? t("key_space") : PRETTY[p] || p.toUpperCase();
+  Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Backquote: "`", Help: "help", Insert: "help",
+  IntlBackslash: "section", Lang1: "kana", Lang2: "eisu", NumLock: "kpclear", NumpadDecimal: "kpdecimal",
+  NumpadMultiply: "kpmultiply", NumpadAdd: "kpplus", NumpadSubtract: "kpminus", NumpadDivide: "kpdivide", NumpadEqual: "kpequals" };
+const CODE_MODS = { ControlLeft: "ctrl", ControlRight: "rctrl", AltLeft: "alt", AltRight: "ralt", ShiftLeft: "shift",
+  ShiftRight: "rshift", MetaLeft: "cmd", MetaRight: "rcmd", Fn: "fn" };
+const MOD_ORDER = ["fn", "ctrl", "rctrl", "alt", "ralt", "shift", "rshift", "cmd", "rcmd"]; // ⌃⌥⇧⌘, as macOS writes them
+const MOD_ALIAS = { command: "cmd", "⌘": "cmd", lcmd: "cmd", rcommand: "rcmd", "⇧": "shift", lshift: "shift",
+  control: "ctrl", "⌃": "ctrl", lctrl: "ctrl", rcontrol: "rctrl", option: "alt", opt: "alt", "⌥": "alt", lalt: "alt",
+  loption: "alt", roption: "ralt", ropt: "ralt" };
+const MOD_SYM = { cmd: "⌘", shift: "⇧", ctrl: "⌃", alt: "⌥" };
+const modOf = (p) => { const m = MOD_ALIAS[p] || p; return MOD_ORDER.includes(m) ? m : null; };
+const sortMods = (mods) => [...new Set(mods)].sort((a, b) => MOD_ORDER.indexOf(a) - MOD_ORDER.indexOf(b));
+const PRETTY = { return: "↩", enter: "↩", tab: "⇥", delete: "⌫", backspace: "⌫", forwarddelete: "⌦", esc: "esc", escape: "esc",
+  up: "↑", down: "↓", left: "←", right: "→", pageup: "⇞", pagedown: "⇟", home: "↖", end: "↘", section: "§",
+  help: "help", eisu: "英数", kana: "かな" };
+const KP = { decimal: ".", multiply: "×", plus: "+", minus: "−", divide: "÷", equals: "=", enter: "↩", clear: "⌧" };
+function pretty(p, alone = false) { // one part of a shortcut, for people; alone: the shortcut is only modifiers
+  const m = modOf(p);
+  if (m === "fn") return "fn";
+  if (m) {
+    const right = m.startsWith("r"), sym = MOD_SYM[right ? m.slice(1) : m];
+    return right ? t("side_right", { k: sym }) : alone ? t("side_left", { k: sym }) : sym;
+  }
+  if (p === "space") return t("key_space");
+  if (/^kp/.test(p)) return t("kp") + " " + (KP[p.slice(2)] ?? p.slice(2));
+  return PRETTY[p] || p.toUpperCase();
+}
+function modTitle(m) { // "Right Command"
+  if (m === "fn") return t("n_fn");
+  const right = m.startsWith("r"), name = t("n_" + (right ? m.slice(1) : m));
+  return t(right ? "side_right" : "side_left", { k: name });
+}
+function comboChips(keys) {
+  const parts = String(keys || "").split("+").map(p => p.trim().toLowerCase()).filter(Boolean);
+  const alone = parts.length > 0 && parts.every(modOf);
+  return parts.map(p => h("span", { text: pretty(p, alone), title: modOf(p) ? modTitle(modOf(p)) : "" }));
+}
 
-let cfg = null, saved = "", rev = "", busy = 0, page = null, sel = "1", status = {}, apps = [], clip = null, recording = null;
+let cfg = null, saved = "", rev = "", busy = 0, page = null, folder = [], sel = "1", status = {}, apps = [], clip = null, recording = null;
 let view = "keys", mcpInfo = null, showToken = false;
 
 function normalise(c) {
-  c.pages ??= {};
-  for (const p of Object.values(c.pages)) {
-    p.keys ??= {};
-    for (const k of Object.values(p.keys)) {
-      if (k && k.action) { k.actions = [k.action]; delete k.action; }
-      if (k) k.actions ??= [];
+  const fix = ks => {
+    for (const k of Object.values(ks)) {
+      if (!k) continue;
+      if (k.action) { k.actions = [k.action]; delete k.action; }
+      k.actions ??= [];
+      if (k.folder) { k.folder.keys ??= {}; fix(k.folder.keys); }
     }
-  }
+  };
+  c.pages ??= {};
+  for (const p of Object.values(c.pages)) fix(p.keys ??= {});
   return c;
 }
-const keys = () => cfg.pages[page].keys;
+// Where the grid is: a page, and the folder keys opened inside it ("home" + ["3", "5"]).
+// The service calls that place "home/3/5".
+function keysAt(pg, path) {
+  let ks = cfg.pages[pg]?.keys;
+  for (const n of path) ks = ks?.[n]?.folder?.keys;
+  return ks;
+}
+const keysOf = id => { const [pg, ...path] = String(id).split("/"); return keysAt(pg, path); };
+const keys = () => keysAt(page, folder);
+const where = () => [page, ...folder].join("/");
+const inside = (a, b) => a === b || a.startsWith(b + "/");
+const isBack = n => folder.length > 0 && n === "1";
+const backLook = () => ({ emoji: "⬅️", label: t("back_label"), color: "#2B2B33" });
+const countKeys = k => Object.values(k?.folder?.keys || {}).filter(Boolean).length;
+function locTitle(pg, path) { // "home › Work › Photos"
+  const parts = [pg];
+  let ks = cfg.pages[pg]?.keys;
+  for (const n of path) { const k = ks?.[n]; parts.push(k?.label || k?.emoji || t("key_n", { n })); ks = k?.folder?.keys; }
+  return parts.join(" › ");
+}
+function idTitle(id) { const [pg, ...path] = String(id).split("/"); return cfg && keysAt(pg, path) ? locTitle(pg, path) : id; }
+function* allKeys() { // [page, key number, key] for every key, folders included
+  function* walk(pg, ks) {
+    for (const [kn, k] of Object.entries(ks || {})) if (k) { yield [pg, kn, k]; if (k.folder) yield* walk(pg, k.folder.keys); }
+  }
+  for (const [pn, p] of Object.entries(cfg.pages)) yield* walk(pn, p.keys);
+}
+function goTo(pg, path, selN) {
+  page = pg; folder = path; sel = selN || (path.length ? "2" : "1"); iconUi = null;
+  renderTabs(); renderGrid(); renderEditor();
+  $("#editor").scrollTop = 0;
+}
+function openFolder(n) { if (keys()[n]?.folder) goTo(page, [...folder, n]); }
+function goUp(levels = 1) { goTo(page, folder.slice(0, folder.length - levels), folder[folder.length - levels]); }
 const spec = (n = sel) => keys()[n];
 function ensure(n = sel) { return keys()[n] ??= { actions: [] }; }
 function prune(n = sel) {
   const k = keys()[n];
-  if (k && !k.emoji && !k.image && !k.label && !k.color && !(k.actions || []).length) delete keys()[n];
+  if (k && !k.emoji && !k.image && !k.label && !k.color && !k.folder && !(k.actions || []).length) delete keys()[n];
 }
 function look(k) {
   if (!k) return {};
@@ -585,12 +818,16 @@ function preview(k) {
 function paintKey(n) {
   const btn = $(`.key[data-n="${n}"]`);
   if (!btn) return;
-  const k = spec(n);
+  const back = isBack(n), k = back ? backLook() : spec(n);
   preview(k).then(p => { btn.querySelector("img").src = p.url; }).catch(() => {});
-  btn.querySelector(".acts").textContent = (k?.actions?.length || 0) > 1 ? t("n_actions", { n: k.actions.length }) : "";
+  btn.querySelector(".acts").textContent = !back && (k?.actions?.length || 0) > 1 ? t("n_actions", { n: k.actions.length }) : "";
+  const fold = btn.querySelector(".fold");
+  fold.hidden = !k?.folder; fold.textContent = k?.folder ? "📁 " + countKeys(k) : "";
   btn.setAttribute("aria-label", t("key_n", { n }) + (k?.label ? ": " + k.label : k?.emoji ? ": " + k.emoji : t("key_empty")));
-  btn.title = k?.label ? k.label + (k.hide_label ? t("label_hidden") : "") : "";
-  if (n === sel) {
+  btn.title = back ? t("back_key_title") : k?.folder ? t("folder_badge", { n: countKeys(k) })
+    : k?.label ? k.label + (k.hide_label ? t("label_hidden") : "") : "";
+  if (n === sel && back) preview(k).then(p => { const im = $("#ed-img"); if (im) im.src = p.url; }).catch(() => {});
+  if (n === sel && !back) {
     const note = $("#ed-note");
     if (note) note.textContent = k ? t("note_key") : t("note_empty");
     preview(k).then(p => {
@@ -614,25 +851,44 @@ addEventListener("beforeunload", e => { if (isDirty()) { e.preventDefault(); e.r
 function renderTabs() {
   const box = $("#tabs"); box.replaceChildren();
   for (const name of Object.keys(cfg.pages)) {
-    box.append(h("button", { class: "tab" + (name === page ? " active" : ""), role: "tab", "aria-selected": String(name === page),
+    const tab = h("button", { class: "tab" + (name === page ? " active" : ""), role: "tab", "aria-selected": String(name === page),
       onclick: () => showPage(name), ondblclick: () => renamePage(name) },
-      name, name === cfg.start_page ? h("span", { class: "star", title: t("start_page"), text: "★" }) : null));
+      name, name === cfg.start_page ? h("span", { class: "star", title: t("start_page"), text: "★" }) : null);
+    dropTarget(tab, name, () => { if (name !== page || folder.length) showPage(name); });
+    box.append(tab);
   }
   box.append(h("button", { class: "tab", title: t("new_page_title"), onclick: addPage, text: t("new_page_btn") }));
   $("#pg-start").disabled = page === cfg.start_page;
   $("#pg-delete").disabled = Object.keys(cfg.pages).length < 2;
-  $("#page-name").textContent = page.toUpperCase();
+  $("#page-name").textContent = locTitle(page, folder).toUpperCase();
+  renderCrumbs();
 }
-function showPage(name) { page = name; sel = "1"; iconUi = null; renderTabs(); renderGrid(); renderEditor(); }
+function renderCrumbs() {
+  const box = $("#crumbs");
+  box.hidden = !folder.length;
+  if (!folder.length) return box.replaceChildren();
+  const items = [];
+  for (let i = 0; i <= folder.length; i++) {
+    const path = folder.slice(0, i), name = i ? (() => { const k = keysAt(page, folder.slice(0, i - 1))[folder[i - 1]]; return (k.emoji ? k.emoji + " " : "") + (k.label || t("key_n", { n: folder[i - 1] })); })() : page;
+    if (i) items.push(h("span", { class: "sep", text: "›" }));
+    if (i === folder.length) { items.push(h("span", { class: "here", text: name, "aria-current": "location" })); break; }
+    const b = h("button", { class: "small", type: "button", text: name, onclick: () => goUp(folder.length - i) });
+    dropTarget(b, [page, ...path].join("/"), () => goUp(folder.length - i));
+    items.push(b);
+  }
+  box.replaceChildren(...items);
+}
+function showPage(name) { goTo(name, []); }
 function pageRefs(name) {
   const refs = [];
-  for (const [pn, p] of Object.entries(cfg.pages)) for (const [kn, k] of Object.entries(p.keys))
+  for (const [pn, kn, k] of allKeys())
     for (const a of k.actions || []) if (a.type === "page" && a.page === name) refs.push([pn, kn, k, a]);
   return refs;
 }
 function validName(name, except) {
   if (!name) return t("name_empty");
   if (name === "back") return t("name_reserved");
+  if (name.includes("/")) return t("name_slash");
   if (name !== except && cfg.pages[name]) return t("name_taken");
   return "";
 }
@@ -667,44 +923,91 @@ async function deletePage() {
 }
 
 // ---------------------------------------------------------------- grid
-let dragFrom = null;
+let dragKey = null, springEl = null, springTimer = null; // dragKey: {at: "home/3", n: "5"} while a key is dragged
+// Holding a dragged key over a folder, a page tab, a breadcrumb or "Back" opens it, like folders in Finder.
+function spring(el, go) {
+  if (springEl === el) return;
+  clearTimeout(springTimer); springEl = el;
+  springTimer = setTimeout(() => { springEl = null; go(); }, 700);
+}
+function unspring(el) { if (!el || springEl === el) { clearTimeout(springTimer); springEl = null; } }
+function dropTarget(el, id, open) { // a page tab or a breadcrumb: dropping there moves the key to its first free slot
+  el.addEventListener("dragover", e => { if (!dragKey) return; e.preventDefault(); el.classList.add("over"); spring(el, open); });
+  el.addEventListener("dragleave", () => { el.classList.remove("over"); unspring(el); });
+  el.addEventListener("drop", e => { e.preventDefault(); el.classList.remove("over"); unspring(el); const d = dragKey; dragKey = null; if (d) moveTo(d, id); });
+}
+addEventListener("dragend", () => { dragKey = null; unspring(); document.querySelectorAll(".over").forEach(el => el.classList.remove("over")); }, true);
+function keyButton(n) {
+  const b = h("button", { class: "key", "data-n": n, draggable: "true",
+    onclick: () => {
+      if (isBack(n)) return goUp();
+      sel = n; iconUi = null; document.querySelectorAll(".key").forEach(k => k.classList.toggle("sel", k.dataset.n === n)); renderEditor();
+    },
+    ondblclick: () => openFolder(n),
+    ondragstart: e => { if (isBack(n)) return e.preventDefault(); dragKey = { at: where(), n }; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); },
+    ondragover: e => {
+      if (!dragKey && !e.dataTransfer.types.includes("Files")) return;
+      e.preventDefault(); b.classList.add("over");
+      if (!dragKey) return;
+      if (isBack(n)) spring(b, () => goUp());
+      else if (spec(n)?.folder && !(dragKey.at === where() && dragKey.n === n)) spring(b, () => openFolder(n));
+    },
+    ondragleave: () => { b.classList.remove("over"); unspring(b); },
+    ondrop: e => { e.preventDefault(); b.classList.remove("over"); unspring(b); onKeyDrop(n, e); } },
+    h("img", { alt: "" }), h("span", { class: "n", text: n }), h("span", { class: "fold", hidden: true }), h("span", { class: "acts" }));
+  return b;
+}
 function renderGrid() {
-  const g = $("#grid"); g.replaceChildren();
-  for (let i = 1; i <= 12; i++) {
-    const n = String(i);
-    const b = h("button", { class: "key" + (n === sel ? " sel" : ""), "data-n": n, draggable: "true",
-      onclick: () => { sel = n; iconUi = null; document.querySelectorAll(".key").forEach(k => k.classList.toggle("sel", k.dataset.n === n)); renderEditor(); },
-      ondragstart: e => { dragFrom = n; e.dataTransfer.effectAllowed = "move"; },
-      ondragover: e => { if (dragFrom || e.dataTransfer.types.includes("Files")) { e.preventDefault(); b.classList.add("over"); } },
-      ondragleave: () => b.classList.remove("over"),
-      ondrop: e => { e.preventDefault(); b.classList.remove("over"); onKeyDrop(n, e); } },
-      h("img", { alt: "" }), h("span", { class: "n", text: n }), h("span", { class: "acts" }));
-    g.append(b);
+  // The 12 buttons are kept (only repainted), so a key being dragged survives opening a folder under it.
+  const g = $("#grid");
+  if (g.children.length !== 12) g.replaceChildren(...Array.from({ length: 12 }, (_, i) => keyButton(String(i + 1))));
+  for (const b of g.children) {
+    const n = b.dataset.n;
+    b.classList.toggle("sel", n === sel); b.classList.toggle("back", isBack(n)); b.classList.remove("over");
+    b.draggable = !isBack(n);
     paintKey(n);
   }
 }
 function onKeyDrop(n, e) {
-  const file = e.dataTransfer.files?.[0];
-  if (file) { sel = n; renderGrid(); renderEditor(); return uploadImage(file); }
-  if (!dragFrom || dragFrom === n) return;
-  const ks = keys(), a = ks[dragFrom], b = ks[n];
-  delete ks[dragFrom]; delete ks[n];
-  if (b) ks[dragFrom] = b;
-  if (a) ks[n] = a;
-  sel = n; dragFrom = null;
-  renderGrid(); renderEditor(); changed(false);
+  const file = e.dataTransfer.files?.[0], d = dragKey;
+  dragKey = null;
+  if (file) { if (isBack(n)) return; sel = n; renderGrid(); renderEditor(); return uploadImage(file); }
+  if (!d) return;
+  if (isBack(n)) return moveTo(d, [page, ...folder.slice(0, -1)].join("/"));
+  const here = where();
+  if (d.at === here && d.n === n) return;
+  if (inside(here, d.at + "/" + d.n) || inside(d.at, here + "/" + n)) return toast(t("into_itself"));
+  const src = keysOf(d.at), dst = keys(), a = src?.[d.n], b = dst[n];
+  if (!src) return;
+  delete src[d.n]; delete dst[n];
+  if (b) src[d.n] = b;
+  if (a) dst[n] = a;
+  sel = n; iconUi = null;
+  renderTabs(); renderGrid(); renderEditor(); changed(false);
+}
+function moveTo(d, id) { // to the first free key of a page or folder
+  if (id === d.at) return;
+  if (inside(id, d.at + "/" + d.n)) return toast(t("into_itself"));
+  const src = keysOf(d.at), dst = keysOf(id), k = src?.[d.n];
+  if (!k || !dst) return;
+  const free = Array.from({ length: 12 }, (_, i) => String(i + 1)).find(n => !(id.includes("/") && n === "1") && !dst[n]);
+  if (!free) return toast(t("no_free_key", { name: idTitle(id) }));
+  dst[free] = k; delete src[d.n];
+  iconUi = null;
+  renderTabs(); renderGrid(); renderEditor(); changed(false);
+  toast(t("moved_to", { name: idTitle(id), n: free }));
 }
 
 // ---------------------------------------------------------------- editor
 // The tab the user picked, kept until it matches the data (e.g. "Image" before a picture is chosen).
 let iconUi = null;
 function iconMode(k) {
-  if (iconUi && iconUi.key === page + "/" + sel) return iconUi.mode;
+  if (iconUi && iconUi.key === where() + "#" + sel) return iconUi.mode;
   return k?.image ? "image" : k?.emoji ? "emoji" : "text";
 }
 function setIconMode(mode) {
   const k = ensure();
-  iconUi = { key: page + "/" + sel, mode };
+  iconUi = { key: where() + "#" + sel, mode };
   if (mode === "emoji") { delete k.image; delete k.crop; delete k.fill; k.emoji ||= "⭐"; }
   if (mode === "text") { delete k.emoji; delete k.image; delete k.crop; delete k.fill; delete k.icon_scale; }
   // "image" keeps the current look until a picture is actually chosen
@@ -742,7 +1045,7 @@ async function uploadImage(file) {
 async function openCrop(auto = false) {
   const k = spec();
   if (!k?.image) return;
-  const pageAt = page, target = sel, imagePath = k.image;
+  const at = where(), target = sel, imagePath = k.image;
   let url;
   try {
     url = URL.createObjectURL(await api("/api/image?path=" + encodeURIComponent(imagePath)).then(r => r.blob()));
@@ -848,11 +1151,11 @@ async function openCrop(auto = false) {
     h("div", { class: "btns" },
       h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
       h("button", { type: "button", class: "primary", text: t("crop_apply"), onclick: () => {
-        const s = cfg.pages[pageAt]?.keys?.[target];
+        const s = keysOf(at)?.[target];
         if (touched && s && s.image === imagePath) { // moved or zoomed, and still the same key and picture
           const crop = cropNow();
           if (crop) s.crop = crop; else delete s.crop;
-          if (page === pageAt) { if (sel === target) renderEditor(); paintKey(target); }
+          if (where() === at) { if (sel === target) renderEditor(); paintKey(target); }
           changed(false);
         }
         dlg.close();
@@ -865,7 +1168,31 @@ async function openCrop(auto = false) {
   stage.focus();
 }
 
+function renderBackKey() {
+  const up = locTitle(page, folder.slice(0, -1));
+  $("#editor").replaceChildren(
+    h("div", { class: "ed-head" }, h("h2", { text: t("key_n", { n: 1 }) }), h("span", { class: "hint", text: t("page_ref", { name: locTitle(page, folder) }) })),
+    h("div", { class: "ed-top" }, h("img", { id: "ed-img", alt: "" }), h("div", { class: "hint", text: t("back_key_note", { name: up }) })),
+    h("div", { class: "row", style: "margin-top:14px" }, h("button", { onclick: () => goUp(), text: t("back_go", { name: up }) })));
+  paintKey("1");
+}
+async function confirmFolderLoss(k) {
+  const n = countKeys(k);
+  return !n || await ask(t("ask_clear_folder", { n }));
+}
+function makeFolder() {
+  const s = ensure();
+  s.folder = { keys: {} };
+  if (!s.emoji && !s.image && !s.label) { s.emoji = "📁"; s.label = t("folder_default"); }
+  renderEditor(); changed();
+}
+async function removeFolder() {
+  const k = spec(), n = countKeys(k);
+  if (n && !await ask(t("ask_remove_folder", { n }))) return;
+  delete k.folder; prune(); renderEditor(); changed();
+}
 function renderEditor() {
+  if (isBack(sel)) return renderBackKey();
   const ed = $("#editor"), k = spec(), mode = iconMode(k);
   const field = (lbl, el, hint) => h("label", {}, h("span", { class: "lbl", text: lbl }), el, hint ? h("small", { text: hint }) : null);
   const set = (f, v) => { const s = ensure(); if (v === "" || v == null) delete s[f]; else s[f] = v; prune(); changed(); };
@@ -912,11 +1239,11 @@ function renderEditor() {
   }
   const actionsBox = h("div", { id: "actions" });
   ed.replaceChildren(
-    h("div", { class: "ed-head" }, h("h2", { text: t("key_n", { n: sel }) }), h("span", { class: "hint", text: t("page_ref", { name: page }) }),
+    h("div", { class: "ed-head" }, h("h2", { text: t("key_n", { n: sel }) }), h("span", { class: "hint", text: t("page_ref", { name: locTitle(page, folder) }) }),
       h("div", { class: "tools" },
         h("button", { class: "small", title: t("copy_title"), onclick: () => { clip = JSON.stringify(spec() || null); toast(t("copied_key")); }, text: t("copy") }),
-        h("button", { class: "small", title: t("paste_title"), disabled: !clip, onclick: () => { const v = JSON.parse(clip); if (v) keys()[sel] = v; else delete keys()[sel]; renderEditor(); changed(); }, text: t("paste") }),
-        h("button", { class: "small danger", title: t("clear_title"), disabled: !k, onclick: () => { delete keys()[sel]; renderEditor(); changed(); }, text: t("clear") }))),
+        h("button", { class: "small", title: t("paste_title"), disabled: !clip, onclick: async () => { if (!await confirmFolderLoss(spec())) return; const v = JSON.parse(clip); if (v) keys()[sel] = v; else delete keys()[sel]; iconUi = null; renderEditor(); changed(); }, text: t("paste") }),
+        h("button", { class: "small danger", title: t("clear_title"), disabled: !k, onclick: async () => { if (!await confirmFolderLoss(spec())) return; delete keys()[sel]; renderEditor(); changed(); }, text: t("clear") }))),
     h("div", { class: "ed-top" }, h("img", { id: "ed-img", alt: "" }), h("div", { class: "hint", id: "ed-note" })),
     h("h3", { text: t("appearance") }),
     h("div", { class: "stack" },
@@ -931,6 +1258,15 @@ function renderEditor() {
         field(t("bg"), h("input", { type: "color", value: (k?.color || DEFAULT_BG).toLowerCase(), oninput: e => set("color", e.target.value) })),
         field(t("fg"), h("input", { type: "color", value: (k?.text_color || DEFAULT_FG).toLowerCase(), oninput: e => set("text_color", e.target.value) })),
         h("div", { class: "none" }, h("button", { class: "small", onclick: () => { const s = ensure(); delete s.color; delete s.text_color; prune(); renderEditor(); changed(); }, text: t("default_colors") })))),
+    h("h3", { text: t("folder_h") }),
+    k?.folder
+      ? h("div", { class: "stack" },
+          h("div", { class: "row" }, h("button", { class: "none", onclick: () => openFolder(sel), text: t("folder_open") }),
+            h("button", { class: "none small danger", onclick: removeFolder, text: t("folder_remove") })),
+          h("small", { class: "hint", text: t(countKeys(k) ? "folder_info" : "folder_info_0", { n: countKeys(k) }) }))
+      : h("div", { class: "stack" },
+          h("div", { class: "row" }, h("button", { class: "none", onclick: makeFolder, text: t("folder_make") })),
+          h("small", { class: "hint", text: t("folder_hint") })),
     h("h3", {}, t("actions_h"), h("small", { text: t("actions_sub") })),
     actionsBox,
     h("div", { class: "row", style: "margin-top:10px" },
@@ -959,7 +1295,7 @@ function defaults(type) {
   const other = Object.keys(cfg.pages).find(p => p !== page);
   return { open: { target: "" }, shortcut: { keys: "" }, text: { text: "" }, media: { key: "play_pause" }, shell: { command: "" },
     applescript: { script: "" }, page: { page: other || "back" }, screen_brightness: { value: "+10", display: "all" },
-    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {} }[type];
+    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {}, macro: { steps: [], play: "once" } }[type];
 }
 
 function actionCard(a, i, list) {
@@ -987,13 +1323,19 @@ function fields(a) {
         hint(t("open_hint"))];
     }
     case "shortcut": {
-      const inp = h("input", { class: "mono", value: a.keys || "", placeholder: "cmd+shift+4", oninput: e => { a.keys = e.target.value.trim().toLowerCase(); chips(); changed(false); } });
+      const inp = h("input", { class: "mono", value: a.keys || "", placeholder: "cmd+shift+4 · rcmd · f13", oninput: e => { a.keys = e.target.value.trim().toLowerCase(); chips(); changed(false); } });
       const kbd = h("span", { class: "kbd" });
-      const chips = () => kbd.replaceChildren(...(a.keys ? a.keys.split("+").map(p => h("span", { text: pretty(p) })) : []));
-      const btn = h("button", { class: "none", text: t("record") });
-      btn.onclick = () => recording ? stopRec() : startRec(btn, (combo) => { a.keys = combo; inp.value = combo; chips(); changed(false); });
+      const chips = (keys = a.keys) => kbd.replaceChildren(...comboChips(keys));
+      const use = (combo) => { a.keys = combo; inp.value = combo; chips(); changed(false); };
+      const btn = h("button", { class: "none", type: "button", text: t("record") });
+      btn.onclick = () => recording ? stopRec() : startRec(btn, use, (live) => chips(live));
+      const osk = h("button", { class: "none", type: "button", text: t("osk_btn"), title: t("osk_title"),
+        onclick: () => { stopRec(); openKeyboard(a.keys, use); } });
+      const hold = h("label", { class: "check" },
+        h("input", { type: "checkbox", checked: !!a.hold, onchange: e => { if (e.target.checked) a.hold = true; else delete a.hold; changed(false); } }),
+        t("hold_key"));
       chips();
-      return [h("div", { class: "row" }, inp, btn), kbd, hint(t("shortcut_hint")), accessNote];
+      return [h("div", { class: "row" }, inp, btn, osk), kbd, hint(t("shortcut_hint")), hold, hint(t("hold_hint")), accessNote];
     }
     case "text":
       return [h("textarea", { value: a.text || "", rows: 3, placeholder: t("text_ph2"), oninput: upd("text") }),
@@ -1022,6 +1364,8 @@ function fields(a) {
         h("span", { class: "none hint", text: t("ms") })), hint(t("delay_hint"))];
     case "configurator":
       return [hint(t("conf_hint"))];
+    case "macro":
+      return macroFields(a, accessNote);
   }
   return [];
 }
@@ -1039,37 +1383,415 @@ function level(a, unit) {
 }
 
 // ---------------------------------------------------------------- shortcut recorder
-function keyName(e) {
-  const c = e.code;
-  if (/^Key[A-Z]$/.test(c)) return c.slice(3).toLowerCase();
-  if (/^Digit\d$/.test(c)) return c.slice(5);
-  if (/^F\d{1,2}$/.test(c)) return c.toLowerCase();
-  return KEY_NAMES[c] || null;
+// Records the physical keys (event.code), so left and right modifiers stay apart. A normal
+// key ends the recording with the modifiers held at that moment; modifiers pressed and let
+// go with no other key are recorded on their own ("rcmd", "ctrl+shift").
+function codeName(code) {
+  if (CODE_MODS[code]) return CODE_MODS[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  const f = /^F(\d{1,2})$/.exec(code);
+  if (f) return +f[1] <= 20 ? "f" + f[1] : null;
+  const n = /^Numpad(\d)$/.exec(code);
+  if (n) return "kp" + n[1];
+  return KEY_NAMES[code] || null;
 }
-function onRecKey(e) {
+const MOD_FLAG = { ctrl: "ctrlKey", alt: "altKey", shift: "shiftKey", cmd: "metaKey" };
+function onRecDown(e) {
   e.preventDefault(); e.stopPropagation();
-  const k = keyName(e);
-  if (!k) return; // only a modifier so far
-  const mods = [e.ctrlKey && "ctrl", e.altKey && "alt", e.shiftKey && "shift", e.metaKey && "cmd"].filter(Boolean);
-  recording.done([...mods, k].join("+"));
-  stopRec();
+  const r = recording, k = codeName(e.code);
+  if (e.repeat || !k) return;
+  if (modOf(k)) {
+    r.down.add(k); r.mods.push(k);
+    r.live(sortMods([...r.down]).join("+"));
+    return;
+  }
+  // modifiers still held (checked against the event, in case a key-up was missed); a modifier
+  // the event says is down but that came without its own key event counts as the left one
+  const held = [...r.down].filter(m => m === "fn" || e[MOD_FLAG[m.replace(/^r/, "")]]);
+  for (const [m, flag] of Object.entries(MOD_FLAG))
+    if (e[flag] && !held.some(x => x.replace(/^r/, "") === m)) held.push(m);
+  finishRec([...sortMods(held), k].join("+"));
 }
-function startRec(btn, done) {
-  recording = { btn, done };
+function onRecUp(e) {
+  e.preventDefault(); e.stopPropagation();
+  const r = recording, k = codeName(e.code);
+  if (!k || !modOf(k)) return;
+  r.down.delete(k);
+  if (!r.down.size && r.mods.length) finishRec(sortMods(r.mods).join("+")); // modifiers on their own
+}
+function finishRec(combo) { const done = recording.done; stopRec(); done(combo); }
+function startRec(btn, done, live = () => {}) {
+  stopRec();
+  recording = { btn, done, live, down: new Set(), mods: [] };
   btn.classList.add("rec"); btn.textContent = t("recording");
-  addEventListener("keydown", onRecKey, true);
+  addEventListener("keydown", onRecDown, true);
+  addEventListener("keyup", onRecUp, true);
+  addEventListener("blur", stopRec);
 }
 function stopRec() {
   if (!recording) return;
-  removeEventListener("keydown", onRecKey, true);
-  recording.btn.classList.remove("rec"); recording.btn.textContent = t("record");
+  removeEventListener("keydown", onRecDown, true);
+  removeEventListener("keyup", onRecUp, true);
+  removeEventListener("blur", stopRec);
+  const { btn, live } = recording;
   recording = null;
+  btn.classList.remove("rec"); btn.textContent = t("record");
+  live(undefined); // back to the saved keys
+}
+
+// ---------------------------------------------------------------- on-screen keyboard
+// For keys the browser cannot record (⌘Q, ⌘W, fn...) or when it is easier to click.
+const OSK_ROWS = [
+  [["esc", 1.5], "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"],
+  ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", ["delete", 1.6]],
+  [["tab", 1.6], "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"],
+  [[null, 1.9], "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", ["return", 1.9]],
+  [["shift", 2.45], "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", ["rshift", 2.45]],
+  ["fn", "ctrl", "alt", ["cmd", 1.3], ["space", 3.6], ["rcmd", 1.3], "ralt", "rctrl", "left", "up", "down", "right"],
+];
+const OSK_MORE = ["f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "help", "home", "end", "pageup", "pagedown", "forwarddelete", "section"];
+const OSK_KEYPAD = [["kpclear", "kpequals", "kpdivide", "kpmultiply"], ["kp7", "kp8", "kp9", "kpminus"], ["kp4", "kp5", "kp6", "kpplus"],
+  ["kp1", "kp2", "kp3", "kpenter"], [["kp0", 2], "kpdecimal", [null, 1]]];
+const OSK_LABEL = { cmd: "⌘", shift: "⇧ shift", ctrl: "⌃", alt: "⌥", fn: "fn", delete: "⌫", tab: "⇥ tab", return: "↩ return", esc: "esc" };
+function openKeyboard(current, use) {
+  let mods = [], key = null;
+  for (const p of String(current || "").split("+").map(x => x.trim().toLowerCase()).filter(Boolean)) {
+    const m = modOf(p);
+    if (m) mods.push(m); else key = p;
+  }
+  mods = sortMods(mods);
+  const combo = () => [...sortMods(mods), ...(key ? [key] : [])].join("+");
+  const out = h("div", { class: "osk-out" }), keysEl = [];
+  const useBtn = h("button", { type: "button", class: "primary", text: t("osk_use"), onclick: () => { use(combo()); dlg.close(); } });
+  function paint() {
+    const c = combo();
+    out.replaceChildren(c ? h("span", { class: "kbd" }, comboChips(c)) : h("span", { class: "hint", text: t("osk_none") }),
+      c ? h("code", { class: "hint", text: c }) : null);
+    useBtn.disabled = !c;
+    for (const b of keysEl) {
+      const on = modOf(b.dataset.k) ? mods.includes(b.dataset.k) : key === b.dataset.k;
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+    }
+  }
+  function keyBtn(spec) {
+    const [name, units] = Array.isArray(spec) ? spec : [spec, 1];
+    if (!name) return h("span", { class: "osk-key gap", style: `flex-grow:${units}` });
+    const m = modOf(name);
+    const label = m ? OSK_LABEL[m.replace(/^r/, "")] : name === "space" ? "" : /^kp/.test(name) ? KP[name.slice(2)] ?? name.slice(2)
+      : OSK_LABEL[name] || pretty(name);
+    const cls = "osk-key" + (m && m !== "fn" ? " mod" : "") + (label.length > 3 ? " word" : "");
+    const b = h("button", { type: "button", class: cls, style: units !== 1 ? `flex-grow:${units}` : null, "data-k": name,
+      title: m ? modTitle(m) : pretty(name), "aria-label": m ? modTitle(m) : pretty(name), text: label,
+      onclick: () => {
+        if (m) mods = mods.includes(m) ? mods.filter(x => x !== m) : [...mods, m];
+        else key = key === name ? null : name;
+        paint();
+      } });
+    keysEl.push(b);
+    return b;
+  }
+  const dlg = h("dialog", { class: "osk-dlg" },
+    h("h2", { text: t("osk_head") }),
+    h("p", { class: "hint", text: t("osk_help") }),
+    out,
+    h("div", { class: "osk", role: "group", "aria-label": t("osk_head") }, OSK_ROWS.map(row => h("div", { class: "osk-row" }, row.map(keyBtn)))),
+    h("div", { class: "osk-extra" },
+      h("div", {}, h("div", { class: "osk-sec", text: t("osk_more") }), h("div", { class: "osk-more" }, OSK_MORE.map(keyBtn))),
+      h("div", {}, h("div", { class: "osk-sec", text: t("osk_keypad") }),
+        h("div", { class: "osk-pad" }, OSK_KEYPAD.map(row => h("div", { class: "osk-row" }, row.map(keyBtn)))))),
+    h("div", { class: "btns" },
+      h("button", { type: "button", text: t("osk_clear"), onclick: () => { mods = []; key = null; paint(); } }),
+      h("span", { style: "flex:1" }),
+      h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
+      useBtn));
+  dlg.addEventListener("close", () => dlg.remove());
+  document.body.append(dlg);
+  paint();
+  dlg.showModal();
+}
+
+// ---------------------------------------------------------------- macros
+// A macro action keeps its steps ({"do": ...}); the service records them (Input Monitoring)
+// and plays them back. See macro.py for the format.
+const STEP_KINDS = ["wait", "keys", "text", "key_down", "key_up", "click", "mouse_down", "mouse_up", "move", "scroll"];
+const STEP_ICON = { key_down: "⬇", key_up: "⬆", keys: "⌨", text: "✎", click: "🖱", mouse_down: "⬇", mouse_up: "⬆", move: "➚", scroll: "↕", wait: "⏱" };
+const MOUSE_BUTTONS = ["left", "right", "middle", "back", "forward"];
+const NEW_STEP = { wait: { ms: 100 }, keys: { keys: "" }, text: { text: "" }, key_down: { key: "cmd" }, key_up: { key: "cmd" },
+  click: { button: "left" }, mouse_down: { button: "left" }, mouse_up: { button: "left" }, move: { x: 400, y: 400 }, scroll: { dy: -100, dx: 0 } };
+const PLAY_MODES = ["once", "repeat", "while_held", "toggle"], DELAY_MODES = ["recorded", "fixed", "none"];
+const fill = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));
+function keyLabel(k) { const m = modOf(String(k)); return m ? modTitle(m) : pretty(String(k)); }
+function comboText(keys) {
+  const parts = String(keys || "").split("+").map(p => p.trim().toLowerCase()).filter(Boolean);
+  const alone = parts.length > 0 && parts.every(modOf);
+  return parts.map(p => pretty(p, alone)).join(alone ? " + " : "");
+}
+function fmtSecs(s) { s = +s || 0; return s < 60 ? `${s.toFixed(1)} s` : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`; }
+function scrollText(s) {
+  const out = [];
+  if (+s.dy) out.push((s.dy > 0 ? "↑ " : "↓ ") + Math.abs(s.dy) + " px");
+  if (+s.dx) out.push((s.dx > 0 ? "← " : "→ ") + Math.abs(s.dx) + " px");
+  return out.join(" ");
+}
+function describe(s) {
+  const at = s.x != null && s.y != null ? " · " + t("at_xy", { x: s.x, y: s.y }) : "";
+  switch (s.do) {
+    case "key_down": case "key_up": return t("s_" + s.do) + " · " + keyLabel(s.key);
+    case "keys": return t("s_keys") + " · " + comboText(s.keys);
+    case "text": return t("s_text") + " · “" + (s.text.length > 30 ? s.text.slice(0, 30) + "…" : s.text) + "”";
+    case "click": return t("s_click") + " · " + t("bn_" + (s.button || "left")) + ((s.count || 1) > 1 ? " ×" + s.count : "") + at;
+    case "mouse_down": case "mouse_up": return t("s_" + s.do) + " · " + t("bn_" + (s.button || "left")) + at;
+    case "move": return t("s_move") + at;
+    case "scroll": return t("s_scroll") + " · " + scrollText(s) + at;
+    case "wait": return t("s_wait") + " · " + s.ms + " ms";
+  }
+  return String(s.do);
+}
+function macroStats(a, steps = a.steps || []) {
+  const n = steps.filter(s => s.do !== "wait").length, d = a.delays || "recorded";
+  const ms = d === "recorded" ? steps.reduce((m, s) => m + (s.do === "wait" ? +s.ms || 0 : 0), 0)
+    : d === "fixed" ? Math.max(0, n - 1) * (+a.delay_ms || 0) : n * 4;
+  return { n, secs: (ms / 1000).toFixed(1) };
+}
+function stepList(steps, max) { // the first few actions (not the waits), for a quick look
+  const acts = steps.filter(s => s.do !== "wait");
+  if (!acts.length) return null;
+  return h("ol", { class: "mprev" }, acts.slice(0, max).map(s => h("li", { text: describe(s) })),
+    acts.length > max ? h("li", { class: "more", text: t("mac_more", { n: acts.length - max }) }) : null);
+}
+
+function macroFields(a, accessNote) {
+  a.steps ??= [];
+  const hint = (txt) => h("small", { text: txt });
+  const { n, secs } = macroStats(a);
+  const play = a.play || "once", delays = a.delays || "recorded";
+  const playSel = h("select", { "aria-label": t("mac_play"), onchange: e => {
+    a.play = e.target.value;
+    if (a.play === "repeat") a.times ??= 3; else delete a.times;
+    structural();
+  } }, PLAY_MODES.map(m => h("option", { value: m, text: t("play_" + m), selected: play === m })));
+  const delaySel = h("select", { "aria-label": t("mac_delays"), onchange: e => {
+    a.delays = e.target.value;
+    if (a.delays === "fixed") a.delay_ms ??= 50; else delete a.delay_ms;
+    if (a.delays === "recorded") delete a.delays;
+    structural();
+  } }, DELAY_MODES.map(m => h("option", { value: m, text: t("delays_" + m), selected: delays === m })));
+  const numBox = (field, min, max, step, unit) => h("div", { class: "row none" },
+    h("input", { type: "number", min, max, step, value: a[field], style: "width:90px", oninput: e => {
+      a[field] = Math.max(min, Math.min(max, parseInt(e.target.value || String(min), 10) || min)); changed(false);
+    } }), h("span", { class: "none hint", text: unit }));
+  const inputNote = status.input_monitoring && status.input_monitoring !== "granted"
+    ? h("small", { style: "color:var(--danger)", text: t("mac_needs_input") }) : null;
+  return [
+    h("div", { class: "msum", text: n ? t("mac_summary", { n, secs }) : "" }), n ? null : hint(t("mac_empty")),
+    stepList(a.steps, 5),
+    h("div", { class: "row" },
+      h("button", { type: "button", class: "rec-btn", text: t("mac_record"), onclick: () => openRecorder(a) }),
+      h("button", { type: "button", text: t("mac_edit"), onclick: () => openSteps(a) })),
+    h("div", {}, h("span", { class: "lbl", text: t("mac_play") }),
+      h("div", { class: "row" }, playSel, play === "repeat" ? numBox("times", 1, 1000, 1, t("mac_times")) : null)),
+    h("div", {}, h("span", { class: "lbl", text: t("mac_delays") }),
+      h("div", { class: "row" }, delaySel, delays === "fixed" ? numBox("delay_ms", 0, 10000, 10, "ms") : null)),
+    hint(t("mac_play_hint")), inputNote, accessNote];
+}
+
+// The record wizard: choose what to record, a countdown to switch apps, the live count,
+// then use the recording (replacing the steps or after them).
+function openRecorder(a) {
+  stopRec();
+  const had = (a.steps || []).length, opts = { keys: true, mouse: true, moves: false };
+  let mode = "replace", timer = null, live = false, result = null;
+  const body = h("div"), btns = h("div", { class: "btns" });
+  const dlg = h("dialog", { class: "mrec-dlg" }, h("h2", { text: t("rec_title") }), body, btns);
+  const button = (text, onclick, cls) => h("button", { type: "button", class: cls, text, onclick });
+  const check = (k, text) => h("label", { class: "check" },
+    h("input", { type: "checkbox", checked: opts[k], onchange: e => { opts[k] = e.target.checked; } }), text);
+  const radio = (v, text) => h("label", { class: "check" },
+    h("input", { type: "radio", name: "mrec-mode", checked: mode === v, onchange: () => { mode = v; } }), text);
+  function setup(err) {
+    live = false; shown = "";
+    const noPerm = status.input_monitoring && status.input_monitoring !== "granted";
+    fill(body, 
+      h("ol", { class: "mrec-steps" }, ["rec_step1", "rec_step2", "rec_step3", "rec_step4"].map(k => h("li", { text: t(k) }))),
+      h("div", { class: "mrec-opts" }, check("keys", t("rec_keys")), check("mouse", t("rec_mouse")), check("moves", t("rec_moves")),
+        h("small", { class: "hint", text: t("rec_moves_hint") })),
+      had ? h("div", { class: "mrec-mode" }, radio("replace", t("rec_replace", { n: had })), radio("append", t("rec_append"))) : null,
+      noPerm ? h("p", { class: "bad-t", style: "margin-top:12px" }, t("mac_needs_input"), " ",
+        button(t("open_settings"), () => perm("input"), "small")) : null,
+      err ? h("p", { class: "bad-t", style: "margin-top:12px", text: err }) : null);
+    fill(btns, button(t("cancel"), () => dlg.close()), button(t("rec_start"), start, "primary"));
+  }
+  async function start() {
+    if (!opts.keys && !opts.mouse) return setup(t("rec_need_one"));
+    try { show(await postJSON("/api/macro/record", opts)); }
+    catch (e) { return setup(t("rec_failed", { msg: e.message })); }
+    tick();
+  }
+  async function tick() {
+    clearTimeout(timer);
+    let st;
+    try { st = await getJSON("/api/macro/record"); }
+    catch { timer = setTimeout(tick, 1000); return; }
+    if (!dlg.open) return;
+    show(st);
+    if (live) timer = setTimeout(tick, 200);
+  }
+  const post = (path) => postJSON(path, {}).then(show).catch(e => toast(e.message));
+  let shown = "", figure = null; // the state on screen; while it lasts only its number changes
+  function show(st) {
+    live = st.state === "countdown" || st.state === "recording";
+    const same = st.state === shown;
+    shown = st.state;
+    if (st.state === "countdown") {
+      const n = String(Math.max(1, Math.ceil(st.seconds_left || 0)));
+      if (same) return void (figure.textContent = n);
+      figure = h("div", { class: "mrec-big", text: n });
+      fill(body, h("p", { class: "center", text: t("rec_countdown") }), figure);
+      fill(btns, button(t("cancel"), () => post("/api/macro/record/cancel")));
+    } else if (st.state === "recording") {
+      const n = t("rec_count", { n: st.count || 0, secs: fmtSecs(st.elapsed) });
+      if (same) return void (figure.textContent = n);
+      figure = h("p", { class: "center", text: n });
+      fill(body, h("div", { class: "mrec-live" }, h("span", { class: "mrec-dot" }), t("rec_now")), figure,
+        h("p", { class: "center hint", text: t("rec_stop_hint") }));
+      fill(btns, button(t("cancel"), () => post("/api/macro/record/cancel")),
+        button(t("rec_stop"), () => post("/api/macro/record/stop"), "primary"));
+    } else if (st.state === "done") {
+      result = st.steps || [];
+      const n = result.filter(s => s.do !== "wait").length;
+      fill(body, 
+        h("p", { text: n ? t("rec_done", { n, secs: fmtSecs(st.elapsed) }) : t("rec_nothing") }),
+        stepList(result, 8),
+        st.stopped_by === "limit" ? h("p", { class: "bad-t", text: t("rec_limit") }) : null,
+        n ? h("p", { class: "hint", text: t("rec_done_hint") }) : null);
+      fill(btns, button(t("cancel"), () => dlg.close()), button(t("rec_again"), () => setup()),
+        n ? button(t("rec_use"), use, "primary") : null);
+    } else if (st.state === "error") setup(st.error);
+    else setup(); // cancelled
+  }
+  function use() {
+    a.steps = mode === "append" ? [...(a.steps || []), ...result] : result;
+    dlg.close();
+    structural();
+  }
+  dlg.addEventListener("close", () => {
+    clearTimeout(timer);
+    if (live) postJSON("/api/macro/record/cancel", {}).catch(() => {});
+    dlg.remove();
+  });
+  document.body.append(dlg);
+  setup();
+  dlg.showModal();
+}
+
+// The step editor: every step on its own line, to fix a recording or build a macro by hand.
+function openSteps(a) {
+  stopRec();
+  const steps = structuredClone(a.steps || []);
+  let cur = steps.length - 1;
+  const list = h("div", { class: "msteps", role: "list" }), info = h("span", { class: "hint" });
+  const summary = () => { const { n, secs } = macroStats({ delays: "recorded" }, steps); info.textContent = t("mac_summary", { n, secs }); };
+  const addSel = h("select", { "aria-label": t("steps_add"), onchange: e => {
+    const kind = e.target.value; e.target.value = "";
+    if (!kind) return;
+    cur = Math.min(cur, steps.length - 1) + 1;
+    steps.splice(cur, 0, { do: kind, ...structuredClone(NEW_STEP[kind]) });
+    render();
+    list.children[cur]?.scrollIntoView({ block: "nearest" });
+    list.children[cur]?.querySelector("input, select")?.focus();
+  } }, h("option", { value: "", text: t("steps_add") }), STEP_KINDS.map(k => h("option", { value: k, text: STEP_ICON[k] + " " + t("s_" + k) })));
+  async function sameWait() {
+    const v = await ask(t("steps_ask_wait"), "50");
+    if (v === null) return;
+    const ms = Math.max(0, Math.min(600000, parseInt(v, 10) || 0));
+    const acts = steps.filter(s => s.do !== "wait");
+    steps.splice(0, steps.length, ...acts.flatMap((s, i) => i && ms ? [{ do: "wait", ms }, s] : [s]));
+    cur = steps.length - 1; render();
+  }
+  function noWaits() { steps.splice(0, steps.length, ...steps.filter(s => s.do !== "wait")); cur = steps.length - 1; render(); }
+  async function clearAll() { if (steps.length && await ask(t("steps_ask_clear"))) { steps.length = 0; cur = -1; render(); } }
+  function mark() { [...list.children].forEach((r, i) => r.classList.toggle("sel", i === cur)); }
+  function render() {
+    summary();
+    if (!steps.length) return list.replaceChildren(h("div", { class: "empty", style: "border:0", text: t("steps_none") }));
+    const frag = document.createDocumentFragment();
+    steps.forEach((s, i) => frag.append(row(s, i)));
+    list.replaceChildren(frag);
+  }
+  function row(s, i) {
+    const move = (d) => { [steps[i], steps[i + d]] = [steps[i + d], steps[i]]; cur = i + d; render(); };
+    return h("div", { class: "mstep" + (s.do === "wait" ? " wait" : "") + (i === cur ? " sel" : ""), role: "listitem",
+        onfocusin: () => { if (cur !== i) { cur = i; mark(); } }, onclick: () => { if (cur !== i) { cur = i; mark(); } } },
+      h("span", { class: "num", text: i + 1 }),
+      h("span", { class: "mkind", text: (STEP_ICON[s.do] || "") + " " + (STRINGS.en["s_" + s.do] ? t("s_" + s.do) : s.do) }),
+      h("div", { class: "mfields" }, stepFields(s)),
+      h("div", { class: "mtools" },
+        h("button", { class: "icon small", title: t("move_up"), disabled: i === 0, onclick: () => move(-1), text: "↑" }),
+        h("button", { class: "icon small", title: t("move_down"), disabled: i === steps.length - 1, onclick: () => move(1), text: "↓" }),
+        h("button", { class: "icon small danger", title: t("remove_action"), text: "✕",
+          onclick: e => { e.stopPropagation(); steps.splice(i, 1); cur = Math.min(i, steps.length - 1); render(); } })));
+  }
+  function stepFields(s) {
+    const num = (k, o = {}) => h("input", { type: "number", class: "mnum", value: s[k] ?? "", step: o.step || 1, min: o.min,
+      placeholder: o.ph || "", title: o.title || "", "aria-label": o.title || o.ph || k,
+      oninput: e => { const v = e.target.value; if (v === "" && o.optional) delete s[k]; else s[k] = Math.round(+v || 0); summary(); } });
+    const pos = (optional) => [num("x", { ph: "x", optional, title: optional ? t("here") : "x" }), num("y", { ph: "y", optional, title: optional ? t("here") : "y" })];
+    const buttonSel = () => h("select", { "aria-label": t("s_click"), onchange: e => { s.button = e.target.value; } },
+      MOUSE_BUTTONS.map(b => h("option", { value: b, text: t("bn_" + b), selected: (s.button || "left") === b })));
+    switch (s.do) {
+      case "wait": return [num("ms", { min: 0, step: 10, title: "ms" }), h("span", { class: "hint", text: "ms" })];
+      case "key_down": case "key_up": {
+        const chip = h("span", { class: "hint", text: keyLabel(s.key) });
+        const inp = h("input", { class: "mono mkey", value: s.key || "", spellcheck: "false", "aria-label": t("s_" + s.do),
+          oninput: e => { s.key = e.target.value.trim().toLowerCase(); chip.textContent = keyLabel(s.key); } });
+        return [inp, h("button", { type: "button", class: "small", text: t("osk_btn"), title: t("pick_key"),
+          onclick: () => openKeyboard(s.key, combo => { s.key = combo.split("+").pop(); inp.value = s.key; chip.textContent = keyLabel(s.key); }) }), chip];
+      }
+      case "keys": {
+        const kbd = h("span", { class: "kbd" }, comboChips(s.keys));
+        const inp = h("input", { class: "mono mkey", value: s.keys || "", spellcheck: "false", placeholder: "cmd+c", "aria-label": t("s_keys"),
+          oninput: e => { s.keys = e.target.value.trim().toLowerCase(); kbd.replaceChildren(...comboChips(s.keys)); } });
+        const use = (combo) => { s.keys = combo; inp.value = combo; kbd.replaceChildren(...comboChips(combo)); };
+        const rec = h("button", { type: "button", class: "small", text: t("record") });
+        rec.onclick = () => recording ? stopRec() : startRec(rec, use, live => kbd.replaceChildren(...comboChips(live ?? s.keys)));
+        return [inp, rec, h("button", { type: "button", class: "small", text: t("osk_btn"), title: t("osk_title"), onclick: () => { stopRec(); openKeyboard(s.keys, use); } }), kbd];
+      }
+      case "text": return [h("input", { class: "mtext", value: s.text || "", "aria-label": t("s_text"), oninput: e => { s.text = e.target.value; } })];
+      case "click": return [buttonSel(), h("select", { "aria-label": t("s_click"), onchange: e => { const c = +e.target.value; if (c > 1) s.count = c; else delete s.count; } },
+        [1, 2, 3].map(c => h("option", { value: c, text: t("cnt_" + c), selected: (s.count || 1) === c }))), ...pos(true)];
+      case "mouse_down": case "mouse_up": return [buttonSel(), ...pos(true)];
+      case "move": return pos(false);
+      case "scroll": return [num("dy", { title: t("scroll_dy"), ph: "↕" }), num("dx", { title: t("scroll_dx"), ph: "↔" }), h("span", { class: "hint", text: "px" }), ...pos(true)];
+    }
+    return [h("code", { text: JSON.stringify(s) })];
+  }
+  const dlg = h("dialog", { class: "msteps-dlg" },
+    h("h2", { text: t("steps_title") }),
+    h("p", { class: "hint", text: t("steps_hint") }),
+    h("div", { class: "msteps-bar" }, addSel,
+      h("button", { type: "button", class: "small", text: t("steps_all_waits"), onclick: sameWait }),
+      h("button", { type: "button", class: "small", text: t("steps_no_waits"), onclick: noWaits }),
+      h("button", { type: "button", class: "small danger", text: t("steps_clear"), onclick: clearAll }),
+      h("span", { class: "spacer" }), info),
+    list,
+    h("div", { class: "btns" },
+      h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
+      h("button", { type: "button", class: "primary", text: t("steps_done"), onclick: () => { stopRec(); a.steps = steps; dlg.close(); structural(); } })));
+  dlg.addEventListener("close", () => { stopRec(); dlg.remove(); });
+  document.body.append(dlg);
+  render();
+  dlg.showModal();
+  list.children[cur]?.scrollIntoView({ block: "nearest" });
 }
 
 // ---------------------------------------------------------------- test / save
 async function testKey() {
   const out = $("#test-out"), list = spec()?.actions || [];
   out.hidden = false; out.textContent = t("testing");
+  if (list.some(a => a.type === "macro")) // it plays after a countdown: time to switch apps, or to stop it
+    out.replaceChildren(t("mac_test_wait"), " ", h("button", { class: "small", text: t("stop_macros"),
+      onclick: () => postJSON("/api/macro/stop-all", {}).catch(e => toast(e.message)) }));
   try {
     const res = await postJSON("/api/test", { spec: { actions: list }, pages: cfg.pages });
     out.replaceChildren(...res.map((r, i) => h("div", {},
@@ -1116,16 +1838,16 @@ async function externalChange() {
 
 // ---------------------------------------------------------------- status & permissions
 function usesAccess() {
-  return !!cfg && Object.values(cfg.pages).some(p => Object.values(p.keys).some(k => (k.actions || []).some(a => NEEDS_ACCESS.has(a.type))));
+  return !!cfg && [...allKeys()].some(([, , k]) => (k.actions || []).some(a => NEEDS_ACCESS.has(a.type)));
 }
 function renderStatus(down = false) {
   const c = $("#conn");
   if (down) { c.className = "pill bad"; c.textContent = t("svc_down"); }
-  else if (status.connected) { c.className = "pill ok"; c.textContent = t("connected", { page: status.page }); }
+  else if (status.connected) { c.className = "pill ok"; c.textContent = t("connected", { page: idTitle(status.page) }); }
   else { c.className = "pill bad"; c.textContent = t("disconnected"); }
   if (view === "settings") renderAbout(down);
   const box = $("#banners");
-  const sig = down ? "down" : JSON.stringify([LANG, status.input_monitoring, status.accessibility && 1, usesAccess(), status.config_error]);
+  const sig = down ? "down" : JSON.stringify([LANG, status.input_monitoring, status.accessibility && 1, usesAccess(), status.config_error, status.macros_playing]);
   if (sig === renderStatus.sig) return;
   renderStatus.sig = sig;
   box.querySelectorAll(".perm").forEach(b => b.remove());
@@ -1142,6 +1864,10 @@ function renderStatus(down = false) {
       h("button", { class: "small", onclick: () => perm("accessibility"), text: t("open_settings") }), restart()));
   if (status.config_error)
     box.append(h("div", { class: "banner err perm" }, h("div", {}, h("b", { text: t("config_err") }), status.config_error)));
+  if (status.macros_playing > 0)
+    box.append(h("div", { class: "banner perm" }, h("div", { text: t("playing", { n: status.macros_playing }) }),
+      h("button", { class: "small", text: t("stop_macros"),
+        onclick: () => postJSON("/api/macro/stop-all", {}).then(() => setTimeout(poll, 300)).catch(e => toast(e.message)) })));
 }
 async function perm(which) {
   try { status = await postJSON("/api/permissions", { which }); renderStatus(); } catch (e) { toast(e.message); }
@@ -1299,7 +2025,8 @@ async function load() {
   cfg = normalise(await r.json());
   cfg.start_page = cfg.pages[cfg.start_page] ? cfg.start_page : Object.keys(cfg.pages)[0];
   saved = JSON.stringify(cfg);
-  if (!page || !cfg.pages[page]) page = status.page && cfg.pages[status.page] ? status.page : cfg.start_page;
+  if (!page || !cfg.pages[page]) [page, ...folder] = status.page && keysOf(status.page) ? status.page.split("/") : [cfg.start_page];
+  else if (!keys()) folder = [];
   setLang(cfg.language || "en");
   $("#banners .conflict")?.remove();
   renderAll(); changed(false);
@@ -1313,7 +2040,7 @@ $("#nav-keys").onclick = () => setView("keys");
 $("#nav-settings").onclick = () => setView("settings");
 $("#pg-show").onclick = async () => {
   if (JSON.stringify(cfg.pages[page]) !== JSON.stringify(JSON.parse(saved).pages[page])) return toast(t("save_page_first"));
-  await postJSON("/api/show-page", { page }); setTimeout(poll, 600);
+  await postJSON("/api/show-page", { page: where() }); setTimeout(poll, 600);
 };
 $("#pg-start").onclick = () => { cfg.start_page = page; renderTabs(); changed(false); };
 $("#pg-rename").onclick = () => renamePage();

@@ -63,7 +63,7 @@ def cmd_preview(args):
     out_dir = args.out or os.getcwd()
     os.makedirs(out_dir, exist_ok=True)
     for name, keys in cfg["pages"].items():
-        path = os.path.join(out_dir, f"preview-{name}.png")
+        path = os.path.join(out_dir, f"preview-{name.replace('/', '-')}.png")  # folders are "page/key"
         preview_sheet(keys, cfg["base_dir"]).save(path)
         print(path)
 

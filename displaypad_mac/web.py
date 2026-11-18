@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, urlparse
 
 from PIL import Image
 
-from . import anim, daemon, i18n, macos, mcp  # daemon: circular, used at call time only
+from . import anim, daemon, i18n, macos, macro, mcp  # daemon: circular, used at call time only
 from .actions import test_actions
 from .i18n import t
 from .render import frame_durations, render_key
@@ -237,6 +237,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._json(list_apps())
         elif path == "/api/mcp":
             self._json(self._mcp_info())
+        elif path == "/api/macro/record":
+            self._json(macro.recorder.status())
         elif path == "/api/image":  # the original picture of a key, for the crop editor
             rel = parse_qs(urlparse(self.path).query).get("path", [""])[0]
             try:
@@ -307,6 +309,17 @@ class _Handler(BaseHTTPRequestHandler):
                 if which in SETTINGS_PANES:
                     subprocess.Popen(["open", SETTINGS_PANES[which]])
                 self._json(svc.status())
+            elif path == "/api/macro/record":  # options: {"keys", "mouse", "moves"}
+                macro.recorder.start(json.loads(self._body() or b"{}"))
+                self._json(macro.recorder.status())
+            elif path == "/api/macro/record/stop":
+                macro.recorder.stop("button")
+                self._json(macro.recorder.status())
+            elif path == "/api/macro/record/cancel":
+                macro.recorder.cancel()
+                self._json(macro.recorder.status())
+            elif path == "/api/macro/stop-all":
+                self._json({"stopped": macro.stop_all()})
             elif path == "/api/restart":
                 # launchd (KeepAlive) starts the service again; needed after granting a permission
                 self._json({"ok": True})

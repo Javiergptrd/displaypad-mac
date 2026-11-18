@@ -45,8 +45,10 @@ ES = {
     # actions.py
     "unknown action type '{kind}'": "tipo de acción desconocido '{kind}'",
     "the '{kind}' action is missing '{field}'": "a la acción '{kind}' le falta '{field}'",
-    "invalid shortcut “{keys}”: use modifiers (cmd, shift, ctrl, alt) and one key, e.g. cmd+shift+4, ctrl+up, f5, return":
-        "atajo inválido «{keys}»: usa modificadores (cmd, shift, ctrl, alt) y una tecla, p. ej. cmd+shift+4, ctrl+up, f5, return",
+    "hold must be true or false": "hold debe ser true o false",
+    "held down for 1 second": "mantenida 1 segundo",
+    "invalid shortcut “{keys}”: use modifiers (cmd, shift, ctrl, alt, fn; rcmd, rshift, rctrl, ralt for the right ones) and one key, or a single key, e.g. cmd+shift+4, f5, rcmd":
+        "atajo inválido «{keys}»: usa modificadores (cmd, shift, ctrl, alt, fn; rcmd, rshift, rctrl, ralt para los de la derecha) y una tecla, o una sola tecla, p. ej. cmd+shift+4, f5, rcmd",
     "unknown media key '{key}'": "tecla multimedia desconocida '{key}'",
     "the page '{page}' does not exist": "la página '{page}' no existe",
     "brightness must be a number (50) or a change (+10 / -10)": "el brillo debe ser un número (50) o un cambio (+10 / -10)",
@@ -56,6 +58,31 @@ ES = {
     "ended with code {code}": "terminó con código {code}",
     "the Accessibility permission is needed to control the keyboard": "falta el permiso de Accesibilidad para controlar el teclado",
     "no compatible display was found": "no se encontró ninguna pantalla compatible",
+    # macro.py
+    "each step must be an object like {\"do\": \"click\"}": "cada paso debe ser un objeto como {\"do\": \"click\"}",
+    "unknown step “{do}”": "paso desconocido «{do}»",
+    "unknown key “{key}”": "tecla desconocida «{key}»",
+    "invalid shortcut “{keys}”": "atajo inválido «{keys}»",
+    "the text is empty": "el texto está vacío",
+    "dx and dy must be whole numbers": "dx y dy deben ser números enteros",
+    "x and y must be numbers": "x e y deben ser números",
+    "unknown mouse button “{button}” (use left, right, middle, back or forward)":
+        "botón del ratón desconocido «{button}» (usa left, right, middle, back o forward)",
+    "count must be 1, 2 or 3": "count debe ser 1, 2 o 3",
+    "the macro has no steps yet: record it or add steps": "la macro aún no tiene pasos: grábala o añade pasos",
+    "a macro can have up to {n} steps": "una macro puede tener hasta {n} pasos",
+    "macro step {n}: {problem}": "paso {n} de la macro: {problem}",
+    "the macro only waits: add a step that does something": "la macro solo espera: añade un paso que haga algo",
+    "play must be once, repeat, while_held or toggle": "play debe ser once, repeat, while_held o toggle",
+    "times must be a whole number from 1 to 1000": "times debe ser un número entero del 1 al 1000",
+    "delays must be recorded, fixed or none": "delays debe ser recorded, fixed o none",
+    "delay_ms must be a number of milliseconds from 0 to 10000": "delay_ms debe ser un número de milisegundos del 0 al 10000",
+    "a recording is already running": "ya hay una grabación en curso",
+    "the Input Monitoring permission is needed to record": "falta el permiso de Monitoreo de entrada para grabar",
+    "could not start recording: allow Input Monitoring for DisplayPad, then restart it":
+        "no se pudo empezar a grabar: permite el Monitoreo de entrada para DisplayPad y reinícialo",
+    "stopped after {seconds} s": "detenida a los {seconds} s",
+    "played {steps} steps in {seconds} s": "reprodujo {steps} pasos en {seconds} s",
     # daemon.py
     "the configuration must be a JSON object": "la configuración debe ser un objeto JSON",
     "at least one page is needed": "se necesita al menos una página",
@@ -68,6 +95,15 @@ ES = {
     "page '{page}', key {key}: crop must be [left, top, right, bottom] as fractions of the picture, with right > left and bottom > top":
         "página '{page}', tecla {key}: crop debe ser [izquierda, arriba, derecha, abajo] en fracciones de la imagen, con derecha > izquierda y abajo > arriba",
     "page '{page}', key {key}: {error}": "página '{page}', tecla {key}: {error}",
+    "page '{page}': keys must be an object like {{\"2\": {{...}}}}":
+        "página '{page}': keys debe ser un objeto como {{\"2\": {{...}}}}",
+    "page '{page}': key 1 of a folder is its back key; use keys 2 to 12":
+        "página '{page}': la tecla 1 de una carpeta es la de volver; usa las teclas 2 a 12",
+    "page '{page}', key {key}: folder must be an object with its keys, like {{\"keys\": {{...}}}}":
+        "página '{page}', tecla {key}: folder debe ser un objeto con sus teclas, como {{\"keys\": {{...}}}}",
+    "page '{page}': page names cannot contain “/”": "página '{page}': los nombres de página no pueden llevar «/»",
+    "page '{page}': the page must be an object like {{\"keys\": {{...}}}}":
+        "página '{page}': la página debe ser un objeto como {{\"keys\": {{...}}}}",
     "the start page '{page}' does not exist": "la página inicial '{page}' no existe",
     "language must be one of: {values}": "language debe ser uno de: {values}",
     "theme must be one of: {values}": "theme debe ser uno de: {values}",

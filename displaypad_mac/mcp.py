@@ -33,10 +33,11 @@ MAX_UPLOAD = 12 * 1024 * 1024
 
 INSTRUCTIONS = """\
 These tools set up the user's Mountain DisplayPad on this Mac: 12 keys with a small screen each \
-(2 rows of 6; keys 1-6 top row, 7-12 bottom row), grouped in pages. Each key has a look (emoji, \
+(2 rows of 6; keys 1-6 top row, 7-12 bottom row), grouped in pages; a key can also be a folder \
+that holds more keys (folders can hold folders). Each key has a look (emoji, \
 picture or animation, label, colors) and a list of actions run when it is pressed (open apps or \
-websites, keyboard shortcuts, typed text, media keys, shell commands, AppleScript, page switches, \
-brightness).
+websites, keyboard shortcuts, typed text, media keys, macros of keyboard and mouse steps, shell \
+commands, AppleScript, page switches, brightness).
 
 Call get_reference once for every key field and action type. Look before you change anything \
 (list_pages, get_config) and ask before replacing keys the user already uses. Changes are saved at \
@@ -50,6 +51,7 @@ DisplayPad for Mac: configuration reference
 THE DEVICE
 - 12 keys, each a 102x102 pixel screen, in 2 rows of 6: keys 1-6 are the top row (left to right), 7-12 the bottom row.
 - The configuration has one or more pages; the pad shows one at a time. start_page is shown when the service starts. The "page" action switches pages; page "back" returns to the previous one.
+- Folders: any key can be a folder that opens when pressed. Inside a folder, key 1 is always a fixed Back key (out to the page or folder that holds it), so a folder has keys 2-12; folders can be inside folders. Tools address a folder as "<page>/<key>": "home/3" is the folder on key 3 of page "home", "home/3/5" the folder on key 5 inside it. Use that wherever a tool takes a page (get_key, set_key, clear_key, show_page, preview_page); list_pages lists every folder.
 
 KEY FIELDS (all optional; a key with nothing is simply left out)
 - emoji: drawn as the icon, e.g. "📧".
@@ -61,10 +63,11 @@ KEY FIELDS (all optional; a key with nothing is simply left out)
 - icon_scale: 30-200, size of the emoji or picture in percent (default 100; over 100 zooms in).
 - crop: [left, top, right, bottom] for pictures, as fractions of the picture (0-1), e.g. [0.25, 0, 0.75, 1] for the middle square of a 2:1 picture. Keys are square, so make the cropped area square in pixels or the picture is centred inside it (never stretched). Without crop the middle of the picture covers the key, or, on a key with visible text or fill false, the whole picture is shown smaller. Values past 0-1 zoom out: that part shows the key color (for a 2:1 picture, [0, -0.5, 1, 1.5] shows it whole). upload_image tells the picture's size. Setting a new image without crop drops the old crop.
 - actions: list of actions run in order when the key is pressed. ("action": {...} with a single action is also accepted.)
+- folder: {"keys": {"2": spec, "3": spec, ...}} makes the key a folder (keys 2-12; key 1 is the Back key). Make an empty one with {"folder": {"keys": {}}} plus a look (e.g. "emoji": "📁", "label": "Work"), then fill it with set_key on page "<page>/<key>". A folder key may have actions too: they run, then the folder opens. To change a folder key's look use set_key with merge true: replacing the whole key would drop the folder, so set_key refuses that while the folder has keys.
 
 ACTIONS
 - {"type": "open", "target": "Safari"}: an app name (see list_apps), a URL ("https://...", "mailto:...", "zoommtg://...") or a file/folder path ("~/Documents").
-- {"type": "shortcut", "keys": "cmd+shift+4"}: modifiers cmd, shift, ctrl, alt (or option), fn, then one key: a-z, 0-9, f1-f20, return, tab, space, delete, forwarddelete, esc, up, down, left, right, home, end, pageup, pagedown, - = [ ] \\ ; ' , . / `. Goes to the app in front.
+- {"type": "shortcut", "keys": "cmd+shift+4"}: modifiers and one key, a single key ("f13") or modifiers alone ("rcmd", "ctrl+rshift"). Modifiers: cmd, shift, ctrl, alt (or option), fn are the left keys; rcmd, rshift, rctrl, ralt are the right ones, for apps that listen to one side. Keys: a-z, 0-9, f1-f20, return, tab, space, delete, forwarddelete, esc, up, down, left, right, home, end, pageup, pagedown, help, section, eisu, kana, keypad kp0-kp9, kpdecimal, kpplus, kpminus, kpmultiply, kpdivide, kpequals, kpenter, kpclear, and - = [ ] \\ ; ' , . / `. Add "hold": true to keep the keys down while the pad key is held and let them go when it is released (push-to-talk and other apps that listen for a held key; at most 10 minutes); without it they are pressed and let go at once. Goes to the app in front.
 - {"type": "text", "text": "Best regards,\\n"}: typed where the cursor is (any Unicode; \\n presses Return).
 - {"type": "media", "key": "play_pause"}: play_pause, next, previous, volume_up, volume_down, mute, brightness_up, brightness_down.
 - {"type": "shell", "command": "open -a Safari https://apple.com"}: runs with zsh -lc in the background; nobody sees its output.
@@ -74,24 +77,33 @@ ACTIONS
 - {"type": "brightness", "value": "+10"}: the DisplayPad's own backlight, same values.
 - {"type": "delay", "ms": 300}: wait between two actions (e.g. open an app, then send it a shortcut).
 - {"type": "configurator"}: open the DisplayPad configurator in the browser.
+- {"type": "macro", "steps": [...], "play": "once", "delays": "recorded"}: plays keyboard and mouse steps in order. The user usually records one in the configurator (Record… on a Macro action); you cannot record, but you can write or edit the steps:
+  {"do": "keys", "keys": "cmd+c"} a whole shortcut (same names as "shortcut"); {"do": "key_down", "key": "rcmd"} / {"do": "key_up", "key": "rcmd"} one key held and let go; {"do": "text", "text": "Hello"};
+  {"do": "click", "button": "left", "count": 2, "x": 640, "y": 400} (no x/y: where the pointer is); {"do": "mouse_down", "button": "right", "x": .., "y": ..} / {"do": "mouse_up", ...}; {"do": "move", "x": .., "y": ..} (drags while a button is down); {"do": "scroll", "dy": -120, "dx": 0} (pixels, positive dy scrolls up, optional x/y); {"do": "wait", "ms": 250}.
+  Buttons: left, right, middle, back, forward. x/y are screen points from the top-left of the main display. At most 5000 steps, and at least one that is not a wait.
+  play: "once"; "repeat" with "times" (1-1000); "while_held" (at least once, then again while the pad key is held); "toggle" (one press starts it looping, the next stops it). delays: "recorded" (the waits as written), "fixed" with "delay_ms" (that wait between all steps instead), "none" (as fast as possible). Pressing the key again while a macro plays does nothing, except to stop a "toggle" one. Keys and buttons it holds are let go when it ends or is stopped.
 
 PERMISSIONS
-- shortcut, text and media need the macOS Accessibility permission for Python. If get_status shows "accessibility": false, tell the user to allow it in System Settings > Privacy & Security > Accessibility.
+- shortcut, text, media and macro need the macOS Accessibility permission for Python. If get_status shows "accessibility": false, tell the user to allow it in System Settings > Privacy & Security > Accessibility.
 
 GOOD PRACTICE
 - Short labels, one idea per key, related keys on the same page. Every extra page needs a way back (create_page puts a "back" key on key 1) and a key on another page that leads to it.
+- When 12 keys are not enough, a folder keeps related keys one press away and comes with its own Back key; it is simpler than a new page.
 - Dark, saturated backgrounds keep the white label readable.
 - For web apps, "open" with the URL is simpler than a chain of shortcuts.
-- For multi-step automations prefer one AppleScript or shell action over many shortcuts and delays.
+- For multi-step automations prefer one AppleScript or shell action over many shortcuts and delays. When the user wants to repeat what they do by hand, suggest recording a macro in the configurator; in macros you write, prefer keys and text steps over clicks at fixed positions, which break when a window moves.
+- test_actions on a macro waits 3 seconds first (time for the user to switch apps), then plays it once.
 - After changing keys, check them with preview_page."""
 
-PAGE = {"type": "string", "description": "Page name, as listed by list_pages."}
+PAGE = {"type": "string", "description": "Page name, or a folder as \"<page>/<key>\" (e.g. \"home/3\", \"home/3/5\"), "
+                                          "as listed by list_pages."}
+TOP_PAGE = {"type": "string", "description": "Page name, as listed by list_pages (not a folder)."}
 KEY = {"type": "integer", "minimum": 1, "maximum": 12,
        "description": "Key number: 1-6 top row, 7-12 bottom row, left to right."}
 ACTION = {"type": "object", "required": ["type"], "description": "One action; see get_reference.",
           "properties": {"type": {"type": "string", "enum": ["open", "shortcut", "text", "media", "shell", "applescript",
                                                              "page", "screen_brightness", "brightness", "delay",
-                                                             "configurator"]}}}
+                                                             "configurator", "macro"]}}}
 KEY_SPEC = {
     "type": "object", "description": "How the key looks and what it does; see get_reference.",
     "properties": {
@@ -106,6 +118,7 @@ KEY_SPEC = {
         "crop": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4,
                  "description": "[left, top, right, bottom], fractions of the picture; see get_reference."},
         "actions": {"type": "array", "items": ACTION},
+        "folder": {"type": "object", "description": "Makes the key a folder: {\"keys\": {\"2\": spec, ...}}; see get_reference."},
     },
 }
 
@@ -132,12 +145,50 @@ def _key(n) -> str:
 
 
 def _page(raw: dict, name) -> dict:
+    """The page, or the folder for "<page>/<key>/...": the object that holds "keys"."""
     pages = raw.get("pages") or {}
-    if name not in pages:
-        raise ToolError(f"there is no page '{name}'. Pages: {', '.join(pages) or 'none'}")
-    if not isinstance(pages[name], dict):
-        pages[name] = {}
-    return pages[name]
+    pname, *path = str(name).split("/")
+    if pname not in pages:
+        raise ToolError(f"there is no page '{pname}'. Pages: {', '.join(pages) or 'none'}")
+    if not isinstance(pages[pname], dict):
+        pages[pname] = {}
+    box, where = pages[pname], pname
+    for kn in path:
+        spec = (box.get("keys") or {}).get(kn) if isinstance(box.get("keys"), dict) else None
+        if not isinstance(spec, dict) or not isinstance(spec.get("folder"), dict):
+            raise ToolError(f"key {kn} of '{where}' is not a folder (list_pages lists the folders)")
+        box, where = spec["folder"], f"{where}/{kn}"
+    return box
+
+
+def _top_page(raw: dict, name) -> dict:
+    if "/" in str(name):
+        raise ToolError(f"'{name}' is a folder; this needs a page")
+    return _page(raw, name)
+
+
+def _slot(name, n) -> str:
+    """A key number, refusing key 1 of a folder (its fixed Back key)."""
+    k = _key(n)
+    if "/" in str(name) and k == "1":
+        raise ToolError("key 1 of a folder is its Back key and cannot be changed; use keys 2 to 12")
+    return k
+
+
+def _walk(raw: dict):
+    """(page or folder id, key number, key) for every key, folders included."""
+    def walk(where, keys):
+        for kn, spec in (keys.items() if isinstance(keys, dict) else ()):
+            if isinstance(spec, dict):
+                yield where, kn, spec
+                if isinstance(spec.get("folder"), dict):
+                    yield from walk(f"{where}/{kn}", spec["folder"].get("keys"))
+    for pn, p in (raw.get("pages") or {}).items():
+        yield from walk(pn, (p or {}).get("keys"))
+
+
+def _folder_size(spec: dict) -> int:
+    return sum(1 for v in ((spec.get("folder") or {}).get("keys") or {}).values() if v)
 
 
 def _save(svc, change) -> str:
@@ -151,11 +202,22 @@ def _actions(spec: dict) -> list:
     return actions.actions_of(spec or {})
 
 
+def _act_summary(a: dict) -> str:
+    if a.get("type") == "macro":
+        steps = a.get("steps") if isinstance(a.get("steps"), list) else []
+        n = sum(1 for s in steps if isinstance(s, dict) and s.get("do") != "wait")
+        play = a.get("play") or "once"
+        return f"macro: {n} step(s), {play}" + (f" x{a.get('times')}" if play == "repeat" else "")
+    return (f"{a.get('type')}: {next((str(v) for k, v in a.items() if k != 'type'), '')}".rstrip(": ")
+            + (" (held)" if a.get("hold") else ""))
+
+
 def _summary(spec: dict) -> str:
     look = " ".join(x for x in (spec.get("emoji"), spec.get("image") and f"[{os.path.basename(spec['image'])}]",
                                 spec.get("label") and json.dumps(spec["label"], ensure_ascii=False)) if x)
-    acts = "; ".join(f"{a.get('type')}: {next((str(v) for k, v in a.items() if k != 'type'), '')}".rstrip(": ")
-                     for a in _actions(spec) if isinstance(a, dict))
+    acts = "; ".join(_act_summary(a) for a in _actions(spec) if isinstance(a, dict))
+    if isinstance(spec.get("folder"), dict):
+        return (look or "(no icon)") + f" -> folder with {_folder_size(spec)} key(s)" + (f", after: {acts}" if acts else "")
     return (look or "(no icon)") + (f" -> {acts}" if acts else " -> does nothing")
 
 
@@ -168,16 +230,13 @@ def _check_image(svc, spec: dict):
 def _without_page_refs(raw: dict, name: str) -> list:
     """Drop "go to page <name>" actions from every key; returns the keys changed."""
     changed = []
-    for pn, p in (raw.get("pages") or {}).items():
-        for kn, spec in ((p or {}).get("keys") or {}).items():
-            if not isinstance(spec, dict):
-                continue
-            acts = _actions(spec)
-            keep = [a for a in acts if not (isinstance(a, dict) and a.get("type") == "page" and a.get("page") == name)]
-            if len(keep) != len(acts):
-                spec.pop("action", None)
-                spec["actions"] = keep
-                changed.append(f"{pn} key {kn}")
+    for pn, kn, spec in _walk(raw):
+        acts = _actions(spec)
+        keep = [a for a in acts if not (isinstance(a, dict) and a.get("type") == "page" and a.get("page") == name)]
+        if len(keep) != len(acts):
+            spec.pop("action", None)
+            spec["actions"] = keep
+            changed.append(f"{pn} key {kn}")
     return changed
 
 
@@ -185,7 +244,8 @@ def _without_page_refs(raw: dict, name: str) -> list:
 def get_status(svc, a):
     st = svc.status()
     st.pop("python_app", None)
-    st["pages"] = list(svc.cfg["pages"])
+    st["pages"] = [n for n in svc.cfg["pages"] if "/" not in n]
+    st["folders"] = [n for n in svc.cfg["pages"] if "/" in n]
     st["start_page"] = svc.cfg["start_page"]
     return st
 
@@ -203,29 +263,48 @@ def list_pages(svc, a):
     pages = raw.get("pages") or {}
     start = raw.get("start_page") or next(iter(pages), None)
     out = []
+
+    def add(name, box, folder_of=None):
+        items = sorted(((box or {}).get("keys") or {}).items(), key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 99)
+        keys = {k: _summary(spec) for k, spec in items if isinstance(spec, dict) and spec}
+        entry = {"name": name}
+        if folder_of:
+            entry["folder"] = folder_of
+            keys = {"1": "Back (fixed)", **keys}
+        else:
+            entry["start_page"] = name == start
+        entry.update({"on_the_pad_now": name == svc.page,
+                      "empty_keys": [n for n in range(1, 13) if str(n) not in keys], "keys": keys})
+        out.append(entry)
+        for k, spec in items:
+            if isinstance(spec, dict) and isinstance(spec.get("folder"), dict):
+                add(f"{name}/{k}", spec["folder"], spec.get("label") or spec.get("emoji") or f"key {k}")
+
     for name, p in pages.items():
-        keys = {k: _summary(spec) for k, spec in sorted(((p or {}).get("keys") or {}).items(),
-                                                          key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 99)
-                if isinstance(spec, dict) and spec}
-        out.append({"name": name, "start_page": name == start, "on_the_pad_now": name == svc.page,
-                    "empty_keys": [n for n in range(1, 13) if str(n) not in keys], "keys": keys})
+        add(name, p)
     return out
 
 
 def get_key(svc, a):
     k = _key(a["key"])
+    if "/" in str(a["page"]) and k == "1":
+        return {"page": a["page"], "key": 1, "spec": None, "note": "key 1 of a folder is its fixed Back key"}
     spec = (_page(svc.read_config(), a["page"]).get("keys") or {}).get(k)
     return {"page": a["page"], "key": int(k), "spec": spec or None}
 
 
 def set_key(svc, a):
-    k, spec, merge = _key(a["key"]), a["spec"], a.get("merge", False)
+    k, spec, merge = _slot(a["page"], a["key"]), a["spec"], a.get("merge", False)
     if not isinstance(spec, dict):
         raise ToolError("spec must be an object")
     result = {}
 
     def change(raw):
         keys = _page(raw, a["page"]).setdefault("keys", {})
+        old = keys.get(k) if isinstance(keys.get(k), dict) else {}
+        if not merge and "folder" not in spec and _folder_size(old):
+            raise ToolError(f"key {k} is a folder with {_folder_size(old)} key(s) inside; use merge true to change its "
+                            "look, or clear_key to delete it with what is inside")
         new = dict(keys.get(k) or {}) if merge else {}
         if merge and ("actions" in spec or "action" in spec):
             new.pop("action", None)
@@ -250,7 +329,7 @@ def set_key(svc, a):
 
 
 def clear_key(svc, a):
-    k = _key(a["key"])
+    k = _slot(a["page"], a["key"])
 
     def change(raw):
         (_page(raw, a["page"]).get("keys") or {}).pop(k, None)
@@ -261,8 +340,8 @@ def clear_key(svc, a):
 
 def create_page(svc, a):
     name = str(a["name"]).strip()
-    if not name or name == "back":
-        raise ToolError("the page needs a name other than 'back'")
+    if not name or name == "back" or "/" in name:
+        raise ToolError("the page needs a name other than 'back', without “/”")
     keys = a.get("keys") or {}
     if not isinstance(keys, dict):
         raise ToolError("keys must be an object like {\"2\": {...}, \"3\": {...}}")
@@ -291,22 +370,21 @@ def create_page(svc, a):
 
 def rename_page(svc, a):
     old, new = a["name"], str(a["new_name"]).strip()
-    if not new or new == "back":
-        raise ToolError("the page needs a name other than 'back'")
+    if not new or new == "back" or "/" in new:
+        raise ToolError("the page needs a name other than 'back', without “/”")
     result = {}
 
     def change(raw):
-        _page(raw, old)
+        _top_page(raw, old)
         if new in raw["pages"] and new != old:
             raise ToolError(f"there is already a page '{new}'")
         raw["pages"] = {(new if n == old else n): p for n, p in raw["pages"].items()}
         refs = []
-        for pn, p in raw["pages"].items():
-            for kn, spec in ((p or {}).get("keys") or {}).items():
-                for act in _actions(spec) if isinstance(spec, dict) else []:
-                    if isinstance(act, dict) and act.get("type") == "page" and act.get("page") == old:
-                        act["page"] = new
-                        refs.append(f"{pn} key {kn}")
+        for pn, kn, spec in _walk(raw):
+            for act in _actions(spec):
+                if isinstance(act, dict) and act.get("type") == "page" and act.get("page") == old:
+                    act["page"] = new
+                    refs.append(f"{pn} key {kn}")
         if raw.get("start_page") == old:
             raw["start_page"] = new
         result["links_updated"] = refs
@@ -320,7 +398,7 @@ def delete_page(svc, a):
     result = {}
 
     def change(raw):
-        _page(raw, name)
+        _top_page(raw, name)
         if len(raw["pages"]) == 1:
             raise ToolError("this is the only page; it cannot be deleted")
         del raw["pages"][name]
@@ -346,7 +424,7 @@ def update_settings(svc, a):
     patch = {f: a[f] for f in ("language", "theme", "brightness", "press_feedback") if a.get(f) is not None}
     if a.get("start_page") is not None:
         def change(raw):
-            _page(raw, a["start_page"])
+            _top_page(raw, a["start_page"])
             raw["start_page"] = a["start_page"]
         _save(svc, change)
     if patch:
@@ -445,8 +523,8 @@ TOOLS = [
     _tool(get_config, "Read the whole configuration", "The full config.json (all pages and keys) and its revision.",
           read_only=True),
     _tool(list_pages, "List pages and keys",
-          "Each page with a one-line summary of every key (icon, label, actions), its empty keys and which "
-          "page is the start page or on the pad now.", read_only=True),
+          "Each page and folder (\"<page>/<key>\") with a one-line summary of every key (icon, label, actions), "
+          "its empty keys and which page is the start page or on the pad now.", read_only=True),
     _tool(get_key, "Read one key", "The full settings of one key.", {"page": PAGE, "key": KEY}, ("page", "key"),
           read_only=True),
     _tool(set_key, "Set up a key",
@@ -465,16 +543,16 @@ TOOLS = [
            "back_key": {"type": "boolean", "description": "Put a back key on key 1. Default true."}},
           ("name",)),
     _tool(rename_page, "Rename a page", "Rename a page; keys that lead to it are updated.",
-          {"name": PAGE, "new_name": {"type": "string"}}, ("name", "new_name")),
+          {"name": TOP_PAGE, "new_name": {"type": "string"}}, ("name", "new_name")),
     _tool(delete_page, "Delete a page", "Delete a page and the \"go to this page\" actions that lead to it.",
-          {"name": PAGE}, ("name",), destructive=True),
-    _tool(show_page, "Show a page on the pad", "Switch the DisplayPad to a page now.", {"page": PAGE}, ("page",)),
+          {"name": TOP_PAGE}, ("name",), destructive=True),
+    _tool(show_page, "Show a page on the pad", "Switch the DisplayPad to a page or folder now.", {"page": PAGE}, ("page",)),
     _tool(update_settings, "Change general settings",
           "Pad backlight brightness (0-100), darken-on-press, start page, and the configurator's language "
           "(en, es) and theme (system, light, dark).",
           {"brightness": {"type": "integer", "minimum": 0, "maximum": 100},
            "press_feedback": {"type": "boolean"},
-           "start_page": PAGE,
+           "start_page": TOP_PAGE,
            "language": {"type": "string", "enum": ["en", "es"]},
            "theme": {"type": "string", "enum": ["system", "light", "dark"]}}),
     _tool(test_actions, "Run actions now",

@@ -26,7 +26,7 @@ import threading
 import time
 from typing import Dict, List, Optional
 
-from . import __version__, i18n, macos, web
+from . import __version__, i18n, macos, macro, web
 from .actions import NEEDS_POST_EVENTS, actions_of, run_actions, validate_action
 from .driver import NUM_KEYS, DisplayPad, DisplayPadError, device_present
 from .i18n import t
@@ -39,6 +39,9 @@ DEFAULT_CONFIG = os.path.join(APP_DIR, "config.json")
 WATCHDOG_SECONDS = 8
 THEMES = ("system", "light", "dark")
 SETTINGS = ("language", "theme", "brightness", "press_feedback", "mcp")
+# Inside a folder, key 1 is always this one: it goes back to the page or folder that holds it.
+BACK_KEY = {"emoji": "⬅️", "color": "#2B2B33"}
+BACK_LABEL = {"en": "Back", "es": "Volver"}
 
 
 class ConfigError(Exception):
@@ -63,35 +66,60 @@ def parse_config(cfg: dict, base_dir: str) -> dict:
     pages = cfg.get("pages")
     if not isinstance(pages, dict) or not pages:
         raise ConfigError(t("at least one page is needed"))
+    lang = cfg.get("language", "en")
+    # Pages and the folders inside them, flattened: a folder is "<page>/<key>", one inside it
+    # "<page>/<key>/<key>", and so on. Parents come before their folders.
     norm: Dict[str, List[Optional[dict]]] = {}
-    for name, page in pages.items():
-        if not str(name).strip():
-            raise ConfigError(t("there is a page without a name"))
-        keys = (page or {}).get("keys", {})
+
+    def parse_keys(keys, pid: str, where: str, parent: Optional[str]):
+        if not isinstance(keys, dict):
+            raise ConfigError(t("page '{page}': keys must be an object like {{\"2\": {{...}}}}", page=where))
         slots: List[Optional[dict]] = [None] * NUM_KEYS
+        if parent is not None:
+            slots[0] = {**BACK_KEY, "label": BACK_LABEL.get(lang, "Back"), "_up": parent}
+        norm[pid] = slots
         for k, spec in keys.items():
             if not str(k).isdigit() or not 1 <= int(k) <= NUM_KEYS:
-                raise ConfigError(t("page '{page}': key '{key}' must be from 1 to 12", page=name, key=k))
+                raise ConfigError(t("page '{page}': key '{key}' must be from 1 to 12", page=where, key=k))
             if spec is not None and not isinstance(spec, dict):
-                raise ConfigError(t("page '{page}', key {key}: the key must be an object", page=name, key=k))
-            slots[int(k) - 1] = spec or None
+                raise ConfigError(t("page '{page}', key {key}: the key must be an object", page=where, key=k))
+            if parent is not None and int(k) == 1:
+                if spec:
+                    raise ConfigError(t("page '{page}': key 1 of a folder is its back key; use keys 2 to 12", page=where))
+                continue
             scale = (spec or {}).get("icon_scale", 100)
             if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not 30 <= scale <= 200:
-                raise ConfigError(t("page '{page}', key {key}: the icon size must be a number from 30 to 200", page=name, key=k))
+                raise ConfigError(t("page '{page}', key {key}: the icon size must be a number from 30 to 200", page=where, key=k))
             if not isinstance((spec or {}).get("hide_label", False), bool):
-                raise ConfigError(t("page '{page}', key {key}: hide_label must be true or false", page=name, key=k))
+                raise ConfigError(t("page '{page}', key {key}: hide_label must be true or false", page=where, key=k))
             if (spec or {}).get("crop") is not None and not _crop_ok(spec["crop"]):
                 raise ConfigError(t("page '{page}', key {key}: crop must be [left, top, right, bottom] as fractions "
-                                    "of the picture, with right > left and bottom > top", page=name, key=k))
+                                    "of the picture, with right > left and bottom > top", page=where, key=k))
             for a in actions_of(spec or {}):
                 err = validate_action(a, pages)
                 if err:
-                    raise ConfigError(t("page '{page}', key {key}: {error}", page=name, key=k, error=err))
-        norm[name] = slots
+                    raise ConfigError(t("page '{page}', key {key}: {error}", page=where, key=k, error=err))
+            if spec and "folder" in spec:
+                folder = spec["folder"]
+                if not isinstance(folder, dict):
+                    raise ConfigError(t("page '{page}', key {key}: folder must be an object with its keys, "
+                                        "like {{\"keys\": {{...}}}}", page=where, key=k))
+                sub = f"{pid}/{int(k)}"
+                spec = {**spec, "_folder": sub}
+                parse_keys(folder.get("keys") or {}, sub, f"{where} › {spec.get('label') or spec.get('emoji') or k}", pid)
+            slots[int(k) - 1] = spec or None
+
+    for name, page in pages.items():
+        if not str(name).strip():
+            raise ConfigError(t("there is a page without a name"))
+        if "/" in str(name):
+            raise ConfigError(t("page '{page}': page names cannot contain “/”", page=name))
+        if page is not None and not isinstance(page, dict):
+            raise ConfigError(t("page '{page}': the page must be an object like {{\"keys\": {{...}}}}", page=name))
+        parse_keys((page or {}).get("keys", {}), name, name, None)
     start = cfg.get("start_page", next(iter(pages)))
-    if start not in norm:
+    if start not in pages:
         raise ConfigError(t("the start page '{page}' does not exist", page=start))
-    lang = cfg.get("language", "en")
     if lang not in i18n.LANGS:
         raise ConfigError(t("language must be one of: {values}", values=", ".join(i18n.LANGS)))
     theme = cfg.get("theme", "system")
@@ -146,6 +174,7 @@ class Service:
         self._anim_stats = (0.0, 0.0)              # (frames per second sent, ms per frame) for the status
         self._anim_window: List[tuple] = []
         self._pressed: set = set()
+        self._released: Dict[int, threading.Event] = {}  # pad key -> set when it is let go ("hold" shortcuts)
         self._stop = threading.Event()
         self._reload = threading.Event()
         self._cfg_lock = threading.Lock()  # one read-modify-write of config.json at a time
@@ -154,7 +183,8 @@ class Service:
 
     # -------------------------------------------------- called from actions
     def request_page(self, name: str):
-        if name == "back" or name in self.cfg["pages"]:
+        """A page name, a folder ("home/3"), "back" (the previous one) or "up" (out of a folder)."""
+        if name in ("back", "up") or name in self.cfg["pages"]:
             self._pending_page = name
 
     def open_configurator(self):
@@ -165,6 +195,7 @@ class Service:
         return {"connected": self.pad.connected, "page": self.page, "brightness": self.brightness,
                 "input_monitoring": macos.input_monitoring_status(),
                 "accessibility": macos.post_events_allowed(),
+                "macros_playing": macro.playing(), "recording": macro.recorder.state,
                 "python_app": os.path.join(sys.base_prefix, "Resources", "Python.app"),
                 "config_error": self.config_error, "version": __version__,
                 "config_rev": self.config_rev(), "config_path": self.config_path,
@@ -310,10 +341,19 @@ class Service:
         return 0.0
 
     # -------------------------------------------------- main loop
+    def _let_go(self):
+        """The pad is gone or the service stops: let go of keys held by "hold" shortcuts."""
+        for ev in self._released.values():
+            ev.set()
+        self._released.clear()
+        macro.stop_all()
+        macos.release_all()
+
     def _connect(self):
         self.pad.open()
         self.pad.set_brightness(self.brightness)
         self._pressed = set()
+        self._let_go()
         self.draw_page()
 
     def _check_config(self):
@@ -332,6 +372,7 @@ class Service:
             return
         self.config_error = ""
         self.cfg, self._faces = cfg, {}
+        macro.keep_only(a for page in cfg["pages"].values() for spec in page if spec for a in actions_of(spec))
         i18n.set_language(cfg["language"])
         if self.page not in cfg["pages"]:
             self.page, self.history = cfg["start_page"], []
@@ -343,13 +384,25 @@ class Service:
 
     def _on_keys(self, keys: set):
         for k in sorted(keys - self._pressed):
+            if macro.recorder.active():  # any pad key ends a macro recording, and does nothing else
+                macro.recorder.stop("pad")
+                log.info("macro recording stopped from the pad (key %d)", k + 1)
+                continue
             spec = self.cfg["pages"][self.page][k]
             log.info("key %d pressed on '%s'", k + 1, self.page)
             if spec and self.cfg["press_feedback"]:
                 self.pad.upload(k, self._face(self.page, k, pressed=True))
             if spec:
-                threading.Thread(target=run_actions, args=(spec, self), daemon=True).start()
+                released = self._released[k] = threading.Event()
+                threading.Thread(target=run_actions, args=(spec, self, released), daemon=True).start()
+                if spec.get("_up"):  # the back key of a folder
+                    self.request_page("up")
+                elif spec.get("_folder"):  # opens after its own actions start, when every key is up
+                    self.request_page(spec["_folder"])
         for k in sorted(self._pressed - keys):
+            released = self._released.pop(k, None)
+            if released:
+                released.set()
             spec = self.cfg["pages"][self.page][k]
             if spec and self.cfg["press_feedback"] and self._pending_page is None:
                 self.pad.upload(k, self._face(self.page, k))
@@ -362,7 +415,11 @@ class Service:
             log.info("brightness %d%%", self.brightness)
         if self._pending_page is not None and not self._pressed:
             target, self._pending_page = self._pending_page, None
-            if target == "back":
+            if target == "up":  # out of a folder, to the page or folder that holds it
+                target = self.page.rpartition("/")[0] or self.cfg["start_page"]
+                if self.history and self.history[-1] == target:
+                    self.history.pop()
+            elif target == "back":
                 target = self.history.pop() if self.history else self.cfg["start_page"]
             elif target != self.page:
                 self.history = (self.history + [self.page])[-20:]
@@ -417,10 +474,13 @@ class Service:
             except (DisplayPadError, OSError, ValueError) as e:
                 log.warning("device lost: %s", e)
                 self.pad.close()
+                self._let_go()
             except Exception as e:  # pyusb errors and anything unexpected
                 log.warning("device error: %s", e)
                 self.pad.close()
+                self._let_go()
         self.pad.close()
+        self._let_go()
 
     def stop(self, *_):
         self._stop.set()
