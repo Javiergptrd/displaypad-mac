@@ -13,6 +13,7 @@
   {"type": "configurator"}                                 (open the settings page)
   {"type": "delay", "ms": 250}
   {"type": "macro", "steps": [...], "play": "once|repeat|while_held|toggle"}   (see macro.py)
+  {"type": "obs", "do": "record" | "stream" | "scene" | ..., "scene": "Game"}     (see obs.py)
 """
 
 import logging
@@ -21,7 +22,7 @@ import subprocess
 import threading
 import time
 
-from . import macos, macro, screens
+from . import macos, macro, obs, screens
 from .i18n import t
 
 log = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ NEEDS_POST_EVENTS = {"shortcut", "text", "media", "macro"}
 
 _REQUIRED = {"open": "target", "shortcut": "keys", "text": "text", "media": "key", "shell": "command",
              "applescript": "script", "page": "page", "brightness": "value",
-             "screen_brightness": "value", "delay": "ms", "configurator": None, "macro": None}
+             "screen_brightness": "value", "delay": "ms", "configurator": None, "macro": None, "obs": "do"}
 
 
 def _is_level(value) -> bool:
@@ -68,6 +69,8 @@ def validate_action(action: dict, pages: dict) -> str:
         return t("the wait must be a number of milliseconds")
     if kind == "macro":
         return macro.validate(action)
+    if kind == "obs":
+        return obs.validate(action)
     return ""
 
 
@@ -128,6 +131,8 @@ def run_action(action: dict, ctx, released=None):
         time.sleep(float(action.get("ms", 100)) / 1000)
     elif kind == "macro":
         macro.play(action, released)
+    elif kind == "obs":
+        log.info("OBS %s: %s", action.get("do"), obs.run(action, ctx.cfg["base_dir"]))
     else:
         raise ValueError(f"unknown action type '{kind}'")
 
@@ -174,6 +179,8 @@ def test_actions(spec: dict, ctx, pages: dict) -> list:
             elif kind == "shortcut" and action.get("hold"):  # no pad key to let go: hold it for a second
                 macos.press_shortcut(action["keys"], hold=threading.Event(), max_hold=1.0)
                 res = {"ok": True, "output": t("held down for 1 second")}
+            elif kind == "obs":
+                res = {"ok": True, "output": obs.run(action, ctx.cfg["base_dir"])}
             elif kind == "macro":  # after a countdown, so the user can switch to the app it is for
                 r = macro.play(action, test=True)
                 if r["stopped"]:

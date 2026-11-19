@@ -26,10 +26,16 @@ configurar tus teclas.
 - **Carpetas:** cualquier tecla puede ser una carpeta con 11 teclas más, y puedes poner
   carpetas dentro de carpetas. La tecla 1 de una carpeta siempre te lleva atrás.
 - **Páginas:** todas las que quieras, con tecla «Volver» y página inicial.
+- **Páginas que se abren con apps (perfiles):** vincula una página a apps y el pad cambia
+  a ella solo, mientras la app está abierta o mientras está al frente, y vuelve cuando la
+  app ya no está.
 - **Acciones:** abrir una app, web o carpeta; atajos de teclado; escribir texto;
   reproducir/pausar, volumen y otras teclas multimedia; comandos de terminal; AppleScript;
   cambiar de página; brillo de las pantallas del Mac (la integrada y las externas por
   DDC/CI) y del pad; pausas entre acciones. Varias acciones por tecla, en orden.
+- **OBS Studio:** iniciar y detener la transmisión, la grabación y la cámara virtual,
+  cambiar de escena y silenciar micrófonos directamente por el servidor WebSocket de OBS,
+  aunque OBS esté en segundo plano y sin configurar atajos en OBS.
 - **Macros:** graba lo que haces con el teclado y el mouse (teclas, clics, arrastres,
   desplazamiento), edita los pasos y las esperas, y reprodúcelo desde una tecla una vez,
   varias veces, mientras mantienes la tecla, o encendido y apagado con cada pulsación.
@@ -74,7 +80,8 @@ macOS pide dos permisos para **Python**. El instalador muestra la ruta del `Pyth
 que los necesita.
 
 - **Monitoreo de entrada:** sin él, el servicio no puede activar el DisplayPad.
-- **Accesibilidad:** lo necesitan las acciones de atajo, texto, teclas multimedia y macro.
+- **Accesibilidad:** lo necesitan las acciones de atajo, texto, teclas multimedia y macro,
+  y para grabar atajos que usa macOS.
 
 Si macOS no lo pide, abre *Ajustes del Sistema → Privacidad y seguridad*, abre la
 sección, pulsa **+** y elige ese `Python.app`. Después pulsa **Restart service**
@@ -97,30 +104,75 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
 
 - **Páginas:** pestañas arriba. Crea, renombra y elimina páginas, marca la página inicial
   (★) o muéstrala en el pad.
+- **Páginas listas para apps:** **+ Página** y **+ Página de app** pueden empezar con una
+  página vacía o con los 9 a 11 atajos más usados de una app popular:
+  - **Navegadores:** Google Chrome, Microsoft Edge, Brave, Safari.
+  - **Foto, video y sonido:** Photoshop, Illustrator, Premiere Pro, After Effects,
+    Lightroom Classic, DaVinci Resolve, Final Cut Pro, Logic Pro, Blender, Audacity.
+  - **Trabajo y chat:** Excel, Word, PowerPoint, Outlook, Slack, Discord, Zoom, Microsoft
+    Teams.
+  - **Más:** Spotify, Figma, VS Code, Xcode, Obsidian.
+  - **OBS Studio:** en vivo, grabar, pausar, micrófono, cámara virtual y escenas 1 a 5,
+    con la acción OBS (ver el editor de teclas más abajo). Se queda mientras OBS está
+    abierto, así la usas desde tu juego u otra app.
+
+  Las apps que tienes salen primero. La página aparece mientras la app está al frente, su
+  tecla 12 vuelve atrás y cada tecla es un atajo normal que puedes cambiar. Al vincular una página a una de estas apps en **Abrir con apps…** también se
+  ofrece añadir sus atajos en las teclas libres, sin reemplazar nada. Los atajos se envían
+  por posición de tecla y evitan las teclas de puntuación, así que funcionan también con
+  otras distribuciones de teclado.
+- **Abrir con apps…:** elige las apps que muestran la página actual en el pad, como un
+  perfil de Base Camp, y cuándo:
+  - **Mientras la app está abierta:** la página aparece cuando la app se abre y se va
+    cuando la cierras.
+  - **Mientras la app está al frente:** la página aparece cada vez que pasas a la app y
+    se va cuando cambias a otra.
+
+  Cuando la página se va, el pad vuelve a lo que mostraba antes, salvo que lo hayas
+  cambiado a otra página mientras tanto. El configurador muestra dos pads: **Páginas**, a
+  las que vas tú, y debajo **⚡ Páginas de apps**, las vinculadas, cada uno con sus
+  pestañas (con el nombre de la app cuando el de la página no lo dice). Haz clic en una
+  tecla de cualquiera de los dos para editar esa página; arrastra una tecla al otro pad
+  para moverla allí. Los nombres de las apps se comparan sin el año, así que una página vinculada a
+  "Adobe Photoshop" sigue funcionando cuando llega "Adobe Photoshop 2027". Nada cambia
+  hasta que pulsas **Guardar**.
 - **Teclas:** haz clic en una para editarla. Arrastra una tecla sobre otra para
   intercambiarlas, o suelta una imagen sobre ella. Copia y pega teclas entre páginas.
-- **Carpetas:** en el editor de la tecla, **Convertir esta tecla en carpeta** y luego
+- **El editor de la tecla:** la vista previa y el **Nombre** de la tecla quedan arriba; lo
+  demás va en pestañas: **Estilo** (ícono, tamaño y colores), **Acciones** (lo que hace la
+  tecla; la pestaña muestra cuántas tiene) y **Carpeta**. La barra de pestañas queda a la
+  vista al desplazarte, y el editor recuerda la pestaña en la que estabas al elegir otra
+  tecla.
+- **Carpetas:** en la pestaña **Carpeta**, **Convertir esta tecla en carpeta** y luego
   **Abrir carpeta ›** (o doble clic en la tecla). Dentro, la tecla 1 es una tecla
   **Volver** fija y la ruta de arriba (`inicio › Trabajo`) te lleva hacia arriba. Para
   mover una tecla a una carpeta, arrástrala y mantenla sobre la carpeta hasta que se abra,
   y suéltala donde quieras. Igual con **Volver**, un paso de la ruta o la pestaña de una
   página; si la sueltas justo encima, va a la primera tecla libre de ahí. En el pad, al
   pulsar una tecla carpeta se abre.
-- **Apariencia:** emoji (con paleta rápida), imagen o solo texto; texto, colores y tamaño
-  del ícono. Marca **Ocultar el texto en la tecla** para conservar el texto sin dibujarlo.
-  La vista previa es exactamente lo que dibuja el pad.
+- **Estilo:** emoji, imagen o solo texto; tamaño del ícono y colores. El selector de emojis
+  tiene tus emojis recientes y un grupo sugerido; **Ver todos los emojis** abre todos los
+  que tiene tu Mac (unos 1.900), por grupos. Busca por nombre en español o inglés, con o
+  sin tildes, y elige un tono de piel. Los nombres vienen del propio macOS y el navegador
+  los ordena y agrupa, así que no se descarga nada y todo lo que ofrece el selector, el pad
+  lo puede dibujar.
+  Marca **Ocultar el nombre en la tecla** (debajo del nombre) para conservar el nombre sin
+  dibujarlo. La vista previa es exactamente lo que dibuja el pad.
 - **Ajustar encuadre:** al añadir una imagen o animación que no es cuadrada, se abre una
   ventana donde la arrastras y la acercas o alejas (control, rueda del mouse, pellizco en
   el trackpad, o flechas y + / −) dentro de un cuadrado del tamaño de la tecla. **Imagen
   completa** la muestra entera con el color de la tecla alrededor; **Llenar la tecla**
   cubre la tecla con su centro. La imagen mantiene sus proporciones y el archivo original
-  no cambia, así que puedes volver a encuadrarla con **Ajustar encuadre…** en la pestaña
-  Imagen.
+  no cambia, así que puedes volver a encuadrarla con **Ajustar encuadre…** en **Imagen**,
+  dentro de la pestaña Estilo.
 - **Acciones:** varias por tecla, en orden. **Grabar** captura las teclas que pulses: una
   combinación como ⌘⇧4, una sola tecla como F13 o un modificador solo, y distingue la
-  izquierda de la derecha (⌘ derecho se guarda como `rcmd`). **Teclado…** abre un teclado
-  en pantalla para elegir las teclas con el mouse, para las que el navegador se reserva
-  (⌘Q, ⌘W, fn) y para el teclado numérico. **Mantener las teclas pulsadas mientras
+  izquierda de la derecha (⌘ derecho se guarda como `rcmd`). Mientras graba, macOS y las
+  demás apps no reaccionan a las teclas, así que los atajos del sistema como ⌘⇧4,
+  ⌘Espacio, ⌘Tab o ⌘Q se graban completos en vez de ejecutarse. El teclado vuelve en
+  cuanto sueltas las teclas, al hacer clic en otro sitio o a los 30 segundos. **Teclado…**
+  abre un teclado en pantalla para elegir las teclas con el mouse, por ejemplo las del
+  teclado numérico si el tuyo no lo tiene. **Mantener las teclas pulsadas mientras
   mantienes la tecla del pad** sirve para apps que reaccionan a una tecla mantenida, como
   el dictado de pulsar para hablar. **▶ Probar** ejecuta las acciones y muestra la salida o el error de los comandos
   de terminal y AppleScript.
@@ -134,6 +186,15 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
   la tecla del pad o de una pulsación a la siguiente; **Esperas** mantiene las grabadas,
   usa una espera fija o ninguna. **▶ Probar** la reproduce una vez a los 3 segundos, y
   mientras una macro se reproduce aparece un aviso con **Detener**.
+- **OBS Studio:** agrega una acción **OBS Studio** y elige qué hace: iniciar o detener la
+  transmisión, la grabación o la cámara virtual, pausar la grabación, cambiar a una
+  escena, ir a la escena siguiente o anterior, silenciar o activar micrófonos, el modo
+  estudio, la transición o guardar el búfer de repetición. Una escena es su nombre, o `#1`
+  para la primera escena de la lista **Escenas** de OBS, `#2` para la segunda, etc., así
+  una página sigue funcionando si renombras escenas. Deja la fuente de audio vacía para
+  silenciar todos los micrófonos a la vez. El editor muestra tus escenas y fuentes y dice
+  si OBS responde. En modo estudio, las teclas de escena cambian la vista previa. Primero
+  configura la conexión en **Ajustes → OBS**.
 - **Guardar** (⌘S) revisa todo antes y te dice qué tecla tiene un problema. La versión
   anterior queda en `config.json.previous`.
 
@@ -147,7 +208,17 @@ La pestaña **Ajustes** aplica los cambios al momento:
 
 - **Idioma:** English (por defecto) o Español.
 - **Apariencia:** igual que macOS, clara u oscura.
-- **DisplayPad:** brillo de las teclas y si una tecla se oscurece al pulsarla.
+- **DisplayPad:** brillo de las teclas, si una tecla se oscurece al pulsarla y las esquinas de
+  las teclas. Las pantallas del pad son cuadradas, así que el servicio dibuja esquinas
+  redondeadas en cada imagen, como las muestra el configurador (12 px por defecto; 0 las deja
+  cuadradas).
+- **OBS:** la conexión con OBS Studio para las teclas de OBS. En OBS, elige
+  **Herramientas → Ajustes del servidor WebSocket**, marca **Habilitar servidor WebSocket**,
+  pulsa **Mostrar información de conexión** y copia la **Contraseña del servidor** en
+  **Contraseña**. **Guardar y conectar** la guarda y muestra la versión y las escenas de
+  OBS, o por qué no se puede conectar. El puerto es 4455 salvo que lo hayas cambiado en OBS.
+  La contraseña se guarda en `obs.json` junto a la configuración, legible solo por ti, y no
+  se vuelve a mostrar en el configurador ni a los asistentes de IA.
 - **Asistentes de IA (MCP):** ver abajo.
 - **Acerca de:** versión, estado del servicio y de los permisos, y dónde están la
   configuración y el registro.
@@ -204,8 +275,11 @@ pueden llegar a `127.0.0.1` no podrán conectarse.
 | `set_key`, `clear_key` | Cambiar o vaciar una tecla |
 | `create_page`, `rename_page`, `delete_page` | Gestionar páginas (los enlaces a una página renombrada o eliminada se actualizan) |
 | `show_page` | Cambiar la página que muestra el pad |
+| `link_page_to_apps` | Hacer que una página se abra sola con apps (abiertas o al frente) |
+| `list_app_presets`, `add_app_preset` | Páginas listas con los atajos de apps populares y controles de OBS: crear una o añadir sus teclas a una página |
+| `get_obs_info` | Si OBS responde, con sus escenas y fuentes de audio |
 | `update_settings` | Brillo, oscurecer al pulsar, idioma, apariencia, página inicial |
-| `list_apps` | Apps instaladas, para las acciones «abrir» |
+| `list_apps` | Apps instaladas, para las acciones «abrir» y las páginas que se abren con apps |
 | `upload_image` | Agregar una imagen o animación desde un archivo o base64 |
 | `preview_page` | Imagen de una página tal como la dibuja el pad |
 | `test_actions` | Ejecutar acciones al momento (solo si lo permites, ver abajo) |
@@ -261,6 +335,7 @@ completo.
   "theme": "system",
   "brightness": 80,
   "press_feedback": true,
+  "corner_radius": 12,
   "mcp": {"enabled": false, "allow_run": false},
   "start_page": "inicio",
   "pages": {
@@ -275,6 +350,16 @@ completo.
   }
 }
 ```
+
+`corner_radius` redondea las esquinas de todas las imágenes de las teclas, en píxeles de la
+cara de 102 píxeles: `0` es cuadrada, `12` es el valor por defecto, `51` es redonda.
+
+**Páginas que se abren con apps:** una página puede tener `"apps"`, los nombres del `.app`
+de cada app como los lista el configurador, y `"when"`: `"open"` (lo normal: se muestra
+mientras una de ellas está abierta) o `"front"` (se muestra mientras una está al frente).
+Por ejemplo: `"Photoshop": {"apps": ["Adobe Photoshop 2026"], "when": "front", "keys": {...}}`.
+El servicio revisa las apps abiertas cada segundo y la app al frente cada 0,4 segundos, y
+no necesita ningún permiso más para ello.
 
 **Campos de cada tecla** (todos opcionales)
 
@@ -308,9 +393,17 @@ completo.
 | `delay` | `ms`: espera entre acciones | `250` |
 | `macro` | `steps`; `play`: `once`, `repeat` (con `times`), `while_held` o `toggle`; `delays`: `recorded`, `fixed` (con `delay_ms`) o `none` | ver abajo |
 | `configurator` | ninguno: abre el configurador | |
+| `obs` | `do`: `stream`, `record`, `pause`, `scene` (con `scene`), `next_scene`, `previous_scene`, `mute` (con `source`, vacío para todos los micrófonos), `virtualcam`, `studio`, `transition`, `replay` | `{"do": "scene", "scene": "#2"}` |
 
 `screen_brightness` cambia la pantalla del MacBook (como F1/F2) y los monitores externos
 por DDC/CI (activa DDC/CI en el menú del monitor si no responde).
+
+`obs` habla con OBS Studio 28 o posterior por su servidor WebSocket (protocolo 5), con la
+conexión de **Ajustes → OBS**. `stream`, `record`, `pause`, `virtualcam` y `studio` se
+encienden y apagan con cada pulsación. Una `scene` es el nombre de una escena o `"#N"`, la
+escena N desde arriba en la lista **Escenas** de OBS; `next_scene` y `previous_scene`
+siguen esa lista y dan la vuelta. En modo estudio los cambios de escena van a la vista
+previa y `transition` la pasa al programa.
 
 Modificadores de `shortcut`: `cmd`, `shift`, `ctrl`, `alt`/`option`, `fn` (los de la
 izquierda) y `rcmd`, `rshift`, `rctrl`, `ralt` (los de la derecha). Teclas: letras, números,
@@ -390,6 +483,10 @@ cd ~/Library/Application\ Support/DisplayPadMac
 - **Un asistente de IA no se conecta:** revisa que **Permitir que los asistentes de IA se
   conecten** esté activado y que el servicio esté en marcha. Un `401` significa que la clave
   de acceso es incorrecta o se reemplazó.
+- **Las teclas de OBS no hacen nada:** **Ajustes → OBS → Probar conexión** dice por qué.
+  OBS debe estar abierto con **Herramientas → Ajustes del servidor WebSocket → Habilitar
+  servidor WebSocket** activado, y la contraseña debe ser la de **Mostrar información de
+  conexión**.
 - **`Another DisplayPadMac instance is already running`:** solo un programa puede usar el
   DisplayPad a la vez. Detén el servicio antes de usar `test`.
 

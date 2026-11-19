@@ -83,6 +83,9 @@ ES = {
         "no se pudo empezar a grabar: permite el Monitoreo de entrada para DisplayPad y reinícialo",
     "stopped after {seconds} s": "detenida a los {seconds} s",
     "played {steps} steps in {seconds} s": "reprodujo {steps} pasos en {seconds} s",
+    # keycapture.py
+    "the Accessibility permission is needed to record shortcuts from the whole Mac":
+        "falta el permiso de Accesibilidad para grabar atajos de todo el Mac",
     # daemon.py
     "the configuration must be a JSON object": "la configuración debe ser un objeto JSON",
     "at least one page is needed": "se necesita al menos una página",
@@ -108,6 +111,9 @@ ES = {
     "language must be one of: {values}": "language debe ser uno de: {values}",
     "theme must be one of: {values}": "theme debe ser uno de: {values}",
     "brightness must be a number from 0 to 100": "brightness debe ser un número del 0 al 100",
+    "corner_radius must be a number from 0 to {max}": "corner_radius debe ser un número del 0 al {max}",
+    "page '{page}': apps must be a list of app names": "página '{page}': apps debe ser una lista de nombres de apps",
+    "page '{page}': when must be \"open\" or \"front\"": "página '{page}': when debe ser \"open\" o \"front\"",
     "mcp must be an object with true/false values": "mcp debe ser un objeto con valores true/false",
     "{path}: invalid JSON at line {line}, column {col}: {msg}": "{path}: JSON inválido en la línea {line}, columna {col}: {msg}",
     "the configuration was changed somewhere else (for example by an AI assistant); load it again before saving":
@@ -137,4 +143,24 @@ ES = {
     "the Lottie animation could not be drawn (it may use features the pad does not support)":
         "no se pudo dibujar la animación Lottie (puede usar funciones que el pad no admite)",
     "the Lottie component is missing: run install.sh again": "falta el componente para Lottie: vuelve a ejecutar install.sh",
+    # obs.py
+    "the OBS port must be a number from 1 to 65535": "el puerto de OBS debe ser un número de 1 a 65535",
+    "OBS asks for a password: copy it from OBS (Tools › WebSocket Server Settings › Show Connect Info) into DisplayPad's Settings › OBS":
+        "OBS pide una contraseña: cópiala de OBS (Herramientas › Ajustes del servidor WebSocket › Mostrar información de conexión) en Ajustes › OBS de DisplayPad",
+    "OBS did not accept the password: copy it again from OBS (Tools › WebSocket Server Settings › Show Connect Info) into DisplayPad's Settings › OBS":
+        "OBS no aceptó la contraseña: cópiala de nuevo de OBS (Herramientas › Ajustes del servidor WebSocket › Mostrar información de conexión) en Ajustes › OBS de DisplayPad",
+    "OBS: {error}": "OBS: {error}",
+    "the request failed (code {code})": "la petición falló (código {code})",
+    "OBS is not reachable at {host}:{port}. Is OBS open, with its WebSocket server on (Tools › WebSocket Server Settings › Enable WebSocket server)?":
+        "No se puede conectar con OBS en {host}:{port}. ¿Está OBS abierto, con su servidor WebSocket activado (Herramientas › Ajustes del servidor WebSocket › Habilitar servidor WebSocket)?",
+    "lost the connection to OBS: {error}": "se perdió la conexión con OBS: {error}",
+    "unknown OBS command '{do}'; use one of: {values}": "orden de OBS desconocida '{do}'; usa una de: {values}",
+    "the OBS scene is missing: its name, or #1 for the first one in the list":
+        "falta la escena de OBS: su nombre, o #1 para la primera de la lista",
+    "the OBS {field} must be text": "en OBS, {field} debe ser texto",
+    "OBS has {n} scenes, not {i}": "OBS tiene {n} escenas, no {i}",
+    "OBS has no scene called “{name}”": "OBS no tiene ninguna escena llamada «{name}»",
+    "OBS has no scenes": "OBS no tiene escenas",
+    "OBS has no microphone source": "OBS no tiene ninguna fuente de micrófono",
+    "on": "activado", "off": "desactivado", "done": "hecho", "muted": "silenciado", "unmuted": "con sonido",
 }

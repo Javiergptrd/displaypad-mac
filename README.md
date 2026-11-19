@@ -25,10 +25,16 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
 - **Folders:** any key can be a folder with 11 more keys, and folders can go inside
   folders. Key 1 in a folder always takes you back.
 - **Pages:** as many as you like, with a "back" key and a start page.
+- **Pages that open with apps (profiles):** link a page to apps and the pad switches to it
+  by itself, either while the app is open or while it is in front, and goes back when the
+  app is gone.
 - **Actions:** open an app, URL or folder; keyboard shortcuts; type text; play/pause,
   volume and other media keys; shell commands; AppleScript; change page; brightness of the
   Mac's screens (built-in and external over DDC/CI) and of the pad; pauses between actions.
   Several actions per key run in order.
+- **OBS Studio:** start and stop streaming, recording and the virtual camera, switch
+  scenes and mute microphones straight through OBS's WebSocket server, even while OBS is
+  in the background and without setting up hotkeys in OBS.
 - **Macros:** record what you do with the keyboard and the mouse (keys, clicks, drags,
   scrolling), edit the steps and the delays, and play it from a key once, several times,
   while the key is held, or on and off with each press.
@@ -72,7 +78,8 @@ macOS asks for two permissions for **Python**. The installer prints the path of 
 `Python.app` that needs them.
 
 - **Input Monitoring:** without it the service cannot switch the DisplayPad on.
-- **Accessibility:** needed by the shortcut, text, media key and macro actions.
+- **Accessibility:** needed by the shortcut, text, media key and macro actions, and to
+  record shortcuts that macOS uses.
 
 If macOS doesn't ask, open *System Settings → Privacy & Security*, open the section,
 press **+** and choose that `Python.app`. Then press **Restart service** in the
@@ -93,28 +100,69 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
 
 - **Pages:** tabs at the top. Create, rename and delete pages, mark the start page (★)
   or show a page on the pad.
+- **Ready-made app pages:** **+ Page** and **+ App page** can start from an empty page
+  or from the 9 to 11 most-used shortcuts of a popular app:
+  - **Browsers:** Google Chrome, Microsoft Edge, Brave, Safari.
+  - **Photo, video and sound:** Photoshop, Illustrator, Premiere Pro, After Effects,
+    Lightroom Classic, DaVinci Resolve, Final Cut Pro, Logic Pro, Blender, Audacity.
+  - **Work and chat:** Excel, Word, PowerPoint, Outlook, Slack, Discord, Zoom, Microsoft
+    Teams.
+  - **More:** Spotify, Figma, VS Code, Xcode, Obsidian.
+  - **OBS Studio:** go live, record, pause, mic, virtual camera and scenes 1 to 5,
+    through the OBS action (see the key editor below). It stays up while OBS is open, so
+    you can use it from your game or another app.
+
+  The apps you have come first. The page comes up while the app is in front, its key 12
+  goes back, and every key is an ordinary shortcut you can change. Linking a page to one of these apps in **Open with apps…** also offers to add
+  its shortcuts to the free keys, without replacing anything. Shortcuts are sent by key
+  position and avoid punctuation keys, so they work with other keyboard layouts too.
+- **Open with apps…:** pick the apps that bring the current page up on the pad, like a
+  Base Camp profile, and when:
+  - **While the app is open:** the page comes up when the app opens and goes away when it
+    quits.
+  - **While the app is in front:** the page comes up each time you switch to the app and
+    goes away when you switch to another one.
+
+  When the page goes away, the pad returns to what it showed before, unless you moved it
+  to another page meanwhile. The configurator shows two pads: **Pages**, the ones you go
+  to yourself, and under it **⚡ App pages**, the linked ones, each with its own tabs (with
+  the app's name when the page name doesn't say it). Click a key on either pad to edit
+  that page; drag a key onto the other pad to move it there. App names are compared
+  without the year, so a page linked to "Adobe Photoshop" keeps working when "Adobe
+  Photoshop 2027" arrives. Nothing changes until you press **Save**.
 - **Keys:** click a key to edit it. Drag a key onto another to swap them, or drop a
   picture on it. Copy and paste keys between pages.
-- **Folders:** in the key editor, **Make this key a folder**, then **Open folder ›** (or
+- **The key editor:** the preview and the key's **Name** stay at the top; the rest is in
+  tabs: **Style** (icon, size and colors), **Actions** (what the key does; the tab shows
+  how many) and **Folder**. The tab bar stays in view while you scroll, and the editor
+  remembers the tab you were on when you pick another key.
+- **Folders:** in the **Folder** tab, **Make this key a folder**, then **Open folder ›** (or
   double-click the key). Inside, key 1 is a fixed **Back** key and the path at the top
   (`home › Work`) takes you up. To move a key into a folder, drag it and hold it over the
   folder until it opens, then drop it where you want it. Holding it over **Back**, a step
   of the path or a page tab works the same way, and dropping it right on one of them
   puts it in the first free key there. On the pad, pressing a folder key opens it.
-- **Appearance:** emoji (with a quick palette), image or text only; label, colors and
-  icon size. Tick **Hide the text on the key** to keep the label without drawing it.
+- **Style:** emoji, image or text only; icon size and colors. The emoji picker has your
+  recent emoji and a suggested set; **Show all emoji** opens every emoji your Mac has
+  (about 1,900), in groups. Search by name in English or Spanish, accents optional, and
+  pick a skin tone. The names come from macOS itself, and the browser sorts and groups
+  them, so nothing is downloaded and anything the picker offers, the pad can draw.
+  Tick **Hide the name on the key** (under the name) to keep the name without drawing it.
   The preview is exactly what the pad draws.
 - **Adjust framing:** when you add a picture or animation that isn't square, a window
   opens where you drag it and zoom it (slider, scroll wheel, trackpad pinch, or arrow
   keys and + / −) inside a square the size of the key. **Whole picture** shows all of it
   with the key color around it; **Fill the key** covers the key with its middle. The
   picture keeps its proportions; the original file is not changed, so you can reframe
-  it later with **Adjust framing…** in the Image tab.
+  it later with **Adjust framing…** under **Image** in the Style tab.
 - **Actions:** several per key, in order. **Record** captures the keys you press: a
   combination like ⌘⇧4, a single key like F13, or a modifier on its own, and it tells left
-  from right (Right ⌘ is saved as `rcmd`). **Keyboard…** opens an on-screen keyboard to
-  pick keys with the mouse, for the ones the browser keeps for itself (⌘Q, ⌘W, fn) and
-  for the numeric keypad. **Hold the keys down while the pad key is held** is for apps
+  from right (Right ⌘ is saved as `rcmd`). While it records, macOS and the other apps
+  don't react to the keys, so system shortcuts like ⌘⇧4, ⌘Space, ⌘Tab or ⌘Q are recorded
+  whole instead of running. The keyboard is back as soon as you let go of the keys, when
+  you click elsewhere, or after 30 seconds. **Keyboard…** opens an on-screen keyboard to
+  pick keys with the mouse, for example numeric keypad keys your keyboard doesn't have.
+  **Hold the keys down while the pad key is held** is for apps
   that react to a held key, like push-to-talk dictation. **▶ Test** runs the actions and shows the output or error of shell commands and
   AppleScript.
 - **Macros:** add a **Macro (keyboard and mouse)** action and press **● Record…**. Choose
@@ -126,6 +174,14 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   a number of times, while the pad key is held, or from one press to the next;
   **Delays** keeps the recorded waits, uses one fixed wait, or none. **▶ Test** plays it
   once after 3 seconds, and a banner with **Stop** shows while a macro is playing.
+- **OBS Studio:** add an **OBS Studio** action and pick what it does: start or stop
+  streaming, recording or the virtual camera, pause the recording, switch to a scene, go
+  to the next or previous scene, mute or unmute microphones, studio mode, transition, or
+  save the replay buffer. A scene is its name, or `#1` for the first scene in OBS's
+  **Scenes** list, `#2` for the second, and so on, so a page keeps working when you rename
+  scenes. Leave the audio source empty to mute every microphone at once. The editor lists
+  your scenes and sources and says whether OBS can be reached. In studio mode, scene keys
+  change the preview. Set up the connection first in **Settings → OBS**.
 - **Save** (⌘S) checks everything first and tells you which key has a problem. The
   previous file is kept as `config.json.previous`.
 
@@ -139,7 +195,15 @@ The **Settings** tab applies changes right away:
 
 - **Language:** English (default) or Español.
 - **Appearance:** same as macOS, light or dark.
-- **DisplayPad:** key brightness, and whether a key darkens while pressed.
+- **DisplayPad:** key brightness, whether a key darkens while pressed, and the key corners.
+  The pad's screens are square, so the service draws rounded corners into every picture,
+  like the configurator shows them (12 px by default; 0 keeps them square).
+- **OBS:** the connection to OBS Studio for the OBS keys. In OBS, choose **Tools →
+  WebSocket Server Settings**, tick **Enable WebSocket server**, click **Show Connect
+  Info** and copy the **Server Password** into **Password**. **Save and connect** saves it
+  and shows OBS's version and scenes, or why it can't connect. The port is 4455 unless you
+  changed it in OBS. The password is kept in `obs.json` next to the configuration, readable
+  only by you, and never shown again in the configurator or to AI assistants.
 - **AI assistants (MCP):** see below.
 - **About:** version, service and permission status, and where the configuration and
   log are.
@@ -196,8 +260,11 @@ The server only listens on this Mac, so assistants that run in the cloud and can
 | `set_key`, `clear_key` | Change or clear one key |
 | `create_page`, `rename_page`, `delete_page` | Manage pages (links to a renamed or deleted page are updated) |
 | `show_page` | Switch the pad to a page |
+| `link_page_to_apps` | Make a page open by itself with apps (while open or while in front) |
+| `list_app_presets`, `add_app_preset` | Ready-made pages with popular apps' shortcuts and OBS controls: create one, or add its keys to a page |
+| `get_obs_info` | Whether OBS can be reached, with its scenes and audio sources |
 | `update_settings` | Brightness, press feedback, language, appearance, start page |
-| `list_apps` | Installed apps, for "open" actions |
+| `list_apps` | Installed apps, for "open" actions and pages that open with apps |
 | `upload_image` | Add a picture or animation from a file or base64 |
 | `preview_page` | Picture of a page as the pad draws it |
 | `test_actions` | Run actions now (only if you allow it, see below) |
@@ -251,6 +318,7 @@ reloaded as soon as you save it.** Keys are numbered 1 to 12: 1-6 on the top row
   "theme": "system",
   "brightness": 80,
   "press_feedback": true,
+  "corner_radius": 12,
   "mcp": {"enabled": false, "allow_run": false},
   "start_page": "home",
   "pages": {
@@ -265,6 +333,16 @@ reloaded as soon as you save it.** Keys are numbered 1 to 12: 1-6 on the top row
   }
 }
 ```
+
+`corner_radius` rounds the corners of every key picture, in pixels of the 102-pixel face:
+`0` is square, `12` is the default, `51` is round.
+
+**Pages that open with apps:** a page can have `"apps"`, the names of the apps' `.app`
+as the configurator lists them, and `"when"`: `"open"` (the default: shown while one of
+them is open) or `"front"` (shown while one of them is in front). For example:
+`"Photoshop": {"apps": ["Adobe Photoshop 2026"], "when": "front", "keys": {...}}`. The
+service checks the open apps every second and the app in front every 0.4 seconds, and
+needs no extra permission for it.
 
 **Key fields** (all optional)
 
@@ -298,9 +376,17 @@ reloaded as soon as you save it.** Keys are numbered 1 to 12: 1-6 on the top row
 | `delay` | `ms`: wait between actions | `250` |
 | `macro` | `steps`; `play`: `once`, `repeat` (with `times`), `while_held` or `toggle`; `delays`: `recorded`, `fixed` (with `delay_ms`) or `none` | see below |
 | `configurator` | none: opens the configurator | |
+| `obs` | `do`: `stream`, `record`, `pause`, `scene` (with `scene`), `next_scene`, `previous_scene`, `mute` (with `source`, empty for every microphone), `virtualcam`, `studio`, `transition`, `replay` | `{"do": "scene", "scene": "#2"}` |
 
 `screen_brightness` changes the MacBook screen (like F1/F2) and external monitors over
 DDC/CI (turn DDC/CI on in the monitor's menu if it doesn't respond).
+
+`obs` talks to OBS Studio 28 or later through its WebSocket server (protocol 5), with the
+connection set in **Settings → OBS**. `stream`, `record`, `pause`, `virtualcam` and
+`studio` switch on and off with each press. A `scene` is a scene's name or `"#N"`, the
+Nth scene from the top of OBS's **Scenes** list; `next_scene` and `previous_scene` follow
+that list and go round. In studio mode scene changes go to the preview and `transition`
+sends it to the program.
 
 Shortcut modifiers: `cmd`, `shift`, `ctrl`, `alt`/`option`, `fn` (the left keys) and
 `rcmd`, `rshift`, `rctrl`, `ralt` (the right ones). Keys: letters, numbers, `f1` to `f20`,
@@ -379,6 +465,9 @@ cd ~/Library/Application\ Support/DisplayPadMac
   with fewer frames per second.
 - **An AI assistant can't connect:** check that **Allow AI assistants to connect** is on
   and that the service is running. A `401` means the access key is wrong or was replaced.
+- **OBS keys do nothing:** **Settings → OBS → Test connection** says why. OBS must be
+  open with **Tools → WebSocket Server Settings → Enable WebSocket server** on, and the
+  password must match the one in **Show Connect Info**.
 - **`Another DisplayPadMac instance is already running`:** only one program can use the
   DisplayPad at a time. Stop the service before using `test`.
 

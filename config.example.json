@@ -3,6 +3,7 @@
   "theme": "system",
   "brightness": 80,
   "press_feedback": true,
+  "corner_radius": 12,
   "mcp": {"enabled": false, "allow_run": false},
   "start_page": "home",
   "pages": {

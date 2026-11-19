@@ -24,7 +24,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import __version__, actions, daemon, render, web  # daemon/web: circular, used at call time only
+from . import __version__, actions, appwatch, daemon, obs, presets, render, web  # daemon/web: circular, used at call time only
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +52,8 @@ THE DEVICE
 - 12 keys, each a 102x102 pixel screen, in 2 rows of 6: keys 1-6 are the top row (left to right), 7-12 the bottom row.
 - The configuration has one or more pages; the pad shows one at a time. start_page is shown when the service starts. The "page" action switches pages; page "back" returns to the previous one.
 - Folders: any key can be a folder that opens when pressed. Inside a folder, key 1 is always a fixed Back key (out to the page or folder that holds it), so a folder has keys 2-12; folders can be inside folders. Tools address a folder as "<page>/<key>": "home/3" is the folder on key 3 of page "home", "home/3/5" the folder on key 5 inside it. Use that wherever a tool takes a page (get_key, set_key, clear_key, show_page, preview_page); list_pages lists every folder.
+- Ready-made pages: list_app_presets lists pages with the most-used shortcuts of popular apps; add_app_preset creates one (linked to the app while it is in front; the OBS one while OBS is open) or adds its keys to an existing page.
+- Pages can open by themselves, like profiles: link_page_to_apps links a page to apps (names as list_apps gives them). With when "open" the pad shows the page when one of the apps opens and goes back when the last one quits; with "front" it shows it whenever one of them is in front and goes back when you switch to another app. Going back only happens if the pad still shows that page.
 
 KEY FIELDS (all optional; a key with nothing is simply left out)
 - emoji: drawn as the icon, e.g. "📧".
@@ -77,6 +79,7 @@ ACTIONS
 - {"type": "brightness", "value": "+10"}: the DisplayPad's own backlight, same values.
 - {"type": "delay", "ms": 300}: wait between two actions (e.g. open an app, then send it a shortcut).
 - {"type": "configurator"}: open the DisplayPad configurator in the browser.
+- {"type": "obs", "do": "record"}: controls OBS Studio through its WebSocket server, whichever app is in front (no hotkeys needed in OBS). do: stream (start/stop), record (start/stop), pause (the recording), scene (with "scene": a scene name, or "#2" for the second scene in OBS's Scenes list from the top), next_scene, previous_scene, mute (with "source": an audio source name; empty or missing: every microphone), virtualcam, studio (studio mode on/off), transition (studio mode: preview to program), replay (save the replay buffer). In studio mode scene changes go to the preview. The user sets up the connection in the configurator, Settings > OBS (turn on OBS's WebSocket server and enter its password; you never see it). get_obs_info tells whether OBS can be reached and lists its scenes and sources.
 - {"type": "macro", "steps": [...], "play": "once", "delays": "recorded"}: plays keyboard and mouse steps in order. The user usually records one in the configurator (Record… on a Macro action); you cannot record, but you can write or edit the steps:
   {"do": "keys", "keys": "cmd+c"} a whole shortcut (same names as "shortcut"); {"do": "key_down", "key": "rcmd"} / {"do": "key_up", "key": "rcmd"} one key held and let go; {"do": "text", "text": "Hello"};
   {"do": "click", "button": "left", "count": 2, "x": 640, "y": 400} (no x/y: where the pointer is); {"do": "mouse_down", "button": "right", "x": .., "y": ..} / {"do": "mouse_up", ...}; {"do": "move", "x": .., "y": ..} (drags while a button is down); {"do": "scroll", "dy": -120, "dx": 0} (pixels, positive dy scrolls up, optional x/y); {"do": "wait", "ms": 250}.
@@ -103,7 +106,7 @@ KEY = {"type": "integer", "minimum": 1, "maximum": 12,
 ACTION = {"type": "object", "required": ["type"], "description": "One action; see get_reference.",
           "properties": {"type": {"type": "string", "enum": ["open", "shortcut", "text", "media", "shell", "applescript",
                                                              "page", "screen_brightness", "brightness", "delay",
-                                                             "configurator", "macro"]}}}
+                                                             "configurator", "macro", "obs"]}}}
 KEY_SPEC = {
     "type": "object", "description": "How the key looks and what it does; see get_reference.",
     "properties": {
@@ -208,6 +211,9 @@ def _act_summary(a: dict) -> str:
         n = sum(1 for s in steps if isinstance(s, dict) and s.get("do") != "wait")
         play = a.get("play") or "once"
         return f"macro: {n} step(s), {play}" + (f" x{a.get('times')}" if play == "repeat" else "")
+    if a.get("type") == "obs":
+        extra = a.get("scene") or a.get("source") or ""
+        return f"obs: {a.get('do')}" + (f" {json.dumps(extra, ensure_ascii=False)}" if extra else "")
     return (f"{a.get('type')}: {next((str(v) for k, v in a.items() if k != 'type'), '')}".rstrip(": ")
             + (" (held)" if a.get("hold") else ""))
 
@@ -273,6 +279,8 @@ def list_pages(svc, a):
             keys = {"1": "Back (fixed)", **keys}
         else:
             entry["start_page"] = name == start
+            if (box or {}).get("apps"):
+                entry["opens_with"] = {"apps": box["apps"], "when": box.get("when", "open")}
         entry.update({"on_the_pad_now": name == svc.page,
                       "empty_keys": [n for n in range(1, 13) if str(n) not in keys], "keys": keys})
         out.append(entry)
@@ -393,6 +401,106 @@ def rename_page(svc, a):
     return {"renamed": old, "to": new, **result}
 
 
+def link_page_to_apps(svc, a):
+    name, when = a["page"], a.get("when", "open")
+    names = [str(n).strip()[:-4] if str(n).strip().lower().endswith(".app") else str(n).strip()
+             for n in (a.get("apps") or [])]
+    names = list(dict.fromkeys(n for n in names if n))
+    if when not in ("open", "front"):
+        raise ToolError('when must be "open" or "front"')
+
+    def change(raw):
+        box = _top_page(raw, name)
+        if names:
+            box["apps"], box["when"] = names, when
+        else:
+            box.pop("apps", None)
+            box.pop("when", None)
+
+    _save(svc, change)
+    installed = {appwatch.norm(n) for n in web.list_apps()}
+    out = {"page": name, "apps": names, "when": when} if names else {"page": name, "apps": [], "linked": False}
+    unknown = [n for n in names if appwatch.norm(n) not in installed]
+    if unknown:
+        out["note"] = f"not among the installed apps (still used, if that is the name of their .app): {', '.join(unknown)}"
+    return out
+
+
+def _lang(raw: dict) -> str:
+    return "es" if raw.get("language") == "es" else "en"
+
+
+def list_app_presets(svc, a):
+    cat = presets.catalog(_lang(svc.read_config()), web.list_apps())
+    return [{k: v for k, v in p.items() if k != "page"} for p in cat]
+
+
+def add_app_preset(svc, a):
+    p = presets.get(str(a["preset"]))
+    if not p:
+        raise ToolError(f"there is no preset '{a['preset']}'. Presets: {', '.join(x['id'] for x in presets.PRESETS)}")
+    link = a.get("link", True)
+    installed = web.list_apps()
+    result = {}
+
+    def change(raw):
+        spec = presets.page(p, _lang(raw), installed)
+        pages = raw.setdefault("pages", {})
+        name = str(a.get("page") or "").strip()
+        if name and name in pages:  # an existing page: the shortcuts it lacks, on its free keys
+            box = _top_page(raw, name)
+            keys = box.get("keys") if isinstance(box.get("keys"), dict) else box.setdefault("keys", {})
+            have = {presets.action_id(act) for k in keys.values() if isinstance(k, dict)
+                    for act in _actions(k) if isinstance(act, dict)}
+            missing = [(n, k) for n, k in spec["keys"].items() if k["actions"][0]["type"] != "page"
+                       and presets.action_id(k["actions"][0]) not in have]
+            free = [str(i) for i in range(1, 13) if not keys.get(str(i))]
+            later, added = [], []
+            for n, k in missing:  # its own key number when free, else the first free key
+                if n in free:
+                    keys[n] = k
+                    free.remove(n)
+                    added.append(int(n))
+                else:
+                    later.append(k)
+            for k in later:
+                if not free:
+                    break
+                n = free.pop(0)
+                keys[n] = k
+                added.append(int(n))
+            result.update(page=name, added_keys=sorted(added))
+            if len(added) < len(missing):
+                result["not_added"] = f"{len(missing) - len(added)} keys: the page has no more free keys"
+            if len(missing) < len(spec["keys"]) - 1:
+                result["already_there"] = len(spec["keys"]) - 1 - len(missing)
+            if link:
+                old = [n for n in (box.get("apps") or []) if isinstance(n, str)]
+                known = set(map(appwatch.norm, old))
+                box["apps"] = old + [n for n in spec["apps"] if appwatch.norm(n) not in known]
+                box.setdefault("when", spec["when"])
+        else:
+            if not name:
+                name, i = p["name"], 2
+                while name in pages:
+                    name, i = f"{p['name']} {i}", i + 1
+            if name == "back" or "/" in name:
+                raise ToolError("the page needs a name other than 'back', without “/”")
+            if not link:
+                spec.pop("apps")
+                spec.pop("when")
+            pages[name] = spec
+            result.update(page=name, created=True, keys=sorted(int(k) for k in spec["keys"]))
+        box = pages[name]
+        if box.get("apps"):
+            result.update(apps=box["apps"], when=box.get("when", "open"))
+
+    _save(svc, change)
+    if result.get("created"):
+        result["note"] = f"key {presets.BACK_KEY} goes back to the previous page"
+    return result
+
+
 def delete_page(svc, a):
     name = a["name"]
     result = {}
@@ -421,7 +529,8 @@ def show_page(svc, a):
 
 
 def update_settings(svc, a):
-    patch = {f: a[f] for f in ("language", "theme", "brightness", "press_feedback") if a.get(f) is not None}
+    patch = {f: a[f] for f in ("language", "theme", "brightness", "press_feedback", "corner_radius")
+             if a.get(f) is not None}
     if a.get("start_page") is not None:
         def change(raw):
             _top_page(raw, a["start_page"])
@@ -450,6 +559,10 @@ def test_actions(svc, a):
     if len(results) < len(acts):
         results.append({"note": "the remaining actions were not run because one failed"})
     return results
+
+
+def get_obs_info(svc, a):
+    return obs.info(svc.cfg["base_dir"])
 
 
 def list_apps(svc, a):
@@ -499,7 +612,7 @@ def preview_page(svc, a):
     if name not in cfg["pages"]:
         raise ToolError(f"there is no page '{name}'. Pages: {', '.join(cfg['pages'])}")
     buf = io.BytesIO()
-    render.preview_sheet(cfg["pages"][name], cfg["base_dir"]).save(buf, "PNG")
+    render.preview_sheet(cfg["pages"][name], cfg["base_dir"], cfg["corner_radius"]).save(buf, "PNG")
     return [{"type": "text", "text": f"Page '{name}' as the DisplayPad draws it: keys 1-6 top row, 7-12 bottom row "
                                      "(animated keys show their first frame)."},
             {"type": "image", "data": base64.b64encode(buf.getvalue()).decode(), "mimeType": "image/png"}]
@@ -546,12 +659,37 @@ TOOLS = [
           {"name": TOP_PAGE, "new_name": {"type": "string"}}, ("name", "new_name")),
     _tool(delete_page, "Delete a page", "Delete a page and the \"go to this page\" actions that lead to it.",
           {"name": TOP_PAGE}, ("name",), destructive=True),
+    _tool(link_page_to_apps, "Open a page with apps",
+          "Make a page come up on the pad by itself, like a profile: when one of the apps opens (when \"open\", "
+          "back when the last one quits) or while one is in front (when \"front\", back when another app comes "
+          "to the front). An empty apps list removes the link.",
+          {"page": TOP_PAGE,
+           "apps": {"type": "array", "items": {"type": "string"}, "description": "App names, as list_apps gives them."},
+           "when": {"type": "string", "enum": ["open", "front"], "description": "Default \"open\"."}},
+          ("page", "apps")),
+    _tool(list_app_presets, "List ready-made app pages",
+          "Ready-made pages with the most-used shortcuts of popular apps (Photoshop, Premiere Pro, DaVinci "
+          "Resolve, Figma, VS Code, Zoom…) and OBS controls: each one's id, its apps, which are installed, its "
+          "keys, and \"setup\" when the app needs something turned on first (obs: Settings > OBS).",
+          read_only=True),
+    _tool(add_app_preset, "Add a ready-made app page",
+          "Create a page from a preset (list_app_presets), linked to the app so it comes up while the app is in "
+          "front (OBS: while it is open). With the name of an existing page, add the preset's keys that page "
+          "lacks to its free keys instead (nothing is replaced).",
+          {"preset": {"type": "string", "description": "Preset id from list_app_presets, e.g. \"photoshop\"."},
+           "page": {"type": "string", "description": "Name for the new page (default: the app's name), or an "
+                                                      "existing page to add the shortcuts to."},
+           "link": {"type": "boolean", "description": "Link the page to the app (shown while it is in front, "
+                                                      "or open for OBS). Default true."}},
+          ("preset",)),
     _tool(show_page, "Show a page on the pad", "Switch the DisplayPad to a page or folder now.", {"page": PAGE}, ("page",)),
     _tool(update_settings, "Change general settings",
-          "Pad backlight brightness (0-100), darken-on-press, start page, and the configurator's language "
+          "Pad backlight brightness (0-100), darken-on-press, rounded key corners (corner_radius: pixels "
+          "on the 102-pixel key face, 0 square, 12 default, 51 round), start page, and the configurator's language "
           "(en, es) and theme (system, light, dark).",
           {"brightness": {"type": "integer", "minimum": 0, "maximum": 100},
            "press_feedback": {"type": "boolean"},
+           "corner_radius": {"type": "integer", "minimum": 0, "maximum": 51},
            "start_page": TOP_PAGE,
            "language": {"type": "string", "enum": ["en", "es"]},
            "theme": {"type": "string", "enum": ["system", "light", "dark"]}}),
@@ -560,7 +698,10 @@ TOOLS = [
           "included), to test an automation before saving it on a key. Only works if the user allowed it.",
           {"actions": {"type": "array", "items": ACTION, "minItems": 1}}, ("actions",),
           destructive=True, open_world=True),
-    _tool(list_apps, "List installed apps", "Names of the apps installed on this Mac, for \"open\" actions.",
+    _tool(get_obs_info, "Check OBS",
+          "Whether DisplayPad can reach OBS Studio (Settings > OBS), with OBS's scenes (top first), the current "
+          "scene, studio mode, and its audio sources and microphones, for \"obs\" actions.", read_only=True),
+    _tool(list_apps, "List installed apps", "Names of the apps installed on this Mac, for \"open\" actions and link_page_to_apps.",
           read_only=True),
     _tool(upload_image, "Add a picture or animation",
           "Store a picture (PNG, JPG, WebP), an animated GIF/WebP or a Lottie animation (.json, .lottie, .tgs) "

@@ -42,7 +42,7 @@ button.small { padding: 3px 9px; font-size: 13px; }
 button.icon { padding: 3px 7px; min-width: 28px; }
 button.danger { color: var(--danger); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-input[type=text], input[type=number], input:not([type]), select, textarea {
+input[type=text], input[type=number], input[type=password], input:not([type]), select, textarea {
   width: 100%; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
 }
 textarea { resize: vertical; min-height: 64px; }
@@ -82,11 +82,65 @@ h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 .tab .star { color: #e2a400; margin-left: 4px; }
 .pagebar { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 16px; }
+.pad-card { transition: border-color .15s, box-shadow .15s; }
+.pad-card.active { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow); }
+.pad-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.pad-head h2 { margin: 0; }
+.pad-head small { color: var(--muted); }
+.pad-badge { display: none; margin-left: auto; font-size: 11px; font-weight: 600; line-height: 18px; padding: 0 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+.pad-card.active .pad-badge { display: inline-block; }
+.pad-card:not(.active) .tabs { margin-bottom: 14px; }
+.pad-card:not(.active) .device { cursor: pointer; }
+.pad-card:not(.active) .key { opacity: .82; transition: opacity .15s; }
+.pad-card:not(.active) .device:hover .key, .pad-card:not(.active) .device.over .key { opacity: 1; }
+.device.over { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.tab.shown { border-color: var(--text); }
+.pad-empty { border: 1.5px dashed var(--line); border-radius: 14px; padding: 18px; text-align: center; color: var(--muted); }
+.pad-empty p { margin: 0 0 10px; }
+.left > .hint { margin: 12px 0 0; }
+.tab .tab-app { margin-left: 6px; font-size: 11px; color: var(--muted); }
+.tab.active .tab-app { color: inherit; opacity: .75; }
+#pg-auto.on { border-color: var(--accent); }
+dialog.auto-dlg { width: min(480px, 94vw); }
+dialog.auto-dlg h2 { margin: 0 0 6px; }
+.auto-apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; min-height: 26px; align-items: center; }
+.auto-app { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 99px; padding: 2px 2px 2px 10px; background: var(--bg); }
+.auto-app button { border: 0; background: none; padding: 0 7px; color: var(--muted); font-size: 15px; line-height: 1.2; }
+.auto-dlg .field-line input { flex: 1; }
+.auto-dlg .lbl { margin-top: 12px; }
+.auto-when { align-items: flex-start; margin-top: 6px; }
+.auto-when input { margin-top: 3px; }
+.auto-when span { display: flex; flex-direction: column; }
+.auto-preset { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.auto-preset .check { align-items: flex-start; }
+.auto-preset .check input { margin-top: 3px; }
+.auto-preset .check span { display: flex; flex-direction: column; }
+.auto-preset .preset-keys { margin-top: 8px; }
+dialog.np-dlg { width: min(540px, 94vw); max-height: 90vh; }
+dialog.np-dlg[open] { display: flex; flex-direction: column; }
+dialog.np-dlg h2 { margin: 0 0 12px; }
+.np-from { margin-top: 14px; }
+.np-err { color: var(--danger); font-size: 12px; margin: 4px 0 0 !important; }
+.np-opts { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; min-height: 120px; max-height: 260px; padding: 2px; margin: 0 -2px; }
+.np-opt { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.np-opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.np-opt input { flex: none; margin: 0; }
+.np-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.np-main small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-tag { flex: none; font-size: 11px; padding: 1px 8px; border-radius: 99px; background: var(--chip); color: var(--ok); }
+.np-link { margin-top: 12px; }
+.np-detail:not(:empty) { margin-top: 12px; }
+.preset-keys { list-style: none; margin: 4px 0 6px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; font-size: 13px; }
+.preset-keys li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pk-emoji { flex: none; width: 20px; text-align: center; }
+.pk-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preset-keys kbd { flex: none; font: 12px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+@media (max-width: 520px) { .preset-keys { grid-template-columns: 1fr; } }
 
 .device { background: linear-gradient(180deg, var(--pad-edge), var(--pad)); border-radius: 22px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: 760px; }
 .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
-.key { position: relative; aspect-ratio: 1; padding: 0; border-radius: 12px; border: 2px solid transparent; background: #000; overflow: hidden; }
-.key img { width: 100%; height: 100%; display: block; image-rendering: auto; border-radius: 10px; }
+.key { position: relative; aspect-ratio: 1; padding: 0; border-radius: calc(var(--face-r, 11.76) * 1%); border: 2px solid transparent; background: #000; overflow: hidden; }
+.key img { width: 100%; height: 100%; display: block; image-rendering: auto; border-radius: calc(var(--face-r, 11.76) * 1%); }
 .key .n { position: absolute; top: 3px; left: 5px; font-size: 10px; color: rgba(255,255,255,.55); text-shadow: 0 0 3px #000; }
 .key .acts { position: absolute; right: 4px; bottom: 3px; font-size: 10px; color: rgba(255,255,255,.7); text-shadow: 0 0 3px #000; }
 .key.sel { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
@@ -111,13 +165,44 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .ed-head h2 { margin: 0; }
 .ed-head .tools { margin-left: auto; display: flex; gap: 4px; }
 .ed-top { display: flex; gap: 14px; margin-top: 14px; align-items: center; }
-.ed-top img { width: 112px; height: 112px; border-radius: 14px; background: #000; flex: none; }
+.ed-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.ed-name small { display: block; }
+.ed-tabs { position: sticky; top: -16px; z-index: 2; display: flex; gap: 2px; margin: 16px -16px 0; padding: 0 10px;
+  background: var(--panel); border-bottom: 1px solid var(--line); }
+.ed-tabs button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: none; padding: 10px 10px 8px; margin-bottom: -1px; color: var(--muted); font-weight: 600; }
+.ed-tabs button:hover { color: var(--text); }
+.ed-tabs button[aria-selected=true], .ed-tabs button[aria-selected=true]:hover { color: var(--text); border-bottom-color: var(--accent); }
+.ed-tabs .badge { font-size: 11px; line-height: 17px; min-width: 18px; padding: 0 6px; border-radius: 99px; text-align: center;
+  background: var(--chip); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ed-tabs button[aria-selected=true] .badge { background: var(--accent-soft); color: var(--accent); }
+.ed-panel { padding-top: 14px; }
+.ed-panel > h3:first-child { margin-top: 0; }
+.tab-intro { margin: 0 0 12px; }
+.stack > .tab-intro { margin-bottom: 0; }
+.ed-top img { width: 112px; height: 112px; border-radius: calc(var(--face-r, 11.76) * 1%); background: #000; flex: none; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--chip); }
 .seg button { border: 0; background: transparent; border-radius: 7px; padding: 4px 12px; }
 .seg button[aria-pressed=true] { background: var(--panel); box-shadow: var(--shadow); font-weight: 600; }
 .palette { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; margin-top: 8px; }
 .palette button { border: 0; background: transparent; font-size: 20px; padding: 3px 0; border-radius: 6px; }
 .palette button:hover { background: var(--chip); }
+.palette button[aria-pressed=true] { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.emoji-picker { display: flex; flex-direction: column; gap: 8px; }
+.emoji-picker .palette { margin-top: 0; }
+.ep-row { display: flex; gap: 6px; align-items: stretch; }
+.ep-row .ep-current { width: 56px; flex: none; text-align: center; font-size: 20px; padding: 2px 4px; }
+.ep-search { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+.ep-tone { flex: none; width: 58px; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 0 4px; font-size: 16px; }
+.ep-lbl { margin: 2px 0 0; }
+.ep-err { color: var(--danger); }
+.ep-nav { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.ep-nav button { border: 0; background: transparent; font-size: 17px; padding: 3px 4px; border-radius: 6px; opacity: .55; }
+.ep-nav button:hover, .ep-nav button[aria-current=true] { opacity: 1; background: var(--chip); }
+.ep-scroll { position: relative; max-height: 330px; overflow-y: auto; overscroll-behavior: contain; margin-top: -4px; }
+.ep-sec h4 { position: sticky; top: 0; z-index: 1; margin: 0; padding: 6px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--panel); }
+.ep-foot { display: flex; align-items: center; gap: 10px; }
+.ep-foot button { flex: none; }
 .drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center; color: var(--muted); cursor: pointer; }
 .drop:hover { border-color: var(--accent); }
 .drop.over { border-color: var(--accent); background: var(--accent-soft); }
@@ -206,6 +291,13 @@ header .seg button { padding: 3px 12px; }
 #settings > .card + .card { margin-top: 16px; }
 .set-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 .set-row select { width: auto; min-width: 200px; }
+.obs-card .set-row input { width: 220px; max-width: 60%; }
+.obs-card .set-row > span:first-child { flex: none; }
+.obs-card .obs-pw { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; flex: 1; min-width: 0; }
+.obs-card .obs-pw input { width: 220px; max-width: 100%; }
+.obs-card .obs-pw button { white-space: nowrap; }
+.obs-state:empty { display: none; }
+.obs-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .snippet { position: relative; margin: 0; padding: 10px 70px 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
   white-space: pre-wrap; word-break: break-all; font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
 .snippet button { position: absolute; top: 6px; right: 6px; }
@@ -215,12 +307,12 @@ dialog.crop-dlg { width: min(560px, 94vw); }
 dialog.crop-dlg h2 { margin: 0 0 6px; }
 dialog.crop-dlg p.hint { margin: 0 0 10px; }
 .crop-main { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 12px; }
-.crop-stage { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; border-radius: 18px;
+.crop-stage { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; border-radius: calc(var(--face-r, 11.76) * 1%);
   cursor: grab; touch-action: none; outline-offset: 3px; box-shadow: 0 0 0 1px var(--line); }
 .crop-stage.dragging { cursor: grabbing; }
 .crop-stage img { position: absolute; max-width: none; pointer-events: none; user-select: none; -webkit-user-drag: none; }
 .crop-side { display: flex; flex-direction: column; gap: 6px; }
-.crop-result { width: 102px; height: 102px; border-radius: 12px; background: #000; }
+.crop-result { width: 102px; height: 102px; border-radius: calc(var(--face-r, 11.76) * 1%); background: #000; }
 .crop-quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .field-line code { flex: 1; padding: 6px 8px; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
@@ -252,21 +344,46 @@ a { color: var(--accent); }
 
 <main id="main">
   <section class="left">
-    <div class="card">
-      <div class="tabs" id="tabs" role="tablist" data-t-aria="pages_label"></div>
-      <div class="pagebar">
-        <button class="small" id="pg-show" data-t="pg_show" data-t-title="pg_show_title"></button>
-        <button class="small" id="pg-start" data-t="pg_start"></button>
-        <button class="small" id="pg-rename" data-t="pg_rename"></button>
-        <button class="small danger" id="pg-delete" data-t="pg_delete"></button>
+    <!-- Two pads: pages you go to yourself, and pages linked to apps. The page bar and the
+         folder path move to the one being edited. -->
+    <div class="card pad-card" id="card-pages" data-group="pages">
+      <div class="pad-head">
+        <h2 id="pages-h" data-t="pages_label"></h2>
+        <small data-t="pages_hint"></small>
+        <span class="pad-badge" data-t="pad_editing"></span>
       </div>
-      <nav class="crumbs" id="crumbs" hidden data-t-aria="crumbs_label"></nav>
+      <div class="tabs" id="tabs" role="tablist" aria-labelledby="pages-h"></div>
+      <div class="pad-tools">
+        <div class="pagebar" id="pagebar">
+          <button class="small" id="pg-show" data-t="pg_show" data-t-title="pg_show_title"></button>
+          <button class="small" id="pg-auto" data-t-title="pg_auto_title"></button>
+          <button class="small" id="pg-start" data-t="pg_start"></button>
+          <button class="small" id="pg-rename" data-t="pg_rename"></button>
+          <button class="small danger" id="pg-delete" data-t="pg_delete"></button>
+        </div>
+        <nav class="crumbs" id="crumbs" hidden data-t-aria="crumbs_label"></nav>
+      </div>
       <div class="device">
-        <div class="grid" id="grid"></div>
-        <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span id="page-name"></span></div>
+        <div class="grid"></div>
+        <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span class="pname"></span></div>
       </div>
-      <p class="hint" style="margin:12px 0 0" data-t="grid_hint"></p>
+      <div class="pad-empty" hidden><p data-t="pad_empty_pages"></p><button class="small" id="pad-new-page" data-t="new_page_btn"></button></div>
     </div>
+    <div class="card pad-card" id="card-apps" data-group="apps">
+      <div class="pad-head">
+        <h2 id="apps-h">⚡ <span data-t="app_pages"></span></h2>
+        <small data-t="app_pages_hint"></small>
+        <span class="pad-badge" data-t="pad_editing"></span>
+      </div>
+      <div class="tabs" id="app-tabs" role="tablist" aria-labelledby="apps-h"></div>
+      <div class="pad-tools"></div>
+      <div class="device">
+        <div class="grid"></div>
+        <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span class="pname"></span></div>
+      </div>
+      <div class="pad-empty" hidden><p data-t="pad_empty_apps"></p><button class="small" id="pad-new-app" data-t="new_app_page_btn"></button></div>
+    </div>
+    <p class="hint" data-t="grid_hint"></p>
   </section>
 
   <aside class="card" id="editor" aria-live="polite"></aside>
@@ -297,10 +414,27 @@ const STRINGS = {
     gate_no_service: "Could not connect to the DisplayPad service: {msg}",
     connecting: "Connecting…", unsaved: "Unsaved changes", discard: "Discard", save: "Save", save_title: "Save (⌘S)",
     nav_keys: "Keys", nav_settings: "Settings", nav_label: "Section",
+    app_pages: "App pages", app_pages_hint: "They come up by themselves with their app.",
+    pages_hint: "You go to them with a key or from here.", pad_editing: "Editing",
+    pad_open: "Click a key to edit {name}", new_app_page_btn: "+ App page", new_app_page_title: "New app page",
+    np_app_help: "Pick a ready-made page for one of your apps, or an empty page and then the app it comes up with.",
+    pad_empty_apps: "No app pages yet. A page linked to an app comes up by itself when that app opens or is in front, and goes away after.",
+    pad_empty_pages: "Every page is linked to an app. Add a page you can always go to.",
+    tab_app_front: "Comes up while {apps} is in front", tab_app_open: "Comes up while {apps} is open",
     pages_label: "Pages", pg_show: "Show on the pad", pg_show_title: "Switch the DisplayPad to this page",
     pg_start: "Set as start page", pg_rename: "Rename", pg_delete: "Delete page",
+    pg_auto: "Open with apps…", pg_auto_on: "Opens with {apps}",
+    pg_auto_title: "Show this page by itself when an app opens or comes to the front",
+    auto_head: "Open “{name}” with apps",
+    auto_help: "The pad shows this page by itself when one of these apps opens or comes to the front. When the app is gone it goes back to what it showed before, unless you have moved it meanwhile.",
+    auto_apps: "Apps", auto_none: "No apps yet: the page only opens when you pick it.",
+    auto_add: "Add", auto_placeholder: "App name, e.g. Adobe Photoshop 2026", auto_remove: "Remove {app}",
+    auto_when: "Show the page",
+    auto_open: "While the app is open", auto_open_hint: "When it opens; back when it quits.",
+    auto_front: "While the app is in front", auto_front_hint: "Each time you switch to it; back when you switch to another app.",
+    auto_unknown: "“{app}” is not among the installed apps. It still works if that is the name of its .app.",
     grid_hint: "Click a key to edit it. Drag it onto another to swap them. Double-click a folder to open it; to move a key into a folder or another page, drag it and hold it over the folder, the page or “Back” until it opens.",
-    crumbs_label: "Where you are", folder_h: "Folder", folder_make: "Make this key a folder", folder_default: "Folder",
+    crumbs_label: "Where you are", folder_make: "Make this key a folder", folder_default: "Folder",
     folder_hint: "A folder holds 11 more keys and opens when you press this key on the pad. Key 1 inside it always takes you back. Folders can go inside folders.",
     folder_info: "This key is a folder with {n} keys inside. Pressing it on the pad opens it (after its own actions, if it has any).",
     folder_info_0: "This key is an empty folder. Open it to add keys. Pressing it on the pad opens it (after its own actions, if it has any).",
@@ -315,8 +449,24 @@ const STRINGS = {
     name_slash: "Page names can't contain “/”.",
     start_page: "Start page", new_page_title: "New page", new_page_btn: "+ Page",
     name_empty: "Type a name.", name_reserved: "“back” is reserved.", name_taken: "There is already a page with that name.",
-    ask_new_page: "Name of the new page:", back_label: "Back",
+    back_label: "Back",
     page_created: "Page created with a “Back” key. Add a key on another page that leads here.",
+    np_name: "Name", np_name_ph: "e.g. Work", np_from: "Start from", np_empty: "Empty page", np_empty_hint: "Only a Back key",
+    np_installed: "Installed", np_link: "Show it by itself while {app} is in front",
+    np_link_open: "Show it by itself while {app} is open",
+    np_keys: "The {n} shortcuts it adds", np_keys_k: "The {n} keys it adds",
+    np_obs_hint: "These keys control OBS directly, even while it is in the background. First turn on OBS's WebSocket server and enter its password in Settings → OBS. Scene 1 to 5 are the first five scenes in OBS's Scenes list. Key 12 takes you back.",
+    np_done_k: "Page created with {n} {app} keys. Save to send it to the pad.",
+    auto_preset_k: "Add {n} {app} keys to this page", auto_preset_see_k: "See the keys",
+    auto_preset_done_k: "Added {n} {app} keys.", auto_preset_some_k: "Added {n} keys; {m} didn't fit.",
+    np_keys_hint: "Each key is an ordinary shortcut you can change, move or delete. Key 12 takes you back.",
+    np_no_presets: "The ready-made pages could not be loaded.", np_create: "Create",
+    np_done: "Page created with {n} {app} shortcuts. Save to send it to the pad.", preset_hold: "(hold)",
+    auto_preset: "Add {n} common {app} shortcuts to this page",
+    auto_preset_hint: "They go on free keys; nothing on the page is replaced.",
+    auto_preset_full: "Only {n} keys are free, so only the first {n} are added.",
+    auto_preset_none: "The page has no free key.", auto_preset_see: "See the shortcuts",
+    auto_preset_done: "Added {n} {app} shortcuts.", auto_preset_some: "Added {n} shortcuts; {m} didn't fit.",
     ask_rename: "New name for “{name}”:", ask_delete_page: "Delete the page “{name}”?",
     delete_page_refs: " {n} key(s) that lead to it will lose that action.",
     save_page_first: "Save the changes to this page first.",
@@ -327,7 +477,16 @@ const STRINGS = {
     not_image: "That file is not an image or a Lottie animation.", too_big: "The file is too large (12 MB max).",
     preparing_lottie: "Preparing the Lottie animation…", upload_failed: "Could not upload: {msg}",
     icon_type: "Icon type", mode_emoji: "Emoji", mode_image: "Image", mode_text: "Text only",
-    more_emoji: "More emoji: click the field and press ⌃⌘Space.",
+    more_emoji: "⌃⌘Space in the field opens the Mac's emoji picker.",
+    emoji_field: "Emoji on the key", emoji_field_title: "Type or paste any emoji here.",
+    emoji_search: "Search emoji", emoji_search_ph: "Search: heart, cat, rocket…", emoji_tone: "Skin tone",
+    tone_0: "Default", tone_1: "Light", tone_2: "Medium-light", tone_3: "Medium", tone_4: "Medium-dark", tone_5: "Dark",
+    emoji_all: "Show all emoji", emoji_less: "Show fewer", emoji_loading: "Loading the Mac's emoji…",
+    emoji_failed: "The Mac's emoji list could not be read; type or paste an emoji in the field.",
+    emoji_none: "No emoji match “{q}”.", emoji_results: "{n} emoji", emoji_recent: "Recent", emoji_suggested: "Suggested",
+    emoji_cats: "Emoji groups", eg_recent: "Recent", eg_all: "All emoji", eg_smileys: "Smileys & emotion", eg_people: "People & body",
+    eg_animals: "Animals & nature", eg_food: "Food & drink", eg_travel: "Travel & places", eg_activities: "Activities",
+    eg_objects: "Objects", eg_symbols: "Symbols", eg_flags: "Flags",
     drop_text: "Click here or drop a picture (PNG, JPG, WebP), an animated GIF or a Lottie animation (.json, .lottie)",
     change_image: "Change image…", choose_image: "Choose image…", fill_key: "Cover the whole key when there is no text",
     crop_btn: "Adjust framing…", crop_state_auto: "Framing: the middle of the picture", crop_state_custom: "Framing: adjusted by you",
@@ -340,10 +499,11 @@ const STRINGS = {
     size_hint_icon: "Over 100 % makes the icon bigger; if there is text, the text stays on top.",
     page_ref: "page “{name}”", copy: "Copy", copy_title: "Copy this key", copied_key: "Key copied.",
     paste: "Paste", paste_title: "Paste onto this key", clear: "Clear", clear_title: "Make this key empty",
-    appearance: "Appearance", text_field: "Text", text_ph: "E.g. Outlook",
-    hide_text: "Hide the text on the key (it is kept so you can show it again)",
+    key_tabs: "Key settings", tab_style: "Style", tab_actions: "Actions", tab_folder: "Folder",
+    icon_h: "Icon", colors_h: "Colors", text_field: "Name", text_ph: "E.g. Outlook",
+    hide_text: "Hide the name on the key", hide_text_title: "It is kept, so you can show it again.",
     bg: "Background", fg: "Text color", default_colors: "Default colors",
-    actions_h: "Actions ", actions_sub: "· run in order when the key is pressed",
+    actions_sub: "They run in order when you press the key.",
     add_action: "+ Add action", test: "▶ Test", no_actions: "This key does nothing yet.",
     action_type: "Action type", move_up: "Move up", move_down: "Move down", remove_action: "Remove action",
     g_apps: "Apps and files", g_keyboard: "Keyboard", g_screen: "Screen and DisplayPad", g_auto: "Automation",
@@ -355,7 +515,9 @@ const STRINGS = {
     needs_access: "Needs the Accessibility permission (see the notice above).",
     open_hint: "Type an app name (suggestions appear), a web address or a folder/file.",
     record: "Record", recording: "Press the keys… (click to cancel)",
-    shortcut_hint: "Press “Record”, then a combination (⌘⇧4) or a single key, even a modifier on its own like Right ⌘. Left and right keys are kept apart. Keys the browser keeps for itself (⌘Q, ⌘W, ⌘T, fn) can be chosen with “Keyboard…”.",
+    shortcut_hint: "Press “Record”, then a combination (⌘⇧4) or a single key, even a modifier on its own like Right ⌘. Left and right keys are kept apart. While it records, macOS and the other apps don't react to the keys, so system shortcuts (⌘⇧4, ⌘Space, ⌘Tab, ⌘Q) are recorded whole. “Keyboard…” lets you pick the keys with the mouse.",
+    rec_no_access: "To record shortcuts macOS uses (⌘⇧4, ⌘Space…), allow Accessibility for DisplayPad. For now only the keys this page receives are recorded.",
+    rec_secure: "Another app has secure keyboard entry on (a password field, or Terminal's option), so only the keys this page receives are recorded.",
     osk_btn: "Keyboard…", osk_title: "Choose the keys on a keyboard on the screen", osk_head: "Choose the keys",
     osk_help: "Click the modifiers you want (left and right are different keys), then one key. To send modifiers on their own, choose only them.",
     osk_more: "More keys", osk_keypad: "Numeric keypad", osk_none: "No keys chosen yet", osk_use: "Use these keys", osk_clear: "Clear",
@@ -364,6 +526,26 @@ const STRINGS = {
     hold_key: "Hold the keys down while the pad key is held",
     hold_hint: "For apps that react while a key is held down, like push-to-talk dictation. Without it, the keys are pressed and let go at once.",
     t_macro: "Macro (keyboard and mouse)",
+    t_obs: "OBS Studio",
+    obs_stream: "Start or stop streaming", obs_record: "Start or stop recording", obs_pause: "Pause or resume the recording",
+    obs_scene: "Switch to a scene", obs_next_scene: "Next scene", obs_previous_scene: "Previous scene",
+    obs_mute: "Mute or unmute microphones", obs_virtualcam: "Start or stop the virtual camera",
+    obs_studio: "Studio mode on or off", obs_transition: "Transition (studio mode)", obs_replay: "Save the replay buffer",
+    obs_scene_lbl: "Scene", obs_scene_ph: "#1 · Game",
+    obs_scene_hint: "A scene's name as OBS shows it, or #1 for the first scene in OBS's Scenes list, #2 for the second, and so on. In studio mode it changes the preview.",
+    obs_next_hint: "In the order of OBS's Scenes list; after the last scene comes the first. In studio mode it changes the preview.",
+    obs_source_lbl: "Audio source", obs_source_ph: "All microphones",
+    obs_source_hint: "Empty: every microphone at once (all unmuted if the first one is muted, otherwise all muted).",
+    obs_transition_hint: "In studio mode, sends the preview to the program.",
+    obs_replay_hint: "The replay buffer must be running in OBS.",
+    obs_checking: "Asking OBS…", obs_ok: "Connected to OBS {v}.", obs_retry: "Try again", obs_open_set: "OBS settings",
+    set_obs: "OBS",
+    obs_set_help: "Lets keys control OBS directly, even while it is in the background: the OBS Studio action and the ready-made OBS page. In OBS, choose Tools → WebSocket Server Settings, tick Enable WebSocket server, then click Show Connect Info and copy the server password here.",
+    obs_host: "Computer", obs_port: "Port", obs_password: "Password",
+    obs_host_hint: "127.0.0.1 is this Mac. OBS uses port 4455 unless you changed it.",
+    obs_pw_saved: "Saved (type to change it)", obs_pw_none: "None",
+    obs_pw_remove: "Remove password", obs_save: "Save and connect", obs_test: "Test connection", obs_saved: "OBS connection saved.",
+    obs_ok_long: "Connected to OBS {v} (WebSocket {ws}). Scenes: {scenes}.",
     mac_empty: "No steps yet. Record what you do with the keyboard and mouse, or add steps by hand.",
     mac_summary: "{n} actions · {secs} s", mac_summary_1: "1 action · {secs} s", mac_more: "…and {n} more", mac_record: "● Record…", mac_edit: "Edit steps…",
     mac_play: "Playback", play_once: "Play once", play_repeat: "Repeat a number of times",
@@ -409,6 +591,7 @@ const STRINGS = {
     ask_discard: "Discard all unsaved changes?",
     conflict: "The configuration was changed outside this window (for example by an AI assistant).",
     conflict_load: "Load the new version", conflict_keep: "Save mine anyway",
+    outdated_b: "DisplayPad was updated. ", outdated_1: "Save your changes: this page then reloads itself with the new version.", reload: "Reload now",
     conflict_hint: " Loading it discards the unsaved changes here; saving yours replaces the other changes.",
     updated_elsewhere: "The configuration was updated from outside this window.",
     svc_down: "The service is not responding", connected: "● Connected · page “{page}”", disconnected: "○ DisplayPad disconnected",
@@ -426,6 +609,9 @@ const STRINGS = {
     set_bright: "DisplayPad key brightness",
     set_bright_hint: "For the brightness of the Mac's screens, use the “Screen brightness” action on a key.",
     set_feedback: "Darken a key while it is pressed",
+    set_corners: "Key corners",
+    set_corners_hint: "The pad's screens are square: this rounds the pictures on them, the way this page shows them.",
+    corners_square: "Square", corners_round: "Round",
     set_ai: "AI assistants (MCP)",
     ai_intro: "Let an AI assistant (Claude, Cursor, VS Code or any app on this Mac that supports the Model Context Protocol) see and change your DisplayPad setup: it can create pages and keys, pick icons and build automations with you. The connection only works on this Mac (127.0.0.1).",
     ai_enable: "Allow AI assistants to connect",
@@ -457,10 +643,27 @@ const STRINGS = {
     gate_no_service: "No se pudo conectar con el servicio DisplayPad: {msg}",
     connecting: "Conectando…", unsaved: "Cambios sin guardar", discard: "Descartar", save: "Guardar", save_title: "Guardar (⌘S)",
     nav_keys: "Teclas", nav_settings: "Ajustes", nav_label: "Sección",
+    app_pages: "Páginas de apps", app_pages_hint: "Aparecen solas con su app.",
+    pages_hint: "Vas a ellas con una tecla o desde aquí.", pad_editing: "Editando",
+    pad_open: "Haz clic en una tecla para editar {name}", new_app_page_btn: "+ Página de app", new_app_page_title: "Nueva página de app",
+    np_app_help: "Elige una página lista para una de tus apps, o una página vacía y luego la app con la que aparece.",
+    pad_empty_apps: "Aún no hay páginas de apps. Una página enlazada a una app aparece sola cuando esa app se abre o está al frente, y se va después.",
+    pad_empty_pages: "Todas las páginas están enlazadas a una app. Agrega una página a la que puedas ir siempre.",
+    tab_app_front: "Aparece mientras {apps} está al frente", tab_app_open: "Aparece mientras {apps} está abierta",
     pages_label: "Páginas", pg_show: "Mostrar en el pad", pg_show_title: "Cambia el DisplayPad a esta página",
     pg_start: "Usar como inicial", pg_rename: "Renombrar", pg_delete: "Eliminar página",
+    pg_auto: "Abrir con apps…", pg_auto_on: "Se abre con {apps}",
+    pg_auto_title: "Mostrar esta página sola cuando una app se abre o pasa al frente",
+    auto_head: "Abrir «{name}» con apps",
+    auto_help: "El pad muestra esta página solo cuando una de estas apps se abre o pasa al frente. Cuando la app ya no está, vuelve a lo que mostraba antes, salvo que lo hayas cambiado mientras tanto.",
+    auto_apps: "Apps", auto_none: "Aún no hay apps: la página solo se abre cuando la eliges.",
+    auto_add: "Añadir", auto_placeholder: "Nombre de la app, p. ej. Adobe Photoshop 2026", auto_remove: "Quitar {app}",
+    auto_when: "Mostrar la página",
+    auto_open: "Mientras la app está abierta", auto_open_hint: "Al abrirla; vuelve al cerrarla.",
+    auto_front: "Mientras la app está al frente", auto_front_hint: "Cada vez que pasas a ella; vuelve cuando cambias a otra app.",
+    auto_unknown: "«{app}» no está entre las apps instaladas. Igual funciona si es el nombre de su .app.",
     grid_hint: "Haz clic en una tecla para editarla. Arrástrala sobre otra para intercambiarlas. Doble clic en una carpeta para abrirla; para mover una tecla a una carpeta o a otra página, arrástrala y mantenla sobre la carpeta, la página o «Volver» hasta que se abra.",
-    crumbs_label: "Dónde estás", folder_h: "Carpeta", folder_make: "Convertir esta tecla en carpeta", folder_default: "Carpeta",
+    crumbs_label: "Dónde estás", folder_make: "Convertir esta tecla en carpeta", folder_default: "Carpeta",
     folder_hint: "Una carpeta guarda 11 teclas más y se abre al pulsar esta tecla en el pad. La tecla 1 dentro de ella siempre te lleva atrás. Puedes poner carpetas dentro de carpetas.",
     folder_info: "Esta tecla es una carpeta con {n} teclas dentro. Al pulsarla en el pad se abre (después de sus propias acciones, si tiene).",
     folder_info_0: "Esta tecla es una carpeta vacía. Ábrela para añadir teclas. Al pulsarla en el pad se abre (después de sus propias acciones, si tiene).",
@@ -475,8 +678,24 @@ const STRINGS = {
     name_slash: "Los nombres de página no pueden llevar «/».",
     start_page: "Página inicial", new_page_title: "Nueva página", new_page_btn: "+ Página",
     name_empty: "Escribe un nombre.", name_reserved: "«back» está reservado.", name_taken: "Ya hay una página con ese nombre.",
-    ask_new_page: "Nombre de la nueva página:", back_label: "Volver",
+    back_label: "Volver",
     page_created: "Página creada con una tecla «Volver». Añade en otra página una tecla que lleve aquí.",
+    np_name: "Nombre", np_name_ph: "p. ej. Trabajo", np_from: "Empezar con", np_empty: "Página vacía", np_empty_hint: "Solo una tecla Volver",
+    np_installed: "Instalada", np_link: "Mostrarla sola mientras {app} esté al frente",
+    np_link_open: "Mostrarla sola mientras {app} esté en marcha",
+    np_keys: "Los {n} atajos que añade", np_keys_k: "Las {n} teclas que añade",
+    np_obs_hint: "Estas teclas controlan OBS directamente, aunque esté en segundo plano. Primero activa el servidor WebSocket de OBS y escribe su contraseña en Ajustes → OBS. Escena 1 a 5 son las cinco primeras escenas de la lista Escenas de OBS. La tecla 12 te lleva atrás.",
+    np_done_k: "Página creada con {n} teclas de {app}. Guarda para enviarla al pad.",
+    auto_preset_k: "Añadir {n} teclas de {app} a esta página", auto_preset_see_k: "Ver las teclas",
+    auto_preset_done_k: "Se añadieron {n} teclas de {app}.", auto_preset_some_k: "Se añadieron {n} teclas; {m} no cupieron.",
+    np_keys_hint: "Cada tecla es un atajo normal que puedes cambiar, mover o borrar. La tecla 12 te lleva atrás.",
+    np_no_presets: "No se pudieron cargar las páginas listas.", np_create: "Crear",
+    np_done: "Página creada con {n} atajos de {app}. Guarda para enviarla al pad.", preset_hold: "(mantener)",
+    auto_preset: "Añadir {n} atajos comunes de {app} a esta página",
+    auto_preset_hint: "Van en teclas libres; no se reemplaza nada de la página.",
+    auto_preset_full: "Solo hay {n} teclas libres, así que se añaden los primeros {n}.",
+    auto_preset_none: "La página no tiene teclas libres.", auto_preset_see: "Ver los atajos",
+    auto_preset_done: "Se añadieron {n} atajos de {app}.", auto_preset_some: "Se añadieron {n} atajos; {m} no cupieron.",
     ask_rename: "Nuevo nombre para «{name}»:", ask_delete_page: "¿Eliminar la página «{name}»?",
     delete_page_refs: " {n} tecla(s) que llevan a ella perderán esa acción.",
     save_page_first: "Guarda primero los cambios de esta página.",
@@ -487,7 +706,16 @@ const STRINGS = {
     not_image: "Ese archivo no es una imagen ni una animación Lottie.", too_big: "El archivo es demasiado grande (máximo 12 MB).",
     preparing_lottie: "Preparando la animación Lottie…", upload_failed: "No se pudo subir: {msg}",
     icon_type: "Tipo de ícono", mode_emoji: "Emoji", mode_image: "Imagen", mode_text: "Solo texto",
-    more_emoji: "Más emojis: haz clic en el campo y pulsa ⌃⌘Espacio.",
+    more_emoji: "⌃⌘Espacio en el campo abre el selector de emojis del Mac.",
+    emoji_field: "Emoji de la tecla", emoji_field_title: "Escribe o pega aquí cualquier emoji.",
+    emoji_search: "Buscar emoji", emoji_search_ph: "Buscar: corazón, gato, cohete…", emoji_tone: "Tono de piel",
+    tone_0: "Predeterminado", tone_1: "Claro", tone_2: "Claro medio", tone_3: "Medio", tone_4: "Oscuro medio", tone_5: "Oscuro",
+    emoji_all: "Ver todos los emojis", emoji_less: "Ver menos", emoji_loading: "Cargando los emojis del Mac…",
+    emoji_failed: "No se pudo leer la lista de emojis del Mac; escribe o pega un emoji en el campo.",
+    emoji_none: "Ningún emoji coincide con «{q}».", emoji_results: "{n} emojis", emoji_recent: "Recientes", emoji_suggested: "Sugeridos",
+    emoji_cats: "Grupos de emojis", eg_recent: "Recientes", eg_all: "Todos los emojis", eg_smileys: "Caras y emociones", eg_people: "Personas y cuerpo",
+    eg_animals: "Animales y naturaleza", eg_food: "Comida y bebida", eg_travel: "Viajes y lugares", eg_activities: "Actividades",
+    eg_objects: "Objetos", eg_symbols: "Símbolos", eg_flags: "Banderas",
     drop_text: "Haz clic aquí o arrastra una imagen (PNG, JPG, WebP), un GIF animado o una animación Lottie (.json, .lottie)",
     change_image: "Cambiar imagen…", choose_image: "Elegir imagen…", fill_key: "Cubrir toda la tecla cuando no hay texto",
     crop_btn: "Ajustar encuadre…", crop_state_auto: "Encuadre: el centro de la imagen", crop_state_custom: "Encuadre: ajustado por ti",
@@ -500,10 +728,11 @@ const STRINGS = {
     size_hint_icon: "Más de 100 % agranda el ícono; si hay texto, el texto queda encima.",
     page_ref: "página «{name}»", copy: "Copiar", copy_title: "Copiar esta tecla", copied_key: "Tecla copiada.",
     paste: "Pegar", paste_title: "Pegar sobre esta tecla", clear: "Vaciar", clear_title: "Dejar esta tecla vacía",
-    appearance: "Apariencia", text_field: "Texto", text_ph: "Ej.: Outlook",
-    hide_text: "Ocultar el texto en la tecla (se conserva para volver a mostrarlo)",
+    key_tabs: "Ajustes de la tecla", tab_style: "Estilo", tab_actions: "Acciones", tab_folder: "Carpeta",
+    icon_h: "Ícono", colors_h: "Colores", text_field: "Nombre", text_ph: "Ej.: Outlook",
+    hide_text: "Ocultar el nombre en la tecla", hide_text_title: "Se conserva para volver a mostrarlo.",
     bg: "Fondo", fg: "Color del texto", default_colors: "Colores por defecto",
-    actions_h: "Acciones ", actions_sub: "· se ejecutan en orden al presionar la tecla",
+    actions_sub: "Se ejecutan en orden al presionar la tecla.",
     add_action: "+ Agregar acción", test: "▶ Probar", no_actions: "Esta tecla todavía no hace nada.",
     action_type: "Tipo de acción", move_up: "Subir", move_down: "Bajar", remove_action: "Quitar acción",
     g_apps: "Apps y archivos", g_keyboard: "Teclado", g_screen: "Pantalla y DisplayPad", g_auto: "Automatización",
@@ -515,7 +744,9 @@ const STRINGS = {
     needs_access: "Necesita el permiso de Accesibilidad (ver aviso arriba).",
     open_hint: "Escribe el nombre de una app (aparecen sugerencias), una dirección web o una carpeta/archivo.",
     record: "Grabar", recording: "Pulsa las teclas… (clic para cancelar)",
-    shortcut_hint: "Pulsa «Grabar» y luego una combinación (⌘⇧4) o una sola tecla, incluso un modificador solo como ⌘ derecho. Las teclas izquierda y derecha se distinguen. Las que el navegador se reserva (⌘Q, ⌘W, ⌘T, fn) se eligen con «Teclado…».",
+    shortcut_hint: "Pulsa «Grabar» y luego una combinación (⌘⇧4) o una sola tecla, incluso un modificador solo como ⌘ derecho. Las teclas izquierda y derecha se distinguen. Mientras graba, macOS y las demás apps no reaccionan a las teclas, así que los atajos del sistema (⌘⇧4, ⌘Espacio, ⌘Tab, ⌘Q) se graban completos. Con «Teclado…» eliges las teclas con el mouse.",
+    rec_no_access: "Para grabar atajos que usa macOS (⌘⇧4, ⌘Espacio…), permite la Accesibilidad para DisplayPad. Por ahora solo se graban las teclas que recibe esta página.",
+    rec_secure: "Otra app tiene activada la entrada segura de teclado (un campo de contraseña o la opción de Terminal), así que solo se graban las teclas que recibe esta página.",
     osk_btn: "Teclado…", osk_title: "Elegir las teclas en un teclado en pantalla", osk_head: "Elige las teclas",
     osk_help: "Haz clic en los modificadores que quieras (izquierdo y derecho son teclas distintas) y luego en una tecla. Para enviar solo modificadores, elige solo esos.",
     osk_more: "Más teclas", osk_keypad: "Teclado numérico", osk_none: "Aún no has elegido teclas", osk_use: "Usar estas teclas", osk_clear: "Borrar",
@@ -524,6 +755,26 @@ const STRINGS = {
     hold_key: "Mantener las teclas pulsadas mientras mantienes la tecla del pad",
     hold_hint: "Para apps que reaccionan mientras mantienes una tecla, como el dictado de pulsar para hablar. Sin esto, las teclas se pulsan y se sueltan enseguida.",
     t_macro: "Macro (teclado y mouse)",
+    t_obs: "OBS Studio",
+    obs_stream: "Iniciar o detener la transmisión", obs_record: "Iniciar o detener la grabación", obs_pause: "Pausar o reanudar la grabación",
+    obs_scene: "Cambiar a una escena", obs_next_scene: "Escena siguiente", obs_previous_scene: "Escena anterior",
+    obs_mute: "Silenciar o activar micrófonos", obs_virtualcam: "Iniciar o detener la cámara virtual",
+    obs_studio: "Activar o desactivar el modo estudio", obs_transition: "Transición (modo estudio)", obs_replay: "Guardar el búfer de repetición",
+    obs_scene_lbl: "Escena", obs_scene_ph: "#1 · Juego",
+    obs_scene_hint: "El nombre de una escena tal como lo muestra OBS, o #1 para la primera escena de la lista Escenas de OBS, #2 para la segunda, etc. En modo estudio cambia la vista previa.",
+    obs_next_hint: "En el orden de la lista Escenas de OBS; después de la última escena viene la primera. En modo estudio cambia la vista previa.",
+    obs_source_lbl: "Fuente de audio", obs_source_ph: "Todos los micrófonos",
+    obs_source_hint: "Vacío: todos los micrófonos a la vez (se activan todos si el primero está silenciado; si no, se silencian todos).",
+    obs_transition_hint: "En modo estudio, pasa la vista previa al programa.",
+    obs_replay_hint: "El búfer de repetición debe estar en marcha en OBS.",
+    obs_checking: "Consultando a OBS…", obs_ok: "Conectado a OBS {v}.", obs_retry: "Reintentar", obs_open_set: "Ajustes de OBS",
+    set_obs: "OBS",
+    obs_set_help: "Permite que las teclas controlen OBS directamente, aunque esté en segundo plano: la acción OBS Studio y la página lista de OBS. En OBS, elige Herramientas → Ajustes del servidor WebSocket, marca Habilitar servidor WebSocket, pulsa Mostrar información de conexión y copia aquí la contraseña del servidor.",
+    obs_host: "Equipo", obs_port: "Puerto", obs_password: "Contraseña",
+    obs_host_hint: "127.0.0.1 es este Mac. OBS usa el puerto 4455 salvo que lo hayas cambiado.",
+    obs_pw_saved: "Guardada (escribe para cambiarla)", obs_pw_none: "Ninguna",
+    obs_pw_remove: "Quitar contraseña", obs_save: "Guardar y conectar", obs_test: "Probar conexión", obs_saved: "Conexión con OBS guardada.",
+    obs_ok_long: "Conectado a OBS {v} (WebSocket {ws}). Escenas: {scenes}.",
     mac_empty: "Todavía no tiene pasos. Graba lo que haces con el teclado y el mouse, o agrega pasos a mano.",
     mac_summary: "{n} acciones · {secs} s", mac_summary_1: "1 acción · {secs} s", mac_more: "…y {n} más", mac_record: "● Grabar…", mac_edit: "Editar pasos…",
     mac_play: "Reproducción", play_once: "Una vez", play_repeat: "Repetir varias veces",
@@ -569,6 +820,7 @@ const STRINGS = {
     ask_discard: "¿Descartar todos los cambios sin guardar?",
     conflict: "La configuración cambió fuera de esta ventana (por ejemplo, la cambió un asistente de IA).",
     conflict_load: "Cargar la nueva versión", conflict_keep: "Guardar los míos de todos modos",
+    outdated_b: "DisplayPad se actualizó. ", outdated_1: "Guarda tus cambios: luego esta página se recarga sola con la versión nueva.", reload: "Recargar ahora",
     conflict_hint: " Al cargarla se pierden los cambios sin guardar de aquí; al guardar los tuyos se reemplazan los otros cambios.",
     updated_elsewhere: "La configuración se actualizó desde fuera de esta ventana.",
     svc_down: "El servicio no responde", connected: "● Conectado · página «{page}»", disconnected: "○ DisplayPad desconectado",
@@ -586,6 +838,9 @@ const STRINGS = {
     set_bright: "Brillo de las teclas del DisplayPad",
     set_bright_hint: "Para el brillo de las pantallas del Mac usa la acción «Brillo de la pantalla» en una tecla.",
     set_feedback: "Oscurecer la tecla mientras está presionada",
+    set_corners: "Esquinas de las teclas",
+    set_corners_hint: "Las pantallas del pad son cuadradas: esto redondea las imágenes que muestran, como se ven en esta página.",
+    corners_square: "Cuadradas", corners_round: "Redondas",
     set_ai: "Asistentes de IA (MCP)",
     ai_intro: "Deja que un asistente de IA (Claude, Cursor, VS Code o cualquier app de este Mac compatible con Model Context Protocol) vea y cambie la configuración de tu DisplayPad: puede crear páginas y teclas, elegir íconos y armar automatizaciones contigo. La conexión solo funciona en este Mac (127.0.0.1).",
     ai_enable: "Permitir que los asistentes de IA se conecten",
@@ -628,6 +883,8 @@ function applyStatic() {
 // ---------------------------------------------------------------- token
 // "#settings" (alone or after the token, "#t=...&settings") opens the Settings view.
 const START_VIEW = /(^#|&)settings\b/.test(location.hash) ? "settings" : "keys";
+// The service writes the hash of this page here when it sends it (web.py, _page).
+const PAGE_BUILD = "__PAGE_BUILD__";
 const TOKEN = (() => {
   const m = location.hash.match(/t=([\w-]+)/);
   if (m) { try { sessionStorage.setItem("dp-token", m[1]); } catch {} history.replaceState(null, "", location.pathname); return m[1]; }
@@ -687,7 +944,7 @@ async function copyText(text) {
 
 // ---------------------------------------------------------------- data
 const TYPES = () => [
-  [t("g_apps"), ["open"]],
+  [t("g_apps"), ["open", "obs"]],
   [t("g_keyboard"), ["shortcut", "text", "media", "macro"]],
   [t("g_screen"), ["screen_brightness", "page", "brightness", "configurator"]],
   [t("g_auto"), ["shell", "applescript", "delay"]],
@@ -697,6 +954,7 @@ const MEDIA = ["play_pause", "next", "previous", "volume_up", "volume_down", "mu
 const NEEDS_ACCESS = new Set(["shortcut", "text", "media", "macro"]);
 const EMOJI = "📧 💬 📊 📈 📉 🌐 📁 🗂️ 📄 📋 🧮 🧾 💰 💵 🏦 💳 📸 🔒 🔓 🔍 ⏯️ ⏮️ ⏭️ 🔉 🔊 🔇 🎧 🎤 📷 📞 🔅 🔆 💡 🖥️ 💻 ⌨️ 🖨️ 🪟 📝 ✍️ 📅 ⏰ 🔔 ✅ ❌ ⭐ 🚀 ⚙️ 🛠️ 🔄 🔗 ☕ 🏠 ➡️ ⬅️ ⬆️ ⬇️ 🎨 🧑‍💻".split(" ");
 const DEFAULT_BG = "#1c1c24", DEFAULT_FG = "#ffffff";
+const SLOTS = Array.from({ length: 12 }, (_, i) => String(i + 1)); // the pad's keys, as the config numbers them
 // Key names as the service knows them (macos.py). Plain modifier names are the left keys.
 const KEY_NAMES = { Space: "space", Enter: "return", NumpadEnter: "kpenter", Tab: "tab", Backspace: "delete", Delete: "forwarddelete",
   Escape: "esc", ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Home: "home", End: "end",
@@ -769,6 +1027,23 @@ const inside = (a, b) => a === b || a.startsWith(b + "/");
 const isBack = n => folder.length > 0 && n === "1";
 const backLook = () => ({ emoji: "⬅️", label: t("back_label"), color: "#2B2B33" });
 const countKeys = k => Object.values(k?.folder?.keys || {}).filter(Boolean).length;
+// Two pads on the page: "pages" (you go to them) and "apps" (linked to apps). Each shows the
+// page last opened in it; the editor works on the one clicked last (page, folder, sel).
+const GROUPS = ["pages", "apps"];
+const groupOf = name => (cfg.pages[name]?.apps || []).length ? "apps" : "pages";
+const shownIn = { pages: null, apps: null };
+function shownOf(g) { // {page, folder} on that pad, or null when it has no pages
+  if (g === groupOf(page)) return shownIn[g] = { page, folder };
+  let s = shownIn[g];
+  if (!s || !cfg.pages[s.page] || groupOf(s.page) !== g) {
+    const names = Object.keys(cfg.pages).filter(n => groupOf(n) === g);
+    const pick = names.includes(cfg.start_page) ? cfg.start_page : names[0];
+    s = shownIn[g] = pick ? { page: pick, folder: [] } : null;
+  }
+  if (s?.folder.length && !keysAt(s.page, s.folder)) s.folder = [];
+  return s;
+}
+const padGrid = g => $(`#card-${g} .grid`);
 function locTitle(pg, path) { // "home › Work › Photos"
   const parts = [pg];
   let ks = cfg.pages[pg]?.keys;
@@ -803,22 +1078,27 @@ function look(k) {
 }
 
 // ---------------------------------------------------------------- previews
+// Key corners (the "corner_radius" setting, pixels on the 102-px face): the service draws
+// them into the pictures it sends to the pad and to this page, and the CSS follows them.
+const CORNER = 12, MAX_CORNER = 51;
+function corners() {
+  const c = cfg?.corner_radius;
+  return Number.isFinite(c) ? Math.max(0, Math.min(MAX_CORNER, Math.round(c))) : CORNER;
+}
+function applyCorners(r = corners()) { document.documentElement.style.setProperty("--face-r", (r / 102 * 100).toFixed(2)); }
 const previews = new Map();
 function preview(k) {
-  const body = JSON.stringify(look(k));
-  if (!previews.has(body)) {
-    const p = api("/api/render", { method: "POST", body }).then(async r => ({
+  const body = JSON.stringify(look(k)), c = corners(), id = c + " " + body;
+  if (!previews.has(id)) {
+    const p = api("/api/render?corner=" + c, { method: "POST", body }).then(async r => ({
       url: URL.createObjectURL(await r.blob()),
       frames: +(r.headers.get("X-Frames") || 0), ms: +(r.headers.get("X-Duration") || 0) }));
-    p.catch(() => previews.delete(body));
-    previews.set(body, p);
+    p.catch(() => previews.delete(id));
+    previews.set(id, p);
   }
-  return previews.get(body);
+  return previews.get(id);
 }
-function paintKey(n) {
-  const btn = $(`.key[data-n="${n}"]`);
-  if (!btn) return;
-  const back = isBack(n), k = back ? backLook() : spec(n);
+function paintFace(btn, n, k, back) {
   preview(k).then(p => { btn.querySelector("img").src = p.url; }).catch(() => {});
   btn.querySelector(".acts").textContent = !back && (k?.actions?.length || 0) > 1 ? t("n_actions", { n: k.actions.length }) : "";
   const fold = btn.querySelector(".fold");
@@ -826,6 +1106,12 @@ function paintKey(n) {
   btn.setAttribute("aria-label", t("key_n", { n }) + (k?.label ? ": " + k.label : k?.emoji ? ": " + k.emoji : t("key_empty")));
   btn.title = back ? t("back_key_title") : k?.folder ? t("folder_badge", { n: countKeys(k) })
     : k?.label ? k.label + (k.hide_label ? t("label_hidden") : "") : "";
+}
+function paintKey(n) {
+  const btn = padGrid(groupOf(page))?.querySelector(`.key[data-n="${n}"]`);
+  if (!btn) return;
+  const back = isBack(n), k = back ? backLook() : spec(n);
+  paintFace(btn, n, k, back);
   if (n === sel && back) preview(k).then(p => { const im = $("#ed-img"); if (im) im.src = p.url; }).catch(() => {});
   if (n === sel && !back) {
     const note = $("#ed-note");
@@ -848,19 +1134,34 @@ function changed(repaint = true) {
 addEventListener("beforeunload", e => { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
 // ---------------------------------------------------------------- pages
+// Pages you go to yourself have the top pad; pages linked to apps, which come up by
+// themselves, have the one under it. Only the display is split: the config keeps its order.
 function renderTabs() {
-  const box = $("#tabs"); box.replaceChildren();
-  for (const name of Object.keys(cfg.pages)) {
-    const tab = h("button", { class: "tab" + (name === page ? " active" : ""), role: "tab", "aria-selected": String(name === page),
+  const names = Object.keys(cfg.pages), act = groupOf(page), other = shownOf(act === "apps" ? "pages" : "apps");
+  const tab = name => {
+    const apps = cfg.pages[name]?.apps || [], pn = fold(name);
+    const app = apps.length && !apps.some(a => appNorm(a).includes(pn) || pn.includes(appNorm(a))) ? apps[0] + (apps.length > 1 ? " +" + (apps.length - 1) : "") : "";
+    const b = h("button", { class: "tab" + (name === page ? " active" : name === other?.page ? " shown" : ""), role: "tab", "aria-selected": String(name === page),
+      title: apps.length ? t(cfg.pages[name].when === "front" ? "tab_app_front" : "tab_app_open", { apps: apps.join(", ") }) : "",
       onclick: () => showPage(name), ondblclick: () => renamePage(name) },
-      name, name === cfg.start_page ? h("span", { class: "star", title: t("start_page"), text: "★" }) : null);
-    dropTarget(tab, name, () => { if (name !== page || folder.length) showPage(name); });
-    box.append(tab);
-  }
-  box.append(h("button", { class: "tab", title: t("new_page_title"), onclick: addPage, text: t("new_page_btn") }));
+      name, name === cfg.start_page ? h("span", { class: "star", title: t("start_page"), text: "★" }) : null,
+      app ? h("small", { class: "tab-app", text: app }) : null);
+    dropTarget(b, name, () => { if (name !== page || folder.length) showPage(name); });
+    return b;
+  };
+  $("#tabs").replaceChildren(...names.filter(n => groupOf(n) === "pages").map(tab),
+    h("button", { class: "tab", title: t("new_page_title"), onclick: () => addPage(), text: t("new_page_btn") }));
+  const appPages = names.filter(n => groupOf(n) === "apps");
+  $("#app-tabs").replaceChildren(...appPages.map(tab),
+    ...(appPages.length ? [h("button", { class: "tab", title: t("new_app_page_title"), onclick: () => addPage(true), text: t("new_app_page_btn") })] : []));
+  $("#app-tabs").hidden = !appPages.length; // the empty pad has its own button
+  const slot = $(`#card-${act} .pad-tools`);
+  if ($("#pagebar").parentNode !== slot) slot.append($("#pagebar"), $("#crumbs"));
   $("#pg-start").disabled = page === cfg.start_page;
+  const linked = cfg.pages[page]?.apps || [], autoBtn = $("#pg-auto");
+  autoBtn.textContent = linked.length ? "⚡ " + t("pg_auto_on", { apps: linked[0] + (linked.length > 1 ? " +" + (linked.length - 1) : "") }) : t("pg_auto");
+  autoBtn.classList.toggle("on", linked.length > 0);
   $("#pg-delete").disabled = Object.keys(cfg.pages).length < 2;
-  $("#page-name").textContent = locTitle(page, folder).toUpperCase();
   renderCrumbs();
 }
 function renderCrumbs() {
@@ -892,13 +1193,90 @@ function validName(name, except) {
   if (name !== except && cfg.pages[name]) return t("name_taken");
   return "";
 }
-async function addPage() {
-  const name = await ask(t("ask_new_page"), "");
-  if (name == null) return;
-  const err = validName(name); if (err) return toast(err);
-  cfg.pages[name] = { keys: { "1": { emoji: "⬅️", label: t("back_label"), color: "#2B2B33", actions: [{ type: "page", page: "back" }] } } };
-  showPage(name); changed(false);
-  toast(t("page_created"));
+// Ready-made pages for popular apps (presets.py), in the page's language. The list says
+// which are installed, so it is fetched once per language and kept.
+const presetLists = {};
+function loadPresets() {
+  return presetLists[LANG] ??= getJSON("/api/presets?lang=" + LANG).catch(e => { delete presetLists[LANG]; throw e; });
+}
+// App names are compared like the service does: no ".app", no year at the end, any case.
+const appNorm = s => String(s).trim().replace(/\.app$/i, "").trim().replace(/\s+(19|20)\d\d$/, "").toLowerCase();
+const presetFor = (list, names) => list.find(p => p.apps.some(a => names.some(n => appNorm(n) === appNorm(a))));
+function uniquePageName(base) {
+  let name = base;
+  for (let i = 2; cfg.pages[name]; i++) name = `${base} ${i}`;
+  return name;
+}
+function presetKeyList(p) { // what a preset puts on the keys, for the dialogs
+  return h("ul", { class: "preset-keys" }, p.keys.map(k => h("li", {},
+    h("span", { class: "pk-emoji", "aria-hidden": "true", text: k.emoji }),
+    h("span", { class: "pk-label", text: k.label }),
+    h("kbd", { text: (k.action?.type === "obs" ? obsText(k.action) : comboText(k.shortcut)) + (k.hold ? " " + t("preset_hold") : "") }))));
+}
+// Presets whose keys are all keyboard shortcuts say "shortcuts"; the others (OBS) say "keys".
+const presetWord = (p, key) => p.keys.every(k => !k.action || k.action.type === "shortcut") ? key : key + "_k";
+// The same action however it is written (presets.action_id): to tell which ones a page already has.
+const canon = v => Array.isArray(v) ? "[" + v.map(canon).join(",") + "]"
+  : v && typeof v === "object" ? "{" + Object.keys(v).sort().map(k => JSON.stringify(k) + ":" + canon(v[k])).join(",") + "}" : JSON.stringify(v);
+const actionId = a => a.type === "shortcut" ? "shortcut:" + String(a.keys || "").replace(/ /g, "").toLowerCase() : canon(a);
+async function addPage(forApp = false) { // forApp: from the app pad; the page is linked to an app
+  let list = [];
+  try { list = await loadPresets(); } catch {}
+  let choice = null, auto = ""; // auto: the name this dialog filled in, replaced when another preset is picked
+  const grp = "np-" + Math.random().toString(36).slice(2);
+  const nameIn = h("input", { id: grp + "-name", placeholder: t("np_name_ph"), autocomplete: "off",
+    oninput: () => { err.hidden = true; },
+    onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); create(); } } });
+  const err = h("p", { class: "np-err", role: "alert", hidden: true });
+  const linkIn = h("input", { type: "checkbox", checked: true });
+  const linkText = h("span", {});
+  const linkRow = h("label", { class: "check np-link", hidden: true }, linkIn, linkText);
+  const detail = h("div", { class: "np-detail", "aria-live": "polite" });
+  const opt = p => h("label", { class: "np-opt" },
+    h("input", { type: "radio", name: grp, checked: p === choice, onchange: () => pick(p) }),
+    h("span", { class: "np-main" },
+      h("b", { text: p ? p.name : t("np_empty") }),
+      h("small", { text: p ? p.keys.map(k => k.emoji).join(" ") : t("np_empty_hint") })),
+    p?.installed.length ? h("span", { class: "np-tag", text: t("np_installed") }) : null);
+  function pick(p) {
+    choice = p;
+    const typed = nameIn.value.trim();
+    if (!typed || typed === auto) { auto = p ? uniquePageName(p.name) : ""; nameIn.value = auto; }
+    linkRow.hidden = !p;
+    if (p) linkText.textContent = t(p.page.when === "open" ? "np_link_open" : "np_link", { app: p.installed[0] || p.apps[0] });
+    detail.replaceChildren(...(p ? [h("span", { class: "lbl", text: t(presetWord(p, "np_keys"), { n: p.keys.length }) }), presetKeyList(p),
+      h("small", { text: t(p.setup === "obs" ? "np_obs_hint" : "np_keys_hint") })] : []));
+  }
+  function create() {
+    const name = nameIn.value.trim(), bad = validName(name);
+    if (bad) { err.textContent = bad; err.hidden = false; nameIn.focus(); return; }
+    let pg;
+    if (choice) {
+      pg = structuredClone(choice.page);
+      if (!linkIn.checked) { delete pg.apps; delete pg.when; }
+    } else pg = { keys: { "1": { emoji: "⬅️", label: t("back_label"), color: "#2B2B33", actions: [{ type: "page", page: "back" }] } } };
+    cfg.pages[name] = normalise({ pages: { x: pg } }).pages.x;
+    dlg.close();
+    showPage(name); changed(false);
+    toast(choice ? t(presetWord(choice, "np_done"), { n: choice.keys.length, app: choice.name }) : t("page_created"));
+    if (forApp && !pg.apps?.length) editAuto(); // which app it comes up with
+  }
+  if (forApp) pick(list.find(p => p.installed.length) || null);
+  const dlg = h("dialog", { class: "np-dlg", "aria-labelledby": grp + "-h" },
+    h("h2", { id: grp + "-h", text: t(forApp ? "new_app_page_title" : "new_page_title") }),
+    forApp ? h("p", { class: "hint", text: t("np_app_help") }) : null,
+    h("label", { for: grp + "-name", class: "lbl", text: t("np_name") }), nameIn, err,
+    h("span", { class: "lbl np-from", id: grp + "-from", text: t("np_from") }),
+    h("div", { class: "np-opts", role: "radiogroup", "aria-labelledby": grp + "-from" }, opt(null), list.map(opt)),
+    list.length ? null : h("small", { text: t("np_no_presets") }),
+    linkRow, detail,
+    h("div", { class: "btns" },
+      h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
+      h("button", { type: "button", class: "primary", text: t("np_create"), onclick: create })));
+  dlg.addEventListener("close", () => dlg.remove());
+  document.body.append(dlg);
+  dlg.showModal();
+  nameIn.focus();
 }
 async function renamePage(old = page) {
   const name = await ask(t("ask_rename", { name: old }), old);
@@ -910,7 +1288,7 @@ async function renamePage(old = page) {
   for (const [, , , a] of pageRefs(old)) a.page = name;
   if (cfg.start_page === old) cfg.start_page = name;
   if (page === old) page = name;
-  renderTabs(); renderEditor(); changed(false);
+  renderTabs(); renderGrid(); renderEditor(); changed(false);
 }
 async function deletePage() {
   const refs = pageRefs(page).filter(r => r[0] !== page);
@@ -920,6 +1298,107 @@ async function deletePage() {
   delete cfg.pages[page];
   if (!cfg.pages[cfg.start_page]) cfg.start_page = Object.keys(cfg.pages)[0];
   showPage(cfg.start_page); changed(false);
+}
+
+// Pages that open with apps (the service watches the apps; see appwatch.py).
+function editAuto() {
+  const name = page;
+  const list = [...(cfg.pages[name]?.apps || [])];
+  let when = cfg.pages[name]?.when === "front" ? "front" : "open";
+  const box = h("div", { class: "auto-apps" });
+  const paint = () => { box.replaceChildren(...(list.length ? list.map((app, i) => h("span", { class: "auto-app" }, app,
+    h("button", { type: "button", text: "×", title: t("auto_remove", { app }), "aria-label": t("auto_remove", { app }),
+      onclick: () => { list.splice(i, 1); paint(); } }))) : [h("small", { text: t("auto_none") })])); paintPreset(); };
+  const id = "auto-list-" + Math.random().toString(36).slice(2);
+  const inp = h("input", { list: id, placeholder: t("auto_placeholder"), autocomplete: "off", "aria-label": t("auto_apps"),
+    onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); add(); } } });
+  function add() {
+    const v = inp.value.trim().replace(/\.app$/i, "");
+    if (!v) return;
+    const same = x => appNorm(x) === appNorm(v);
+    if (!list.some(same)) list.push(v);
+    if (apps.length && !apps.some(same)) toast(t("auto_unknown", { app: v }));
+    inp.value = ""; paint(); inp.focus();
+  }
+  // A ready-made set of shortcuts for a listed app (presets.py): offered for the keys this
+  // page doesn't have yet, on its free keys. On by default when the page is still empty.
+  let presetList = [], presetOn = null, presetId = null; // presetOn: what the person chose (null: the default)
+  const presetBox = h("div", { class: "auto-preset", hidden: true });
+  const pageKeys = () => cfg.pages[name]?.keys || {};
+  const isBackKey = k => (k.actions || []).length === 1 && k.actions[0].type === "page" && k.actions[0].page === "back";
+  function presetPlan() {
+    const p = presetFor(presetList, list);
+    if (!p) return null;
+    const ks = pageKeys();
+    const have = new Set(Object.values(ks).filter(Boolean).flatMap(k => (k.actions || []).map(actionId)));
+    const missing = Object.entries(p.page.keys).filter(([, k]) => k.actions[0].type !== "page" && !have.has(actionId(k.actions[0])));
+    const free = SLOTS.filter(n => !ks[n]);
+    return missing.length ? { p, missing, free } : null;
+  }
+  function paintPreset() {
+    const plan = presetPlan();
+    presetBox.hidden = !plan;
+    if (!plan) return presetBox.replaceChildren();
+    const { p, missing, free } = plan;
+    if (presetId !== p.id) { presetId = p.id; presetOn = null; }
+    const empty = Object.values(pageKeys()).every(k => !k || isBackKey(k));
+    const box = h("input", { type: "checkbox", checked: free.length > 0 && (presetOn ?? empty), disabled: !free.length,
+      onchange: e => { presetOn = e.target.checked; } });
+    const byKey = Object.fromEntries(p.keys.map(k => [k.key, k]));
+    presetBox.replaceChildren(
+      h("label", { class: "check" }, box, h("span", {},
+        h("b", { text: t(presetWord(p, "auto_preset"), { n: missing.length, app: p.name }) }),
+        h("small", { text: !free.length ? t("auto_preset_none") : free.length < missing.length ? t("auto_preset_full", { n: free.length }) : t("auto_preset_hint") }))),
+      h("details", {}, h("summary", { class: "hint", text: t(presetWord(p, "auto_preset_see")) }),
+        presetKeyList({ keys: missing.map(([n]) => byKey[n]).filter(Boolean) })));
+  }
+  function placePreset({ missing, free }) { // its own key number when free, else the first free key
+    const ks = pageKeys(), later = [];
+    let added = 0;
+    for (const [n, k] of missing) {
+      if (free.includes(n)) { ks[n] = structuredClone(k); free.splice(free.indexOf(n), 1); added++; } else later.push(k);
+    }
+    for (const k of later) { const n = free.shift(); if (!n) break; ks[n] = structuredClone(k); added++; }
+    return added;
+  }
+  loadPresets().then(l => { presetList = l; paintPreset(); }).catch(() => {});
+  const radio = (value, label, hint) => h("label", { class: "check auto-when" },
+    h("input", { type: "radio", name: id, value, checked: when === value, onchange: () => { when = value; } }),
+    h("span", {}, h("b", { text: label }), h("small", { text: hint })));
+  const dlg = h("dialog", { class: "auto-dlg" },
+    h("h2", { text: t("auto_head", { name }) }),
+    h("p", { class: "hint", text: t("auto_help") }),
+    h("span", { class: "lbl", text: t("auto_apps") }), box,
+    h("div", { class: "field-line" }, inp, h("datalist", { id }, apps.map(n => h("option", { value: n }))),
+      h("button", { type: "button", class: "small", text: t("auto_add"), onclick: add })),
+    h("span", { class: "lbl", text: t("auto_when") }),
+    radio("open", t("auto_open"), t("auto_open_hint")),
+    radio("front", t("auto_front"), t("auto_front_hint")),
+    presetBox,
+    h("div", { class: "btns" },
+      h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
+      h("button", { type: "button", class: "primary", text: t("ok"), onclick: () => {
+        // only what was shown and ticked: an app typed but not added yet adds no keys
+        const want = !presetBox.hidden && presetBox.querySelector("input")?.checked ? presetId : null;
+        add();
+        const pg = cfg.pages[name];
+        if (pg) {
+          if (list.length) { pg.apps = list; pg.when = when; } else { delete pg.apps; delete pg.when; }
+          const plan = presetPlan();
+          if (plan && want && plan.p.id === want) {
+            const n = placePreset(plan), left = plan.missing.length - n;
+            iconUi = null; renderGrid(); renderEditor();
+            toast(left ? t(presetWord(plan.p, "auto_preset_some"), { n, m: left }) : t(presetWord(plan.p, "auto_preset_done"), { n, app: plan.p.name }));
+          }
+          renderTabs(); renderGrid(); changed(false);
+        }
+        dlg.close();
+      } })));
+  dlg.addEventListener("close", () => dlg.remove());
+  document.body.append(dlg);
+  paint();
+  dlg.showModal();
+  inp.focus();
 }
 
 // ---------------------------------------------------------------- grid
@@ -937,15 +1416,22 @@ function dropTarget(el, id, open) { // a page tab or a breadcrumb: dropping ther
   el.addEventListener("drop", e => { e.preventDefault(); el.classList.remove("over"); unspring(el); const d = dragKey; dragKey = null; if (d) moveTo(d, id); });
 }
 addEventListener("dragend", () => { dragKey = null; unspring(); document.querySelectorAll(".over").forEach(el => el.classList.remove("over")); }, true);
-function keyButton(n) {
+function keyButton(n, g) {
+  const mine = () => g === groupOf(page); // on the pad being edited
   const b = h("button", { class: "key", "data-n": n, draggable: "true",
     onclick: () => {
+      if (!mine()) {
+        const s = shownOf(g);
+        if (s) s.folder.length && n === "1" ? goTo(s.page, s.folder.slice(0, -1), s.folder.at(-1)) : goTo(s.page, s.folder, n);
+        return;
+      }
       if (isBack(n)) return goUp();
-      sel = n; iconUi = null; document.querySelectorAll(".key").forEach(k => k.classList.toggle("sel", k.dataset.n === n)); renderEditor();
+      sel = n; iconUi = null; b.parentNode.querySelectorAll(".key").forEach(k => k.classList.toggle("sel", k.dataset.n === n)); renderEditor();
     },
-    ondblclick: () => openFolder(n),
-    ondragstart: e => { if (isBack(n)) return e.preventDefault(); dragKey = { at: where(), n }; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); },
+    ondblclick: () => { if (mine()) openFolder(n); },
+    ondragstart: e => { if (!mine() || isBack(n)) return e.preventDefault(); dragKey = { at: where(), n }; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); },
     ondragover: e => {
+      if (!mine()) return; // the pad itself takes it (padDrop)
       if (!dragKey && !e.dataTransfer.types.includes("Files")) return;
       e.preventDefault(); b.classList.add("over");
       if (!dragKey) return;
@@ -953,21 +1439,53 @@ function keyButton(n) {
       else if (spec(n)?.folder && !(dragKey.at === where() && dragKey.n === n)) spring(b, () => openFolder(n));
     },
     ondragleave: () => { b.classList.remove("over"); unspring(b); },
-    ondrop: e => { e.preventDefault(); b.classList.remove("over"); unspring(b); onKeyDrop(n, e); } },
+    ondrop: e => { if (!mine()) return; e.preventDefault(); b.classList.remove("over"); unspring(b); onKeyDrop(n, e); } },
     h("img", { alt: "" }), h("span", { class: "n", text: n }), h("span", { class: "fold", hidden: true }), h("span", { class: "acts" }));
   return b;
 }
 function renderGrid() {
-  // The 12 buttons are kept (only repainted), so a key being dragged survives opening a folder under it.
-  const g = $("#grid");
-  if (g.children.length !== 12) g.replaceChildren(...Array.from({ length: 12 }, (_, i) => keyButton(String(i + 1))));
-  for (const b of g.children) {
-    const n = b.dataset.n;
-    b.classList.toggle("sel", n === sel); b.classList.toggle("back", isBack(n)); b.classList.remove("over");
-    b.draggable = !isBack(n);
-    paintKey(n);
+  // The 12 buttons of each pad are kept (only repainted), so a key being dragged survives
+  // opening a folder under it, or the other pad opening.
+  const act = groupOf(page);
+  for (const g of GROUPS) {
+    const card = $("#card-" + g), s = shownOf(g), grid = padGrid(g), device = card.querySelector(".device");
+    card.classList.toggle("active", g === act);
+    device.hidden = !s; card.querySelector(".pad-empty").hidden = !!s;
+    device.classList.remove("over");
+    if (!s) continue;
+    if (grid.children.length !== 12) grid.replaceChildren(...Array.from({ length: 12 }, (_, i) => keyButton(String(i + 1), g)));
+    card.querySelector(".pname").textContent = locTitle(s.page, s.folder).toUpperCase();
+    device.title = g === act ? "" : t("pad_open", { name: locTitle(s.page, s.folder) });
+    const ks = keysAt(s.page, s.folder) || {};
+    for (const b of grid.children) {
+      const n = b.dataset.n, back = s.folder.length > 0 && n === "1";
+      b.classList.toggle("sel", g === act && n === sel); b.classList.toggle("back", back); b.classList.remove("over");
+      b.draggable = g === act && !back;
+      if (g === act) paintKey(n); else paintFace(b, n, back ? backLook() : ks[n], back);
+    }
   }
 }
+// A key dragged onto the other pad goes to the first free key of the page shown there;
+// held over it, that pad opens, to drop it on a key of your choice.
+function padDrop(g) {
+  const device = $(`#card-${g} .device`), idle = () => g !== groupOf(page) && shownOf(g);
+  device.addEventListener("dragover", e => {
+    if (!idle()) return;
+    e.preventDefault(); // files too: dropping one here must not open it in the browser
+    if (!dragKey) { e.dataTransfer.dropEffect = "none"; return; }
+    device.classList.add("over");
+    spring(device, () => { const s = shownOf(g); if (s) goTo(s.page, s.folder); });
+  });
+  device.addEventListener("dragleave", e => { if (!device.contains(e.relatedTarget)) { device.classList.remove("over"); unspring(device); } });
+  device.addEventListener("drop", e => {
+    const s = idle();
+    if (!s) return;
+    e.preventDefault(); device.classList.remove("over"); unspring(device);
+    const d = dragKey; dragKey = null;
+    if (d) moveTo(d, [s.page, ...s.folder].join("/"));
+  });
+}
+GROUPS.forEach(padDrop);
 function onKeyDrop(n, e) {
   const file = e.dataTransfer.files?.[0], d = dragKey;
   dragKey = null;
@@ -1093,7 +1611,7 @@ async function openCrop(auto = false) {
     timer = setTimeout(async () => { // the key as the pad draws it (first frame of an animation)
       const n = ++seq;
       try {
-        const blob = await api("/api/render?first=1", { method: "POST", body: JSON.stringify(look({ ...k, crop: cropNow() })) }).then(r => r.blob());
+        const blob = await api("/api/render?first=1&corner=" + corners(), { method: "POST", body: JSON.stringify(look({ ...k, crop: cropNow() })) }).then(r => r.blob());
         if (n !== seq) return;
         if (result.src) URL.revokeObjectURL(result.src);
         result.src = URL.createObjectURL(blob);
@@ -1191,6 +1709,155 @@ async function removeFolder() {
   if (n && !await ask(t("ask_remove_folder", { n }))) return;
   delete k.folder; prune(); renderEditor(); changed();
 }
+// ---------------------------------------------------------------- emoji picker
+// Every emoji the Mac has, with the names macOS gives them (/api/emoji: the page's language
+// and English). The browser does the rest: its "emoji" collation puts them in Unicode's
+// order, which is cut into Unicode's groups at each group's first emoji, and its own list
+// of emoji (\p{RGI_Emoji}) says which skin-tone versions exist.
+const EMOJI_GROUPS = [["smileys", "😀"], ["people", "👋"], ["animals", "🐵"], ["food", "🍇"], ["travel", "🌍"],
+  ["activities", "🎃"], ["objects", "👓"], ["symbols", "🏧"], ["flags", "🏁"]];
+const TONES = ["", "🏻", "🏼", "🏽", "🏾", "🏿"];
+const RGI_EMOJI = (() => { try { return new RegExp("^\\p{RGI_Emoji}$", "v"); } catch { return null; } })();
+const MOD_BASE = /\p{Emoji_Modifier_Base}/u;
+const fold = s => String(s).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+const stored = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+let emojiAll = stored("dp-emoji-all", false) === true, emojiTone = stored("dp-emoji-tone", 0), emojiQuery = "", emojiScroll = 0;
+if (!(emojiTone >= 0 && emojiTone < TONES.length)) emojiTone = 0;
+const emojiLists = {}, emojiReady = {};
+function loadEmoji() {
+  return emojiLists[LANG] ??= getJSON("/api/emoji?lang=" + LANG).then(list => {
+    if (!list.length) throw new Error("no emoji");
+    const coll = new Intl.Collator(undefined, { collation: "emoji" });
+    const items = list.map(([e, name, en]) => ({ e, name, names: [fold(name), fold(en || name)], find: fold(name + (en ? " · " + en : "")) }))
+      .sort((a, b) => coll.compare(a.e, b.e));
+    let groups = [{ id: "all", first: items[0].e, items }];
+    if (coll.resolvedOptions().collation === "emoji") {
+      groups = EMOJI_GROUPS.map(([id, first]) => ({ id, first, items: [] }));
+      let g = 0;
+      for (const it of items) {
+        while (g + 1 < groups.length && coll.compare(it.e, groups[g + 1].first) >= 0) g++;
+        groups[g].items.push(it);
+      }
+      groups = groups.filter(x => x.items.length);
+    }
+    return emojiReady[LANG] = { items, groups, names: new Map(items.map(it => [it.e, it.name])) };
+  }).catch(e => { delete emojiLists[LANG]; throw e; });
+}
+function withTone(e, tone = TONES[emojiTone]) { // 👍 -> 👍🏽, 🧑‍🤝‍🧑 -> 🧑🏽‍🤝‍🧑🏽; unchanged when there is no such emoji
+  if (!tone || !RGI_EMOJI || !MOD_BASE.test(e)) return e;
+  const cps = [...e], bases = cps.flatMap((c, i) => MOD_BASE.test(c) ? [i] : []);
+  const middle = i => cps[i - 1] === "‍" && cps[i + 1] === "‍"; // the 🤝 between two people
+  for (const set of [bases, bases.filter(i => !middle(i)), bases.slice(0, 1)]) {
+    const out = [];
+    cps.forEach((c, i) => {
+      if (c === "️" && set.includes(i - 1)) return; // the tone takes the place of the emoji-style selector
+      out.push(c);
+      if (set.includes(i)) out.push(tone);
+    });
+    if (RGI_EMOJI.test(out.join(""))) return out.join("");
+  }
+  return e;
+}
+const recentEmoji = () => (Array.isArray(stored("dp-emoji-recent", [])) ? stored("dp-emoji-recent", []) : []).filter(x => typeof x === "string" && x).slice(0, 20);
+function rememberEmoji(e) { store("dp-emoji-recent", [e, ...recentEmoji().filter(x => x !== e)].slice(0, 20)); }
+
+function emojiPicker(field, current, pick) {
+  const root = h("div", { class: "emoji-picker" });
+  const nameOf = e => emojiReady[LANG]?.names.get(e) || emojiReady[LANG]?.names.get(e.replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "")) || e;
+  const btn = (e, name) => h("button", { type: "button", "data-e": e, text: e, title: name || nameOf(e), "aria-label": name || nameOf(e),
+    "aria-pressed": String(e === current), tabindex: "-1" });
+  const grid = list => h("div", { class: "palette" }, list.map(([e, name]) => btn(e, name)));
+  const search = h("input", { type: "search", class: "ep-search", value: emojiQuery, placeholder: t("emoji_search_ph"),
+    "aria-label": t("emoji_search"), autocomplete: "off", spellcheck: "false",
+    oninput: () => { emojiQuery = search.value; paint(); },
+    onkeydown: e => { if (e.key === "ArrowDown") { e.preventDefault(); body.querySelector('button[data-e][tabindex="0"]')?.focus(); } } });
+  const tone = h("select", { class: "ep-tone", "aria-label": t("emoji_tone"), title: t("emoji_tone"),
+    onchange: () => { emojiTone = +tone.value; store("dp-emoji-tone", emojiTone); paint(); } },
+    TONES.map((x, i) => h("option", { value: String(i), selected: i === emojiTone, text: withTone("✋", x), "aria-label": t("tone_" + i) })));
+  const body = h("div", { class: "ep-body" });
+  const toggle = h("button", { type: "button", class: "small", onclick: () => {
+    emojiAll = !emojiAll; store("dp-emoji-all", emojiAll); emojiScroll = 0; paint();
+  } });
+  root.append(h("div", { class: "ep-row" }, field, search, tone), body,
+    h("div", { class: "ep-foot" }, toggle, h("small", { text: t("more_emoji") })));
+
+  root.addEventListener("click", e => {
+    const b = e.target.closest("button[data-e]");
+    if (!b) return;
+    current = b.dataset.e; rememberEmoji(current); pick(current);
+    root.querySelectorAll("button[data-e]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.e === current)));
+    rove(b);
+  });
+  // One tab stop for all the emoji; arrows move between them.
+  const all = () => [...body.querySelectorAll("button[data-e]")];
+  function rove(b) { for (const x of all()) x.tabIndex = x === b ? 0 : -1; }
+  body.addEventListener("keydown", e => {
+    const b = e.target.closest("button[data-e]");
+    if (!b) return;
+    const list = all(), i = list.indexOf(b);
+    const cols = getComputedStyle(b.parentElement).gridTemplateColumns.split(" ").length || 10;
+    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, ArrowDown: i + cols, ArrowUp: i - cols, Home: 0, End: list.length - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    if (to < 0 && e.key === "ArrowUp") return search.focus();
+    const next = list[Math.max(0, Math.min(list.length - 1, to))];
+    rove(next); next.focus({ preventScroll: false });
+  });
+
+  const compact = () => {
+    const rec = recentEmoji();
+    return rec.length ? [h("span", { class: "lbl ep-lbl", text: t("emoji_recent") }), grid(rec.map(e => [e])),
+      h("span", { class: "lbl ep-lbl", text: t("emoji_suggested") }), grid(EMOJI.map(e => [e]))] : [grid(EMOJI.map(e => [e]))];
+  };
+  function results(data, q) {
+    const words = q.split(/\s+/).filter(Boolean), raw = emojiQuery.trim();
+    const score = it => it.names.includes(q) ? 0 : it.names.some(n => n.startsWith(q)) ? 1 : (" " + it.find).includes(" " + words[0]) ? 2 : 3;
+    const hits = data.items.filter(it => it.e === raw || words.every(w => it.find.includes(w)))
+      .map((it, i) => [score(it), i, it]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+    return [h("span", { class: "lbl ep-lbl", role: "status", text: hits.length ? t("emoji_results", { n: hits.length }) : t("emoji_none", { q: raw }) }),
+      hits.length ? h("div", { class: "ep-scroll" }, grid(hits.slice(0, 500).map(it => [withTone(it.e), it.name]))) : null];
+  }
+  function full(data) {
+    const rec = recentEmoji();
+    const secs = [...(rec.length ? [{ id: "recent", first: "🕘", items: rec.map(e => ({ e, name: nameOf(e), toned: true })) }] : []), ...data.groups];
+    const scroller = h("div", { class: "ep-scroll", tabindex: "-1" }, secs.map(g => h("section", { class: "ep-sec", "data-sec": g.id },
+      h("h4", { text: t("eg_" + g.id) }), grid(g.items.map(it => [it.toned ? it.e : withTone(it.e), it.name])))));
+    const nav = h("div", { class: "ep-nav", role: "toolbar", "aria-label": t("emoji_cats") }, secs.map(g =>
+      h("button", { type: "button", "data-g": g.id, text: g.first, title: t("eg_" + g.id), "aria-label": t("eg_" + g.id),
+        onclick: () => { scroller.scrollTop = scroller.querySelector(`[data-sec="${g.id}"]`).offsetTop; } })));
+    const spy = () => {
+      emojiScroll = scroller.scrollTop;
+      let on = secs[0].id;
+      for (const s of scroller.children) if (s.offsetTop <= scroller.scrollTop + 8) on = s.dataset.sec;
+      for (const b of nav.children) b.setAttribute("aria-current", String(b.dataset.g === on));
+    };
+    scroller.addEventListener("scroll", spy, { passive: true });
+    requestAnimationFrame(() => { scroller.scrollTop = emojiScroll; spy(); });
+    return [nav, scroller];
+  }
+  async function paint() {
+    const q = fold(emojiQuery.trim());
+    toggle.hidden = !!q;
+    toggle.textContent = emojiAll ? t("emoji_less") : t("emoji_all");
+    toggle.setAttribute("aria-expanded", String(emojiAll));
+    let parts;
+    if (!q && !emojiAll) parts = compact();
+    else {
+      if (!emojiReady[LANG]) body.replaceChildren(h("small", { text: t("emoji_loading") }));
+      let data;
+      try { data = await loadEmoji(); } catch { data = null; }
+      if (fold(emojiQuery.trim()) !== q || (root.parentNode && !root.isConnected)) return; // typed on, or the editor was redrawn
+      parts = !data ? [h("small", { class: "ep-err", text: t("emoji_failed") }), ...compact()] : q ? results(data, q) : full(data);
+    }
+    body.replaceChildren(...parts.filter(Boolean));
+    const list = all();
+    rove(list.find(b => b.dataset.e === current) || list[0]);
+  }
+  paint();
+  return root;
+}
+
 function renderEditor() {
   if (isBack(sel)) return renderBackKey();
   const ed = $("#editor"), k = spec(), mode = iconMode(k);
@@ -1203,10 +1870,9 @@ function renderEditor() {
 
   let iconBox;
   if (mode === "emoji") {
-    const inp = h("input", { id: "f-emoji", value: k.emoji || "", maxLength: 16, "aria-label": "Emoji", oninput: e => set("emoji", e.target.value.trim()) });
-    iconBox = h("div", {}, inp,
-      h("div", { class: "palette" }, EMOJI.map(em => h("button", { text: em, title: em, onclick: () => { inp.value = em; set("emoji", em); } }))),
-      h("small", { text: t("more_emoji") }));
+    const inp = h("input", { id: "f-emoji", class: "ep-current", value: k.emoji || "", maxLength: 16, "aria-label": t("emoji_field"),
+      title: t("emoji_field_title"), oninput: e => set("emoji", e.target.value.trim()) });
+    iconBox = emojiPicker(inp, k.emoji || "", em => { inp.value = em; set("emoji", em); });
   } else if (mode === "image") {
     // the file input lives outside the drop zone so its click never bubbles back into it
     const fileIn = h("input", { type: "file", id: "file", accept: "image/png,image/jpeg,image/gif,image/webp,image/bmp,image/tiff,.json,.lottie,.tgs,application/json", hidden: true,
@@ -1238,51 +1904,94 @@ function renderEditor() {
       h("small", { text: mode === "image" && (!k?.label || k?.hide_label) && k?.fill !== false ? t("size_hint_image") : t("size_hint_icon") }));
   }
   const actionsBox = h("div", { id: "actions" });
+  const panels = {
+    style: h("div", {},
+      h("h3", { text: t("icon_h") }),
+      h("div", { class: "stack" }, seg, iconBox, sizeBox),
+      h("h3", { text: t("colors_h") }),
+      h("div", { class: "row" },
+        field(t("bg"), h("input", { type: "color", value: (k?.color || DEFAULT_BG).toLowerCase(), oninput: e => set("color", e.target.value) })),
+        field(t("fg"), h("input", { type: "color", value: (k?.text_color || DEFAULT_FG).toLowerCase(), oninput: e => set("text_color", e.target.value) })),
+        h("div", { class: "none" }, h("button", { class: "small", onclick: () => { const s = ensure(); delete s.color; delete s.text_color; prune(); renderEditor(); changed(); }, text: t("default_colors") })))),
+    actions: h("div", {},
+      h("p", { class: "hint tab-intro", text: t("actions_sub") }),
+      actionsBox,
+      h("div", { class: "row", style: "margin-top:10px" },
+        h("button", { onclick: addAction, text: t("add_action") }),
+        h("button", { id: "test", disabled: !(k?.actions?.length), onclick: testKey, text: t("test") })),
+      h("pre", { id: "test-out", hidden: true })),
+    folder: k?.folder
+      ? h("div", { class: "stack" },
+          h("p", { class: "hint tab-intro", text: t(countKeys(k) ? "folder_info" : "folder_info_0", { n: countKeys(k) }) }),
+          h("div", { class: "row" }, h("button", { class: "none", onclick: () => openFolder(sel), text: t("folder_open") }),
+            h("button", { class: "none small danger", onclick: removeFolder, text: t("folder_remove") })))
+      : h("div", { class: "stack" },
+          h("p", { class: "hint tab-intro", text: t("folder_hint") }),
+          h("div", { class: "row" }, h("button", { class: "none", onclick: makeFolder, text: t("folder_make") }))),
+  };
+  const badges = { actions: k?.actions?.length || "", folder: k?.folder ? "📁 " + countKeys(k) : "" };
   ed.replaceChildren(
     h("div", { class: "ed-head" }, h("h2", { text: t("key_n", { n: sel }) }), h("span", { class: "hint", text: t("page_ref", { name: locTitle(page, folder) }) }),
       h("div", { class: "tools" },
         h("button", { class: "small", title: t("copy_title"), onclick: () => { clip = JSON.stringify(spec() || null); toast(t("copied_key")); }, text: t("copy") }),
         h("button", { class: "small", title: t("paste_title"), disabled: !clip, onclick: async () => { if (!await confirmFolderLoss(spec())) return; const v = JSON.parse(clip); if (v) keys()[sel] = v; else delete keys()[sel]; iconUi = null; renderEditor(); changed(); }, text: t("paste") }),
         h("button", { class: "small danger", title: t("clear_title"), disabled: !k, onclick: async () => { if (!await confirmFolderLoss(spec())) return; delete keys()[sel]; renderEditor(); changed(); }, text: t("clear") }))),
-    h("div", { class: "ed-top" }, h("img", { id: "ed-img", alt: "" }), h("div", { class: "hint", id: "ed-note" })),
-    h("h3", { text: t("appearance") }),
-    h("div", { class: "stack" },
-      seg, iconBox, sizeBox,
-      h("div", {},
-        field(t("text_field"), h("input", { value: k?.label || "", maxLength: 40, placeholder: t("text_ph"), oninput: e => set("label", e.target.value) })),
-        h("label", { class: "check", style: "margin-top:6px" },
+    h("div", { class: "ed-top" }, h("img", { id: "ed-img", alt: "" }),
+      h("div", { class: "ed-name" },
+        field(t("text_field"), h("input", { id: "f-label", value: k?.label || "", maxLength: 40, placeholder: t("text_ph"), oninput: e => set("label", e.target.value) })),
+        h("label", { class: "check", title: t("hide_text_title") },
           h("input", { type: "checkbox", id: "f-hide-label", checked: !!k?.hide_label,
             onchange: e => { set("hide_label", e.target.checked ? true : ""); renderEditor(); } }),
-          t("hide_text"))),
-      h("div", { class: "row" },
-        field(t("bg"), h("input", { type: "color", value: (k?.color || DEFAULT_BG).toLowerCase(), oninput: e => set("color", e.target.value) })),
-        field(t("fg"), h("input", { type: "color", value: (k?.text_color || DEFAULT_FG).toLowerCase(), oninput: e => set("text_color", e.target.value) })),
-        h("div", { class: "none" }, h("button", { class: "small", onclick: () => { const s = ensure(); delete s.color; delete s.text_color; prune(); renderEditor(); changed(); }, text: t("default_colors") })))),
-    h("h3", { text: t("folder_h") }),
-    k?.folder
-      ? h("div", { class: "stack" },
-          h("div", { class: "row" }, h("button", { class: "none", onclick: () => openFolder(sel), text: t("folder_open") }),
-            h("button", { class: "none small danger", onclick: removeFolder, text: t("folder_remove") })),
-          h("small", { class: "hint", text: t(countKeys(k) ? "folder_info" : "folder_info_0", { n: countKeys(k) }) }))
-      : h("div", { class: "stack" },
-          h("div", { class: "row" }, h("button", { class: "none", onclick: makeFolder, text: t("folder_make") })),
-          h("small", { class: "hint", text: t("folder_hint") })),
-    h("h3", {}, t("actions_h"), h("small", { text: t("actions_sub") })),
-    actionsBox,
-    h("div", { class: "row", style: "margin-top:10px" },
-      h("button", { onclick: addAction, text: t("add_action") }),
-      h("button", { id: "test", disabled: !(k?.actions?.length), onclick: testKey, text: t("test") })),
-    h("pre", { id: "test-out", hidden: true }));
+          t("hide_text")),
+        h("small", { class: "hint", id: "ed-note" }))),
+    ...edTabs(panels, badges));
   renderActions();
   paintKey(sel);
 }
 
+// The key editor's tabs. Every panel is built and kept in the page (hidden when not chosen),
+// so code that updates one (the action list, the test output) finds it whichever tab is open.
+// The chosen tab stays when you select another key, and next time the configurator opens.
+const ED_TABS = ["style", "actions", "folder"];
+let edTab = (() => { try { const v = localStorage.getItem("dp-ed-tab"); return ED_TABS.includes(v) ? v : "style"; } catch { return "style"; } })();
+function edTabs(panels, badges) {
+  const btns = {};
+  const show = (id, focus) => {
+    edTab = id;
+    try { localStorage.setItem("dp-ed-tab", id); } catch {}
+    for (const x of ED_TABS) {
+      const on = x === id;
+      btns[x].setAttribute("aria-selected", String(on)); btns[x].tabIndex = on ? 0 : -1;
+      panels[x].hidden = !on;
+    }
+    if (focus) btns[id].focus();
+  };
+  const bar = h("div", { class: "ed-tabs", role: "tablist", "aria-label": t("key_tabs") },
+    ED_TABS.map((id, i) => btns[id] = h("button", { type: "button", role: "tab", id: "edt-" + id, "aria-controls": "edp-" + id,
+      onclick: () => show(id),
+      onkeydown: e => {
+        const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ED_TABS.length - 1 }[e.key];
+        if (to == null) return;
+        e.preventDefault(); show(ED_TABS[(to + ED_TABS.length) % ED_TABS.length], true);
+      } },
+      h("span", { text: t("tab_" + id) }), h("span", { class: "badge", id: "edb-" + id, text: badges[id] || "", hidden: !badges[id] }))));
+  for (const id of ED_TABS) {
+    const p = panels[id];
+    p.id = "edp-" + id; p.classList.add("ed-panel");
+    p.setAttribute("role", "tabpanel"); p.setAttribute("aria-labelledby", "edt-" + id);
+  }
+  show(edTab);
+  return [bar, ...ED_TABS.map(id => panels[id])];
+}
+
 function renderActions() {
   const box = $("#actions"), list = spec()?.actions || [];
+  if (!box) return; // the Back key of a folder has no actions
   box.replaceChildren();
   if (!list.length) box.append(h("div", { class: "empty", text: t("no_actions") }));
   list.forEach((a, i) => box.append(actionCard(a, i, list)));
   const btn = $("#test"); if (btn) btn.disabled = !list.length;
+  const badge = $("#edb-actions"); if (badge) { badge.textContent = list.length || ""; badge.hidden = !list.length; }
 }
 function structural() { renderActions(); changed(); }
 function addAction() {
@@ -1295,7 +2004,7 @@ function defaults(type) {
   const other = Object.keys(cfg.pages).find(p => p !== page);
   return { open: { target: "" }, shortcut: { keys: "" }, text: { text: "" }, media: { key: "play_pause" }, shell: { command: "" },
     applescript: { script: "" }, page: { page: other || "back" }, screen_brightness: { value: "+10", display: "all" },
-    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {}, macro: { steps: [], play: "once" } }[type];
+    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {}, macro: { steps: [], play: "once" }, obs: { do: "record" } }[type];
 }
 
 function actionCard(a, i, list) {
@@ -1366,8 +2075,68 @@ function fields(a) {
       return [hint(t("conf_hint"))];
     case "macro":
       return macroFields(a, accessNote);
+    case "obs":
+      return obsFields(a);
   }
   return [];
+}
+
+// ---------------------------------------------------------------- OBS (obs.py)
+const OBS_DO = ["stream", "record", "pause", "scene", "next_scene", "previous_scene", "mute", "virtualcam", "studio", "transition", "replay"];
+let obsCache = null, obsAt = 0; // what OBS said last (scenes, sources), for the action editor; asked again after 30 s
+function obsInfo(fresh = false) {
+  if (fresh || !obsCache || Date.now() - obsAt > 30000) {
+    obsAt = Date.now();
+    obsCache = getJSON("/api/obs/info").catch(e => ({ ok: false, error: e.message }));
+  }
+  return obsCache;
+}
+function obsFields(a) {
+  const extraOf = { scene: "scene", mute: "source" };
+  const sel_ = h("select", { "aria-label": t("t_obs"), onchange: e => {
+    for (const f of Object.values(extraOf)) delete a[f];
+    a.do = e.target.value;
+    if (a.do === "scene") a.scene = "#1";
+    structural();
+  } }, OBS_DO.map(v => h("option", { value: v, text: t("obs_" + v), selected: a.do === v })));
+  const id = "obs-" + Math.random().toString(36).slice(2);
+  const list = h("datalist", { id });
+  const out = [sel_];
+  if (a.do === "scene") {
+    out.push(h("span", { class: "lbl", text: t("obs_scene_lbl") }),
+      h("input", { value: a.scene || "", list: id, placeholder: t("obs_scene_ph"), autocomplete: "off",
+        oninput: e => { a.scene = e.target.value.trim(); changed(false); } }), list, h("small", { text: t("obs_scene_hint") }));
+  } else if (a.do === "mute") {
+    out.push(h("span", { class: "lbl", text: t("obs_source_lbl") }),
+      h("input", { value: a.source || "", list: id, placeholder: t("obs_source_ph"), autocomplete: "off",
+        oninput: e => { const v = e.target.value.trim(); if (v) a.source = v; else delete a.source; changed(false); } }),
+      list, h("small", { text: t("obs_source_hint") }));
+  } else {
+    const more = { next_scene: "obs_next_hint", previous_scene: "obs_next_hint", transition: "obs_transition_hint", replay: "obs_replay_hint" }[a.do];
+    if (more) out.push(h("small", { text: t(more) }));
+  }
+  const state = h("small", { class: "obs-state", "aria-live": "polite", text: t("obs_checking") });
+  out.push(state);
+  const show = (fresh) => obsInfo(fresh).then(info => {
+    if (!state.isConnected) return; // the editor moved on
+    if (info.ok) {
+      state.className = "obs-state ok-t";
+      state.textContent = "✓ " + t("obs_ok", { v: info.obs_version });
+      const names = a.do === "scene" ? [...info.scenes.map((n, i) => ["#" + (i + 1), n]), ...info.scenes.map(n => [n, ""])]
+        : a.do === "mute" ? [...new Set([...info.microphones, ...info.sources])].map(n => [n, ""]) : [];
+      list.replaceChildren(...names.map(([v, label]) => h("option", { value: v, label: label || v })));
+    } else {
+      state.className = "obs-state bad-t";
+      state.replaceChildren("✗ " + info.error + " ",
+        h("button", { type: "button", class: "small", text: t("obs_retry"), onclick: () => { state.textContent = t("obs_checking"); show(true); } }),
+        " ", h("button", { type: "button", class: "small", text: t("obs_open_set"), onclick: () => setView("settings") }));
+    }
+  });
+  show(false);
+  return out;
+}
+function obsText(a) { // short, for lists: "OBS", "OBS #2", "OBS Mic/Aux"
+  return "OBS" + (a.do === "scene" && a.scene ? " " + a.scene : a.do === "mute" && a.source ? " " + a.source : "");
 }
 
 function level(a, unit) {
@@ -1383,9 +2152,13 @@ function level(a, unit) {
 }
 
 // ---------------------------------------------------------------- shortcut recorder
-// Records the physical keys (event.code), so left and right modifiers stay apart. A normal
-// key ends the recording with the modifiers held at that moment; modifiers pressed and let
-// go with no other key are recorded on their own ("rcmd", "ctrl+shift").
+// The service records the keys (keycapture.py): while it listens it holds them back from
+// macOS and every app, so shortcuts the system or the browser would act on (⌘⇧4, ⌘Space,
+// ⌘Tab, ⌘Q, fn) arrive whole. The page listens too, as the fallback: without Accessibility,
+// or while another app has secure keyboard entry on, the keys still come here.
+// Both record the physical keys, so left and right modifiers stay apart. A normal key ends
+// the recording with the modifiers held at that moment; modifiers pressed and let go with
+// no other key are recorded on their own ("rcmd", "ctrl+shift").
 function codeName(code) {
   if (CODE_MODS[code]) return CODE_MODS[code];
   if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
@@ -1428,12 +2201,35 @@ function startRec(btn, done, live = () => {}) {
   addEventListener("keydown", onRecDown, true);
   addEventListener("keyup", onRecUp, true);
   addEventListener("blur", stopRec);
+  systemRec(recording);
+}
+async function systemRec(r) {
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+  let st;
+  try { st = await postJSON("/api/keys/capture", {}); } catch { return; } // an older service: the page alone
+  if (recording !== r) { if (st.state === "listening") postJSON("/api/keys/capture/cancel", {}).catch(() => {}); return; }
+  if (st.state !== "listening") return toast(t("rec_no_access"));
+  r.system = true;
+  if (st.secure_input) toast(t("rec_secure"));
+  while (recording === r) { // polling also tells the service the page is still here
+    await sleep(100);
+    if (recording !== r) return;
+    try { st = await getJSON("/api/keys/capture"); } catch { st = { state: "error" }; }
+    if (recording !== r) return;
+    if (st.state === "listening") {
+      if (st.live && st.live !== r.shown) { r.shown = st.live; r.live(st.live); }
+      continue;
+    }
+    r.system = false; // it has let go (or is letting go) of the keyboard by itself
+    return st.state === "done" && st.combo ? finishRec(st.combo) : stopRec();
+  }
 }
 function stopRec() {
   if (!recording) return;
   removeEventListener("keydown", onRecDown, true);
   removeEventListener("keyup", onRecUp, true);
   removeEventListener("blur", stopRec);
+  if (recording.system) postJSON("/api/keys/capture/cancel", {}).catch(() => {});
   const { btn, live } = recording;
   recording = null;
   btn.classList.remove("rec"); btn.textContent = t("record");
@@ -1441,7 +2237,7 @@ function stopRec() {
 }
 
 // ---------------------------------------------------------------- on-screen keyboard
-// For keys the browser cannot record (⌘Q, ⌘W, fn...) or when it is easier to click.
+// For keys that are easier to click, or when the page records alone (no Accessibility).
 const OSK_ROWS = [
   [["esc", 1.5], "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"],
   ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", ["delete", 1.6]],
@@ -1869,6 +2665,12 @@ function renderStatus(down = false) {
       h("button", { class: "small", text: t("stop_macros"),
         onclick: () => postJSON("/api/macro/stop-all", {}).then(() => setTimeout(poll, 300)).catch(e => toast(e.message)) })));
 }
+function outdated() { // the service was updated and now sends a newer page than this one
+  if (!isDirty() && !recording && !document.querySelector("dialog[open]")) return location.reload();
+  if ($("#banners .outdated")) return;
+  $("#banners").prepend(h("div", { class: "banner outdated" }, h("div", {}, h("b", { text: t("outdated_b") }), t("outdated_1")),
+    h("button", { class: "small", onclick: () => location.reload(), text: t("reload") })));
+}
 async function perm(which) {
   try { status = await postJSON("/api/permissions", { which }); renderStatus(); } catch (e) { toast(e.message); }
 }
@@ -1883,6 +2685,7 @@ async function poll() {
   const wasAccess = status.accessibility;
   try { status = await getJSON("/api/status"); renderStatus(); }
   catch { renderStatus(true); }
+  if (status.page_build && /^[0-9a-f]{12}$/.test(PAGE_BUILD) && status.page_build !== PAGE_BUILD) outdated();
   if (wasAccess !== status.accessibility && cfg) renderActions();
   if (cfg && !busy && rev && status.config_rev && status.config_rev !== rev) await externalChange().catch(() => {});
   pollTimer = setTimeout(poll, 3000);
@@ -1900,7 +2703,7 @@ function setLang(lang) {
   applyStatic();
 }
 function renderAll() {
-  applyStatic(); applyTheme();
+  applyStatic(); applyTheme(); applyCorners();
   renderTabs(); renderGrid(); renderEditor();
   if (view === "settings") renderSettings();
   renderStatus.sig = null; renderStatus();
@@ -1915,10 +2718,12 @@ async function setSetting(patch) {
     apply(cfg); saved = JSON.stringify(apply(JSON.parse(saved))); rev = res.rev || rev;
     if ("language" in patch) { setLang(patch.language); renderAll(); }
     if ("theme" in patch) applyTheme();
+    if ("corner_radius" in patch) { applyCorners(); renderGrid(); }
     changed(false);
     return true;
   } catch (e) {
     toast(t("setting_failed", { msg: e.message }));
+    applyCorners();
     renderSettings();
     return false;
   } finally { busy--; }
@@ -1930,7 +2735,7 @@ function setView(v) {
   $("#nav-settings").setAttribute("aria-pressed", String(v === "settings"));
   if (v === "settings") renderSettings(true);
 }
-let brightTimer;
+let brightTimer, cornerTimer;
 async function renderSettings(refresh = false) {
   if (refresh || !mcpInfo) { try { mcpInfo = await getJSON("/api/mcp"); } catch {} }
   const row = (label, control) => h("label", { class: "set-row" }, h("span", { text: label }), control);
@@ -1943,6 +2748,8 @@ async function renderSettings(refresh = false) {
     h("small", { text: t("set_applied") }));
 
   const out = h("output", { text: (cfg.brightness ?? 80) + " %" });
+  const cornerText = v => v === 0 ? t("corners_square") : v >= MAX_CORNER ? t("corners_round") : v + " px";
+  const cornerOut = h("output", { text: cornerText(corners()) });
   const pad = h("div", { class: "card stack" }, h("h2", { text: "DisplayPad" }),
     h("div", {}, h("span", { class: "lbl", text: t("set_bright") }),
       h("div", { class: "slider" }, h("input", { type: "range", min: 0, max: 100, step: 5, value: cfg.brightness ?? 80, "aria-label": t("set_bright"),
@@ -1950,7 +2757,12 @@ async function renderSettings(refresh = false) {
           brightTimer = setTimeout(() => setSetting({ brightness: +e.target.value }), 200); } }), out),
       h("small", { text: t("set_bright_hint") })),
     h("label", { class: "check" }, h("input", { type: "checkbox", checked: cfg.press_feedback !== false,
-      onchange: e => setSetting({ press_feedback: e.target.checked }) }), t("set_feedback")));
+      onchange: e => setSetting({ press_feedback: e.target.checked }) }), t("set_feedback")),
+    h("div", {}, h("span", { class: "lbl", text: t("set_corners") }),
+      h("div", { class: "slider" }, h("input", { type: "range", min: 0, max: MAX_CORNER, step: 1, value: corners(), "aria-label": t("set_corners"),
+        oninput: e => { const v = +e.target.value; cornerOut.textContent = cornerText(v); applyCorners(v); clearTimeout(cornerTimer);
+          cornerTimer = setTimeout(() => setSetting({ corner_radius: v }), 250); } }), cornerOut),
+      h("small", { text: t("set_corners_hint") })));
 
   const m = cfg.mcp || {}, info = mcpInfo || {};
   const secret = (s) => showToken ? s : "•".repeat(24);
@@ -1993,8 +2805,46 @@ async function renderSettings(refresh = false) {
     h("p", { class: "hint", style: "margin:0", text: t("about_ai") }),
     h("p", { style: "margin:0" }, h("a", { href: REPO_URL, target: "_blank", rel: "noopener", text: t("about_source") })));
 
-  $("#settings").replaceChildren(general, pad, ai, about);
+  $("#settings").replaceChildren(general, pad, await obsCard(refresh), ai, about);
   renderAbout();
+}
+let obsSet = null; // the OBS connection (no password: only whether one is saved)
+async function obsCard(refresh) {
+  if (refresh || !obsSet) { try { obsSet = await getJSON("/api/obs"); } catch { obsSet = null; } }
+  const s = obsSet || { host: "127.0.0.1", port: 4455, has_password: false };
+  const row = (label, control) => h("label", { class: "set-row" }, h("span", { text: label }), control);
+  const host = h("input", { value: s.host, autocomplete: "off", spellcheck: "false" });
+  const port = h("input", { type: "number", min: 1, max: 65535, value: s.port });
+  const pw = h("input", { type: "password", autocomplete: "new-password", placeholder: s.has_password ? t("obs_pw_saved") : t("obs_pw_none") });
+  const state = h("p", { class: "obs-state", "aria-live": "polite", style: "margin:0" });
+  async function test() {
+    state.className = "obs-state hint"; state.textContent = t("obs_checking");
+    const info = await obsInfo(true);
+    state.className = "obs-state " + (info.ok ? "ok-t" : "bad-t");
+    state.textContent = info.ok
+      ? "✓ " + t("obs_ok_long", { v: info.obs_version, ws: info.websocket_version, scenes: info.scenes.join(", ") || "—" })
+      : "✗ " + info.error;
+  }
+  async function store(patch) {
+    try { obsSet = await postJSON("/api/obs", patch); toast(t("obs_saved")); }
+    catch (e) { state.className = "obs-state bad-t"; state.textContent = "✗ " + e.message; return false; }
+    pw.value = ""; pw.placeholder = obsSet.has_password ? t("obs_pw_saved") : t("obs_pw_none");
+    remove.hidden = !obsSet.has_password;
+    return true;
+  }
+  const save = () => store({ host: host.value.trim(), port: +port.value, ...(pw.value ? { password: pw.value } : {}) }).then(ok => ok && test());
+  for (const el of [host, port, pw]) el.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); save(); } });
+  const remove = h("button", { type: "button", class: "small", text: t("obs_pw_remove"), hidden: !s.has_password,
+    onclick: () => store({ password: "" }) });
+  return h("div", { class: "card stack obs-card" }, h("h2", { text: t("set_obs") }),
+    h("p", { class: "hint", style: "margin:0", text: t("obs_set_help") }),
+    row(t("obs_host"), host), row(t("obs_port"), port),
+    row(t("obs_password"), h("span", { class: "obs-pw" }, pw, remove)),
+    h("small", { text: t("obs_host_hint") }),
+    h("div", { class: "obs-btns" },
+      h("button", { type: "button", class: "primary", text: t("obs_save"), onclick: save }),
+      h("button", { type: "button", text: t("obs_test"), onclick: test })),
+    state);
 }
 function renderAbout(down = false) {
   const kv = $("#about-kv");
@@ -2044,7 +2894,10 @@ $("#pg-show").onclick = async () => {
 };
 $("#pg-start").onclick = () => { cfg.start_page = page; renderTabs(); changed(false); };
 $("#pg-rename").onclick = () => renamePage();
+$("#pg-auto").onclick = editAuto;
 $("#pg-delete").onclick = deletePage;
+$("#pad-new-page").onclick = () => addPage();
+$("#pad-new-app").onclick = () => addPage(true);
 
 (async () => {
   if (!TOKEN) { $("#gate").hidden = false; return; }

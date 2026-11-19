@@ -10,6 +10,7 @@ a DNS-rebinding page cannot reach it.
   that a web page sends (Origin header from another site).
 """
 
+import hashlib
 import hmac
 import io
 import json
@@ -23,15 +24,31 @@ from urllib.parse import parse_qs, urlparse
 
 from PIL import Image
 
-from . import anim, daemon, i18n, macos, macro, mcp  # daemon: circular, used at call time only
+from . import anim, daemon, emojidata, i18n, keycapture, macos, macro, mcp, obs, presets  # daemon: circular, used at call time only
 from .actions import test_actions
 from .i18n import t
-from .render import frame_durations, render_key
+from .render import MAX_CORNER, frame_durations, render_key
 
 log = logging.getLogger(__name__)
 
 PORT = int(os.environ.get("DISPLAYPAD_PORT", "8765"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+_page_cache = {}
+
+
+def _page():
+    """index.html, with a short hash of it written in. An open configurator compares its
+    hash with the one in /api/status and reloads itself after an update: an old page would
+    keep talking to the new service the old way."""
+    path = os.path.join(STATIC, "index.html")
+    st = os.stat(path)
+    key = (st.st_mtime_ns, st.st_size)
+    if _page_cache.get("key") != key:
+        with open(path, "rb") as f:
+            data = f.read()
+        build = hashlib.sha1(data).hexdigest()[:12]
+        _page_cache.update(key=key, build=build, html=data.replace(b"__PAGE_BUILD__", build.encode(), 1))
+    return _page_cache["html"], _page_cache["build"]
 MAX_BODY = 12 * 1024 * 1024
 APP_DIRS = ("/Applications", "/Applications/Utilities", "/System/Applications",
             "/System/Applications/Utilities", os.path.expanduser("~/Applications"))
@@ -67,14 +84,22 @@ def mcp_url() -> str:
 
 
 def list_apps():
+    """Names of the installed apps, also one folder down (Adobe and DaVinci Resolve install
+    as /Applications/<Name>/<Name>.app)."""
     names = set()
     for d in APP_DIRS:
         try:
-            for n in os.listdir(d):
-                if n.endswith(".app"):
-                    names.add(n[:-4])
+            entries = os.listdir(d)
         except OSError:
-            pass
+            continue
+        for n in entries:
+            if n.endswith(".app"):
+                names.add(n[:-4])
+            elif not n.startswith(".") and os.path.isdir(os.path.join(d, n)):
+                try:
+                    names.update(s[:-4] for s in os.listdir(os.path.join(d, n)) if s.endswith(".app"))
+                except OSError:
+                    pass
     return sorted(names, key=str.lower)
 
 
@@ -221,8 +246,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         svc = self.service
         if path in ("/", "/index.html"):
-            with open(os.path.join(STATIC, "index.html"), "rb") as f:
-                self._send(200, f.read(), "text/html; charset=utf-8")
+            self._send(200, _page()[0], "text/html; charset=utf-8")
         elif path == "/api/config":
             try:
                 with open(svc.config_path, "rb") as f:
@@ -232,13 +256,27 @@ class _Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError) as e:
                 self._json({"error": t("could not read config.json: {error}", error=e)}, 500)
         elif path == "/api/status":
-            self._json(svc.status())
+            st = svc.status()
+            st["page_build"] = _page()[1]
+            self._json(st)
         elif path == "/api/apps":
             self._json(list_apps())
+        elif path == "/api/presets":  # ready-made pages for popular apps, in the page's language
+            lang = parse_qs(urlparse(self.path).query).get("lang", ["en"])[0]
+            self._json(presets.catalog("es" if lang == "es" else "en", list_apps()))
+        elif path == "/api/emoji":  # the Mac's emoji and their names, for the emoji picker
+            lang = parse_qs(urlparse(self.path).query).get("lang", ["en"])[0]
+            self._json(emojidata.catalog("es" if lang == "es" else "en"))
         elif path == "/api/mcp":
             self._json(self._mcp_info())
+        elif path == "/api/obs":  # the connection, without the password
+            self._json(obs.public(obs.load_settings(self.service.cfg["base_dir"])))
+        elif path == "/api/obs/info":  # asks OBS: its scenes and sources, or why it can't be reached
+            self._json(obs.info(self.service.cfg["base_dir"]))
         elif path == "/api/macro/record":
             self._json(macro.recorder.status())
+        elif path == "/api/keys/capture":  # polled by the page while it records: stops when it stops
+            self._json(keycapture.capture.status())
         elif path == "/api/image":  # the original picture of a key, for the crop editor
             rel = parse_qs(urlparse(self.path).query).get("path", [""])[0]
             try:
@@ -268,20 +306,25 @@ class _Handler(BaseHTTPRequestHandler):
             if path == "/api/render":
                 spec = json.loads(self._body() or b"{}") or None
                 base = svc.cfg["base_dir"]
-                if parse_qs(urlparse(self.path).query).get("first"):  # quick still, e.g. while cropping
+                query = parse_qs(urlparse(self.path).query)
+                try:  # the page says which corners it shows (the setting may be changing)
+                    corner = max(0, min(MAX_CORNER, int(query["corner"][0])))
+                except (KeyError, ValueError):
+                    corner = svc.cfg["corner_radius"]
+                if query.get("first"):  # quick still, e.g. while cropping
                     buf = io.BytesIO()
-                    render_key(spec, base, first_only=True).save(buf, "PNG")
+                    render_key(spec, base, first_only=True, corner=corner).save(buf, "PNG")
                     return self._send(200, buf.getvalue(), "image/png")
                 durs = frame_durations(spec, base)
                 buf = io.BytesIO()
                 if durs:  # animated preview, frame for frame what the pad shows
-                    frames = [render_key(spec, base, frame=i) for i in range(len(durs))]
+                    frames = [render_key(spec, base, frame=i, corner=corner) for i in range(len(durs))]
                     frames[0].save(buf, "WEBP", save_all=True, append_images=frames[1:], duration=durs,
                                    loop=0, lossless=True, quality=0, method=0)
                     self._send(200, buf.getvalue(), "image/webp",
                                {"X-Frames": len(durs), "X-Duration": sum(durs)})
                 else:
-                    render_key(spec, base).save(buf, "PNG")
+                    render_key(spec, base, corner=corner).save(buf, "PNG")
                     self._send(200, buf.getvalue(), "image/png")
             elif path == "/api/upload":
                 self._json({"path": save_upload(self._body(), svc.cfg["base_dir"])})
@@ -291,6 +334,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(test_actions(body.get("spec") or {}, svc, pages))
             elif path == "/api/settings":
                 self._json({"rev": svc.update_settings(json.loads(self._body() or b"{}"))})
+            elif path == "/api/obs":  # {host, port, password}; no password: keep the saved one
+                self._json(obs.save_settings(svc.cfg["base_dir"], json.loads(self._body() or b"{}")))
             elif path == "/api/mcp/token":
                 svc.mcp_token = load_token(svc.cfg["base_dir"], ".mcp-token", renew=True)
                 log.info("new MCP access key created")
@@ -318,6 +363,10 @@ class _Handler(BaseHTTPRequestHandler):
             elif path == "/api/macro/record/cancel":
                 macro.recorder.cancel()
                 self._json(macro.recorder.status())
+            elif path == "/api/keys/capture":  # take the keyboard until one shortcut is pressed
+                self._json(keycapture.capture.start())
+            elif path == "/api/keys/capture/cancel":
+                self._json(keycapture.capture.cancel())
             elif path == "/api/macro/stop-all":
                 self._json({"stopped": macro.stop_all()})
             elif path == "/api/restart":

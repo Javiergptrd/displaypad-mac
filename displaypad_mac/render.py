@@ -16,6 +16,10 @@ log = logging.getLogger(__name__)
 S = ICON_SIZE
 DEFAULT_BG = "#1C1C24"
 DEFAULT_FG = "#FFFFFF"
+# The pad's screens are square; key faces get rounded corners (pixels on the 102-px face,
+# the "corner_radius" setting) so they look like the configurator. 0 = square, 51 = round.
+DEFAULT_CORNER = 12
+MAX_CORNER = S // 2
 TEXT_FONTS = ("/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/HelveticaNeue.ttc",
               "/System/Library/Fonts/Helvetica.ttc")
 EMOJI_FONT = "/System/Library/Fonts/Apple Color Emoji.ttc"
@@ -186,9 +190,27 @@ def _load_icon(spec: dict, base_dir: str, frame: int = 0, first_only: bool = Fal
     return None
 
 
+@functools.lru_cache(maxsize=8)
+def _corner_mask(radius: int) -> Image.Image:
+    """Rounded-square mask, drawn 4x larger and scaled down so the curve is smooth."""
+    big = Image.new("L", (S * 4, S * 4), 0)
+    ImageDraw.Draw(big).rounded_rectangle((0, 0, S * 4 - 1, S * 4 - 1), radius * 4, fill=255)
+    return big.resize((S, S), Image.LANCZOS)
+
+
+def round_corners(img: Image.Image, radius: int = DEFAULT_CORNER) -> Image.Image:
+    """The face with its corners cut to black (pixels off on the pad)."""
+    radius = max(0, min(MAX_CORNER, int(radius)))
+    if not radius:
+        return img
+    out = Image.new("RGB", (S, S), "#000000")
+    out.paste(img, (0, 0), _corner_mask(radius))
+    return out
+
+
 def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False, frame: int = 0,
-               first_only: bool = False) -> Image.Image:
-    """The key face; `frame` picks the frame of an animated image."""
+               first_only: bool = False, corner: int = DEFAULT_CORNER) -> Image.Image:
+    """The key face; `frame` picks the frame of an animated image, `corner` rounds it."""
     spec = spec or {}
     bg = spec.get("color", DEFAULT_BG if spec else "#000000")
     fg = spec.get("text_color", DEFAULT_FG)
@@ -213,7 +235,7 @@ def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False,
 
     if pressed:
         img = Image.blend(img, Image.new("RGB", (S, S), "#000000"), 0.45)
-    return img
+    return round_corners(img, corner)
 
 
 def to_bgr(img: Image.Image) -> bytes:
@@ -224,12 +246,12 @@ def to_bgr(img: Image.Image) -> bytes:
     return Image.merge("RGB", (b, g, r)).tobytes()
 
 
-def preview_sheet(keys: list, base_dir: str = ".") -> Image.Image:
+def preview_sheet(keys: list, base_dir: str = ".", corner: int = DEFAULT_CORNER) -> Image.Image:
     """Render 12 key specs as the physical 6x2 layout (for previews / docs)."""
     gap = 14
     sheet = Image.new("RGB", (6 * S + 7 * gap, 2 * S + 3 * gap), "#0B0B0E")
     for i, spec in enumerate(keys[:12]):
         x = gap + (i % 6) * (S + gap)
         y = gap + (i // 6) * (S + gap)
-        sheet.paste(render_key(spec, base_dir), (x, y))
+        sheet.paste(render_key(spec, base_dir, corner=corner), (x, y))
     return sheet

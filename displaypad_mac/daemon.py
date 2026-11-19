@@ -2,6 +2,7 @@
 
 - Reconnects by itself after unplug, sleep/wake or a device reset.
 - Reloads config.json on save (no restart needed).
+- Shows the pages linked to apps when those apps open or come to the front (appwatch).
 - A watchdog exits the process if a USB write ever hangs; launchd restarts it.
 - Animated keys: the pad keeps no animation of its own, so the main loop sends
   one frame at a time to whichever key is most overdue, and reads key presses
@@ -26,11 +27,11 @@ import threading
 import time
 from typing import Dict, List, Optional
 
-from . import __version__, i18n, macos, macro, web
+from . import __version__, appwatch, i18n, keycapture, macos, macro, web
 from .actions import NEEDS_POST_EVENTS, actions_of, run_actions, validate_action
 from .driver import NUM_KEYS, DisplayPad, DisplayPadError, device_present
 from .i18n import t
-from .render import crop_of, frame_durations, render_key, to_bgr
+from .render import DEFAULT_CORNER, MAX_CORNER, crop_of, frame_durations, render_key, to_bgr
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ APP_DIR = os.path.expanduser("~/Library/Application Support/DisplayPadMac")
 DEFAULT_CONFIG = os.path.join(APP_DIR, "config.json")
 WATCHDOG_SECONDS = 8
 THEMES = ("system", "light", "dark")
-SETTINGS = ("language", "theme", "brightness", "press_feedback", "mcp")
+SETTINGS = ("language", "theme", "brightness", "press_feedback", "corner_radius", "mcp")
 # Inside a folder, key 1 is always this one: it goes back to the page or folder that holds it.
 BACK_KEY = {"emoji": "⬅️", "color": "#2B2B33"}
 BACK_LABEL = {"en": "Back", "es": "Volver"}
@@ -117,6 +118,18 @@ def parse_config(cfg: dict, base_dir: str) -> dict:
         if page is not None and not isinstance(page, dict):
             raise ConfigError(t("page '{page}': the page must be an object like {{\"keys\": {{...}}}}", page=name))
         parse_keys((page or {}).get("keys", {}), name, name, None)
+    # pages linked to apps: shown while one of them is open, or while one is in front
+    links = []
+    for name, page in pages.items():
+        apps = (page or {}).get("apps", [])
+        if not isinstance(apps, list) or not all(isinstance(a, str) and a.strip() for a in apps):
+            raise ConfigError(t("page '{page}': apps must be a list of app names", page=name))
+        when = (page or {}).get("when", "open")
+        if when not in appwatch.WHEN:
+            raise ConfigError(t("page '{page}': when must be \"open\" or \"front\"", page=name))
+        names = frozenset(map(appwatch.norm, apps))
+        if names:
+            links.append((name, names, when))
     start = cfg.get("start_page", next(iter(pages)))
     if start not in pages:
         raise ConfigError(t("the start page '{page}' does not exist", page=start))
@@ -128,12 +141,16 @@ def parse_config(cfg: dict, base_dir: str) -> dict:
     bright = cfg.get("brightness", 80)
     if isinstance(bright, bool) or not isinstance(bright, (int, float)):
         raise ConfigError(t("brightness must be a number from 0 to 100"))
+    corner = cfg.get("corner_radius", DEFAULT_CORNER)
+    if isinstance(corner, bool) or not isinstance(corner, (int, float)) or not 0 <= corner <= MAX_CORNER:
+        raise ConfigError(t("corner_radius must be a number from 0 to {max}", max=MAX_CORNER))
     mcp = cfg.get("mcp", {})
     if not isinstance(mcp, dict) or not all(isinstance(v, bool) for v in mcp.values()):
         raise ConfigError(t("mcp must be an object with true/false values"))
-    return {"pages": norm, "start_page": start,
+    return {"pages": norm, "start_page": start, "links": links,
             "brightness": max(0, min(100, int(bright))),
             "press_feedback": bool(cfg.get("press_feedback", True)),
+            "corner_radius": round(corner),
             "language": lang, "theme": theme,
             "mcp": {"enabled": mcp.get("enabled", False), "allow_run": mcp.get("allow_run", False)},
             "base_dir": base_dir}
@@ -180,6 +197,7 @@ class Service:
         self._cfg_lock = threading.Lock()  # one read-modify-write of config.json at a time
         self.token = web.load_token(self.cfg["base_dir"])
         self.mcp_token = web.load_token(self.cfg["base_dir"], ".mcp-token")
+        self.auto = appwatch.AutoPages()
 
     # -------------------------------------------------- called from actions
     def request_page(self, name: str):
@@ -278,12 +296,14 @@ class Service:
             key = (idx, a["i"], pressed)
             if key not in self._anim_faces:
                 spec = self.cfg["pages"][page][idx]
-                self._anim_faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed, frame=a["i"]))
+                self._anim_faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed, frame=a["i"],
+                                                                   corner=self.cfg["corner_radius"]))
             return self._anim_faces[key]
         key = (page, idx, pressed)
         if key not in self._faces:
             spec = self.cfg["pages"][page][idx]
-            self._faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed))
+            self._faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed,
+                                                     corner=self.cfg["corner_radius"]))
         return self._faces[key]
 
     def draw_page(self):
@@ -428,6 +448,36 @@ class Service:
             self.page = target
             self.draw_page()
 
+    def _watch_apps(self):
+        """Shows the pages linked to apps (see appwatch); its own thread, so a slow look at
+        the windows never delays the pad."""
+        apps = appwatch.Apps()
+        cfg, running, next_list = None, set(), 0.0
+        while not self._stop.wait(appwatch.FRONT_SECONDS):
+            try:
+                if self.cfg is not cfg:
+                    cfg = self.cfg
+                    if cfg["links"]:
+                        self.auto.configure(cfg["links"])
+                    else:
+                        self.auto = appwatch.AutoPages()  # start afresh when links come back
+                if not cfg["links"]:
+                    continue
+                now = time.monotonic()
+                if now >= next_list:
+                    running, next_list = apps.running(), now + appwatch.RUNNING_SECONDS
+                target = self.auto.update(running, apps.front(), self.page)
+                if target:
+                    pages = self.cfg["pages"]
+                    if target not in pages:  # a folder or page that has gone since
+                        top = target.split("/")[0]
+                        target = top if top in pages else self.cfg["start_page"]
+                    log.info("%s -> showing '%s'", self.auto.reason, target)
+                    self._pending_page = target
+            except Exception:
+                log.exception("watching apps")
+                self._stop.wait(5)
+
     def _watchdog(self):
         while not self._stop.wait(1):
             since = self.pad.busy_since
@@ -437,6 +487,7 @@ class Service:
 
     def run(self):
         threading.Thread(target=self._watchdog, daemon=True).start()
+        threading.Thread(target=self._watch_apps, name="appwatch", daemon=True).start()
         web.start(self, self.token)
         last_cfg_check = 0.0
         waiting_logged = False
@@ -483,6 +534,7 @@ class Service:
         self._let_go()
 
     def stop(self, *_):
+        keycapture.capture.cancel()  # give the keyboard back first
         self._stop.set()
 
 
