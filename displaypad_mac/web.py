@@ -24,7 +24,7 @@ from urllib.parse import parse_qs, urlparse
 
 from PIL import Image
 
-from . import anim, daemon, emojidata, i18n, keycapture, macos, macro, mcp, obs, presets  # daemon: circular, used at call time only
+from . import anim, daemon, emojidata, i18n, keycapture, live, macos, macro, mcp, obs, presets  # daemon: circular, used at call time only
 from .actions import test_actions
 from .i18n import t
 from .render import MAX_CORNER, frame_durations, render_key
@@ -311,21 +311,28 @@ class _Handler(BaseHTTPRequestHandler):
                     corner = max(0, min(MAX_CORNER, int(query["corner"][0])))
                 except (KeyError, ValueError):
                     corner = svc.cfg["corner_radius"]
+                lv = svc.live.face(spec) if spec and "live" in spec else None  # a live key: what it shows now
                 if query.get("first"):  # quick still, e.g. while cropping
                     buf = io.BytesIO()
-                    render_key(spec, base, first_only=True, corner=corner).save(buf, "PNG")
+                    render_key(spec, base, first_only=True, corner=corner, live=lv).save(buf, "PNG")
                     return self._send(200, buf.getvalue(), "image/png")
-                durs = frame_durations(spec, base)
+                durs = None if lv and lv["style"] == "meter" else frame_durations(spec, base)
                 buf = io.BytesIO()
                 if durs:  # animated preview, frame for frame what the pad shows
-                    frames = [render_key(spec, base, frame=i, corner=corner) for i in range(len(durs))]
+                    frames = [render_key(spec, base, frame=i, corner=corner, live=lv) for i in range(len(durs))]
                     frames[0].save(buf, "WEBP", save_all=True, append_images=frames[1:], duration=durs,
                                    loop=0, lossless=True, quality=0, method=0)
                     self._send(200, buf.getvalue(), "image/webp",
                                {"X-Frames": len(durs), "X-Duration": sum(durs)})
                 else:
-                    render_key(spec, base, corner=corner).save(buf, "PNG")
+                    render_key(spec, base, corner=corner, live=lv).save(buf, "PNG")
                     self._send(200, buf.getvalue(), "image/png")
+            elif path == "/api/live":  # the live keys the page shows: keeps their readings going, says when they change
+                looks = (json.loads(self._body() or b"{}") or {}).get("keys") or []
+                looks = [k for k in looks[:200] if isinstance(k, dict)]
+                svc.live.watch("portal", [k.get("live") for k in looks], ttl=live.LOOKER_TTL)
+                faces = [svc.live.face(k) if "live" in k else None for k in looks]
+                self._json({"sigs": [f["sig"] if f else "" for f in faces]})
             elif path == "/api/upload":
                 self._json({"path": save_upload(self._body(), svc.cfg["base_dir"])})
             elif path == "/api/test":

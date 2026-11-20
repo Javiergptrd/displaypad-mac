@@ -9,6 +9,8 @@
   between frames. The pad takes ~18 ms per key image, so ~50 frames per second
   are shared by all the animated keys of the page; when they ask for more,
   frames are skipped so every animation keeps its real speed.
+- Live keys (live.py): the main loop sends a live key again when what it shows
+  changes, one key per turn of the loop, sharing the pad with the animations.
 """
 
 import bisect
@@ -27,7 +29,7 @@ import threading
 import time
 from typing import Dict, List, Optional
 
-from . import __version__, appwatch, i18n, keycapture, macos, macro, web
+from . import __version__, appwatch, i18n, keycapture, live, macos, macro, web
 from .actions import NEEDS_POST_EVENTS, actions_of, run_actions, validate_action
 from .driver import NUM_KEYS, DisplayPad, DisplayPadError, device_present
 from .i18n import t
@@ -96,6 +98,10 @@ def parse_config(cfg: dict, base_dir: str) -> dict:
             if (spec or {}).get("crop") is not None and not _crop_ok(spec["crop"]):
                 raise ConfigError(t("page '{page}', key {key}: crop must be [left, top, right, bottom] as fractions "
                                     "of the picture, with right > left and bottom > top", page=where, key=k))
+            if (spec or {}).get("live") is not None:
+                err = live.validate(spec["live"])
+                if err:
+                    raise ConfigError(t("page '{page}', key {key}: {error}", page=where, key=k, error=err))
             for a in actions_of(spec or {}):
                 err = validate_action(a, pages)
                 if err:
@@ -190,6 +196,12 @@ class Service:
         self._anim_faces: Dict[tuple, bytes] = {}  # (key index, frame, pressed) -> BGR, current page only
         self._anim_stats = (0.0, 0.0)              # (frames per second sent, ms per frame) for the status
         self._anim_window: List[tuple] = []
+        self._anim_sig: Dict[int, str] = {}         # live key index -> live picture its animation frames carry
+        self.live = live.Engine(lambda: self.cfg["base_dir"])
+        self.live.allow_commands(live.commands_in(self.cfg["pages"]))
+        self._live_keys: Dict[int, str] = {}        # live key index on the current page -> picture sent
+        self._live_faces: Dict[tuple, tuple] = {}   # (page, key index, pressed) -> (picture, BGR)
+        self._live_due = 0.0
         self._pressed: set = set()
         self._released: Dict[int, threading.Event] = {}  # pad key -> set when it is let go ("hold" shortcuts)
         self._stop = threading.Event()
@@ -220,7 +232,8 @@ class Service:
                 "log_path": os.path.expanduser("~/Library/Logs/DisplayPadMac.log"),
                 "language": self.cfg["language"], "mcp": self.cfg["mcp"],
                 "animation": {"keys": len(self._anims), "fps": self._anim_stats[0],
-                              "ms_per_frame": self._anim_stats[1]}}
+                              "ms_per_frame": self._anim_stats[1]},
+                "live": {"keys": len(self._live_keys), **self.live.status()}}
 
     def config_rev(self) -> str:
         """Short hash of config.json, so a window or an assistant can tell it changed under them."""
@@ -291,17 +304,32 @@ class Service:
 
     # -------------------------------------------------- drawing
     def _face(self, page: str, idx: int, pressed: bool = False) -> bytes:
+        spec = self.cfg["pages"][page][idx]
+        lv = self.live.face(spec) if spec and "live" in spec else None
         a = self._anims.get(idx) if page == self.page else None
         if a:  # animated: the frame currently shown
+            sig = lv["sig"] if lv else ""
+            if self._anim_sig.get(idx, "") != sig:  # the live text changed: older frames are no use
+                self._anim_faces = {k: v for k, v in self._anim_faces.items() if k[0] != idx}
+                self._anim_sig[idx] = sig
             key = (idx, a["i"], pressed)
             if key not in self._anim_faces:
-                spec = self.cfg["pages"][page][idx]
                 self._anim_faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed, frame=a["i"],
-                                                                   corner=self.cfg["corner_radius"]))
+                                                                   corner=self.cfg["corner_radius"], live=lv))
+            if not pressed and idx in self._live_keys:
+                self._live_keys[idx] = sig
             return self._anim_faces[key]
+        if lv:  # live: drawn again when what it shows changes
+            key = (page, idx, pressed)
+            hit = self._live_faces.get(key)
+            if not hit or hit[0] != lv["sig"]:
+                hit = self._live_faces[key] = (lv["sig"], to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed,
+                                                                            corner=self.cfg["corner_radius"], live=lv)))
+            if page == self.page and not pressed and idx in self._live_keys:
+                self._live_keys[idx] = hit[0]
+            return hit[1]
         key = (page, idx, pressed)
         if key not in self._faces:
-            spec = self.cfg["pages"][page][idx]
             self._faces[key] = to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed,
                                                      corner=self.cfg["corner_radius"]))
         return self._faces[key]
@@ -309,8 +337,12 @@ class Service:
     def draw_page(self):
         t = time.monotonic()
         self._anims, self._anim_faces, self._anim_window, self._anim_stats = {}, {}, [], (0.0, 0.0)
-        for i, spec in enumerate(self.cfg["pages"][self.page]):
-            durs = frame_durations(spec, self.cfg["base_dir"]) if spec else None
+        self._anim_sig, self._live_faces = {}, {}
+        specs = self.cfg["pages"][self.page]
+        self._live_keys = {i: "" for i, spec in enumerate(specs) if spec and "live" in spec and not live.validate(spec["live"])}
+        self.live.watch("pad", [specs[i]["live"] for i in self._live_keys])
+        for i, spec in enumerate(specs):
+            durs = frame_durations(spec, self.cfg["base_dir"]) if spec and not live.is_meter(spec) else None
             if durs:
                 ends = list(itertools.accumulate(durs))  # ms from the loop start at which each frame ends
                 self._anims[i] = {"ends": ends, "total": ends[-1], "i": 0, "t0": 0.0, "due": 0.0, "sent": None}
@@ -321,8 +353,9 @@ class Service:
                 a = self._anims[i]
                 a["t0"], a["sent"] = time.monotonic(), face
                 a["due"] = a["t0"] + a["ends"][0] / 1000
-        log.info("page '%s' drawn in %.2fs%s", self.page, time.monotonic() - t,
-                 f", {len(self._anims)} animated key(s)" if self._anims else "")
+        log.info("page '%s' drawn in %.2fs%s%s", self.page, time.monotonic() - t,
+                 f", {len(self._anims)} animated key(s)" if self._anims else "",
+                 f", {len(self._live_keys)} live key(s)" if self._live_keys else "")
 
     def _animate(self) -> float:
         """Send the frame that should be showing now on the most overdue animated key.
@@ -360,9 +393,30 @@ class Service:
             self._anim_window = []
         return 0.0
 
+    def _live_step(self) -> float:
+        """Send one live key whose picture changed (animated ones change with their next
+        frame). Returns the seconds until it is worth looking again."""
+        if not self._live_keys:
+            return 0.25
+        now = time.monotonic()
+        if now < self._live_due:
+            return self._live_due - now
+        hold = self._pressed if self.cfg["press_feedback"] else set()
+        specs = self.cfg["pages"][self.page]
+        for idx, sent in self._live_keys.items():
+            if idx in hold or idx in self._anims:
+                continue
+            lv = self.live.face(specs[idx])
+            if lv and lv["sig"] != sent:
+                self.pad.upload(idx, self._face(self.page, idx))
+                return 0.0  # the others on the next turn, between key presses
+        self._live_due = now + 0.1  # the clock's seconds stay on time
+        return 0.1
+
     # -------------------------------------------------- main loop
     def _let_go(self):
         """The pad is gone or the service stops: let go of keys held by "hold" shortcuts."""
+        self.live.watch("pad", [])  # nothing to show the readings on
         for ev in self._released.values():
             ev.set()
         self._released.clear()
@@ -392,6 +446,7 @@ class Service:
             return
         self.config_error = ""
         self.cfg, self._faces = cfg, {}
+        self.live.allow_commands(live.commands_in(cfg["pages"]))
         macro.keep_only(a for page in cfg["pages"].values() for spec in page if spec for a in actions_of(spec))
         i18n.set_language(cfg["language"])
         if self.page not in cfg["pages"]:
@@ -488,6 +543,7 @@ class Service:
     def run(self):
         threading.Thread(target=self._watchdog, daemon=True).start()
         threading.Thread(target=self._watch_apps, name="appwatch", daemon=True).start()
+        self.live.start()
         web.start(self, self.token)
         last_cfg_check = 0.0
         waiting_logged = False
@@ -518,7 +574,7 @@ class Service:
                 continue
             try:
                 self._apply_pending()
-                wait = self._animate()
+                wait = min(self._animate(), self._live_step())
                 keys = self.pad.read_keys(max(1, min(40, int(wait * 1000))))
                 if keys is not None:
                     self._on_keys(keys)
@@ -532,6 +588,7 @@ class Service:
                 self._let_go()
         self.pad.close()
         self._let_go()
+        self.live.stop()
 
     def stop(self, *_):
         keycapture.capture.cancel()  # give the keyboard back first

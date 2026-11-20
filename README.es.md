@@ -9,7 +9,7 @@ configurar tus teclas.
 
 [English](README.md)
 
-![El configurador: las 12 teclas de una página a la izquierda y el editor de la tecla 1 a la derecha](docs/configurator-keys.png)
+![El configurador al abrirse: el DisplayPad sube en el centro de la pantalla, se encienden sus 12 teclas y vuela a su lugar en la página](docs/intro.gif)
 
 > **Hecho con IA.** Este proyecto se escribió con [Claude Code](https://claude.com/claude-code)
 > (el asistente de programación con IA de Anthropic), dirigido y probado por una persona en
@@ -36,6 +36,11 @@ configurar tus teclas.
 - **OBS Studio:** iniciar y detener la transmisión, la grabación y la cámara virtual,
   cambiar de escena y silenciar micrófonos directamente por el servidor WebSocket de OBS,
   aunque OBS esté en segundo plano y sin configurar atajos en OBS.
+- **Teclas en vivo:** una tecla puede mostrar algo que va cambiando y redibujarse sola:
+  la hora y la fecha, el uso de CPU, GPU y memoria, la batería, el volumen y el
+  micrófono, lo que suena en Música o Spotify, si OBS está en vivo o grabando, o la
+  salida de un comando. Como texto, o como un medidor con el número, el último minuto
+  como una línea y una barra que se pone ámbar y roja.
 - **Macros:** graba lo que haces con el teclado y el mouse (teclas, clics, arrastres,
   desplazamiento), edita los pasos y las esperas, y reprodúcelo desde una tecla una vez,
   varias veces, mientras mantienes la tecla, o encendido y apagado con cada pulsación.
@@ -102,6 +107,9 @@ Agrega `--all` para borrar también tu configuración e imágenes.
 
 El idioma por defecto es inglés: cámbialo a español en **Settings → Language**.
 
+![El configurador: las 12 teclas de una página a la izquierda y el editor de la tecla 1 a la derecha](docs/configurator-keys.png)
+
+
 - **Páginas:** pestañas arriba. Crea, renombra y elimina páginas, marca la página inicial
   (★) o muéstrala en el pad.
 - **Páginas listas para apps:** **+ Página** y **+ Página de app** pueden empezar con una
@@ -140,7 +148,7 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
   intercambiarlas, o suelta una imagen sobre ella. Copia y pega teclas entre páginas.
 - **El editor de la tecla:** la vista previa y el **Nombre** de la tecla quedan arriba; lo
   demás va en pestañas: **Estilo** (ícono, tamaño y colores), **Acciones** (lo que hace la
-  tecla; la pestaña muestra cuántas tiene) y **Carpeta**. La barra de pestañas queda a la
+  tecla; la pestaña muestra cuántas tiene), **Carpeta** y **En vivo**. La barra de pestañas queda a la
   vista al desplazarte, y el editor recuerda la pestaña en la que estabas al elegir otra
   tecla.
 - **Carpetas:** en la pestaña **Carpeta**, **Convertir esta tecla en carpeta** y luego
@@ -195,6 +203,11 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
   silenciar todos los micrófonos a la vez. El editor muestra tus escenas y fuentes y dice
   si OBS responde. En modo estudio, las teclas de escena cambian la vista previa. Primero
   configura la conexión en **Ajustes → OBS**.
+- **En vivo:** elige lo que muestra la tecla (ver [Teclas en vivo](#teclas-en-vivo)). Para
+  un número (CPU, memoria, batería…) elige **Texto** o **Medidor**. Los valores que puedes
+  usar en el **Nombre** de la tecla, como `{time}` o `{value}`, son botones que los añaden
+  donde está el cursor; el reloj tiene formatos rápidos. Las vistas previas de los dos
+  pads se actualizan mientras las miras.
 - **Guardar** (⌘S) revisa todo antes y te dice qué tecla tiene un problema. La versión
   anterior queda en `config.json.previous`.
 
@@ -223,7 +236,7 @@ La pestaña **Ajustes** aplica los cambios al momento:
 - **Acerca de:** versión, estado del servicio y de los permisos, y dónde están la
   configuración y el registro.
 
-![La pestaña de Ajustes: idioma, apariencia, brillo del DisplayPad y asistentes de IA](docs/configurator-settings.png)
+![La pestaña de Ajustes: idioma, apariencia, brillo y esquinas de las teclas del DisplayPad, y la conexión con OBS](docs/configurator-settings.png)
 
 ## Asistentes de IA (MCP)
 
@@ -281,7 +294,7 @@ pueden llegar a `127.0.0.1` no podrán conectarse.
 | `update_settings` | Brillo, oscurecer al pulsar, idioma, apariencia, página inicial |
 | `list_apps` | Apps instaladas, para las acciones «abrir» y las páginas que se abren con apps |
 | `upload_image` | Agregar una imagen o animación desde un archivo o base64 |
-| `preview_page` | Imagen de una página tal como la dibuja el pad |
+| `preview_page` | Imagen de una página tal como la dibuja el pad, con las teclas en vivo |
 | `test_actions` | Ejecutar acciones al momento (solo si lo permites, ver abajo) |
 
 **Seguridad**
@@ -294,7 +307,8 @@ pueden llegar a `127.0.0.1` no podrán conectarse.
   la tecla. Conecta solo asistentes de confianza y revisa las teclas nuevas que ejecutan
   comandos de terminal o AppleScript.
 - **Permitir que los asistentes ejecuten acciones al momento** está desactivado por defecto.
-  Mientras lo esté, `test_actions` no ejecuta nada.
+  Mientras lo esté, `test_actions` no ejecuta nada, y un asistente no puede añadir una
+  tecla en vivo que ejecute un comando nuevo (sí cualquier otro tipo de tecla en vivo).
 
 ## Animaciones (GIF y Lottie)
 
@@ -321,6 +335,56 @@ encuadrar una animación ancha), y con 180 cuadros como máximo (si hay más, se
 cuadros intermedios). Los Lottie se dibujan con rlottie a 25 cuadros por segundo. Algunas
 funciones de After Effects (expresiones, efectos, capas de texto) pueden no dibujarse; si
 un Lottie sale sin movimiento, el configurador te avisa: expórtalo como GIF.
+
+## Teclas en vivo
+
+Una tecla en vivo muestra un dato en lugar de un nombre fijo, y el servicio la redibuja
+sola en el pad, solo cuando cambia lo que muestra. En el configurador, abre la pestaña
+**En vivo** de la tecla; a mano, añade `"live"` a la tecla (ver
+[Campos de la tecla](#editar-la-configuración-a-mano)).
+
+| `source` | Qué muestra | Valores para el nombre | Se lee cada |
+|---|---|---|---|
+| `clock` | Hora y fecha | `{time}` (14:05), `{time12}` (2:05), `{ampm}`, `{seconds}`, `{weekday}`, `{day}`, `{month}`, `{year}`, `{date}` (vie 20 nov) | segundo |
+| `cpu` | Uso de CPU, todos los núcleos | `{value}` | 2 s |
+| `gpu` | Uso de GPU, como el Historial de la GPU del Monitor de Actividad | `{value}` | 2 s |
+| `ram` | Memoria usada, como la cuenta el Monitor de Actividad | `{value}` (%), `{used}` (12.5 GB), `{total}` | 2 s |
+| `battery` | Carga de la batería | `{value}`, `{state}` (cargando, con batería…) | 30 s |
+| `volume` | Volumen de salida | `{value}`, `{state}` (silenciado) | 2 s |
+| `mic` | Nivel de entrada del micrófono | `{value}`, `{state}` (silenciado) | 2 s |
+| `music` | Lo que suena en Música o Spotify | `{title}`, `{artist}`, `{app}`, `{state}` | 3 s |
+| `obs` | Transmisión y grabación de OBS Studio | `{status}` (EN VIVO · REC, Fuera del aire), `{scene}`, `{stream_time}`, `{record_time}` | 2 s |
+| `command` | La salida de un comando de terminal | `{output}` (su primera línea), `{value}` (el primer número) | `every` segundos |
+
+- **Texto** (por defecto) dibuja el **Nombre** de la tecla con los valores en su lugar,
+  como `"{weekday} {day} {time}"`. Sin nombre muestra el dato solo (`{time}`,
+  `CPU {value}%`, `{title}`…).
+- **Medidor** (`"style": "meter"`, para CPU, GPU, memoria, batería, volumen, micrófono y
+  comandos) dibuja el nombre como título, el número grande, el último minuto como una
+  línea y una barra. La barra se pone ámbar al 70 % y roja al 90 %; la memoria sigue en
+  cambio la presión de memoria de macOS, la batería se pone ámbar al 20 % y roja al
+  10 % si no está cargando, y los medidores de volumen y micrófono se ponen grises
+  mientras están silenciados. Se usan los colores de la tecla para el fondo y el texto.
+- **Alerta:** las teclas de texto se ponen ámbar o rojas cuando el dato requiere atención
+  (OBS en vivo o grabando, el micrófono silenciado, el sonido silenciado, CPU o GPU altas,
+  la batería baja, un comando que falla). `"alert": false` lo desactiva.
+- **Comandos:** se ejecutan con `zsh -l` cada `every` segundos (de 2 a 3600, 10 por
+  defecto) y se detienen a los 10 segundos. Un medidor usa el primer número que imprime
+  el comando, de 0 a 100. Un comando solo se ejecuta una vez guardada la tecla, y la vista
+  previa del configurador muestra «guarda la tecla para ejecutar su comando» hasta
+  entonces.
+- **Lo que suena:** solo se consulta una app que ya está abierta, así que una tecla en
+  vivo nunca abre Música ni Spotify. La primera vez, macOS pregunta si DisplayPad puede
+  controlar la app; si dijiste que no, la tecla lo indica y puedes permitirlo en **Ajustes
+  del Sistema → Privacidad y seguridad → Automatización**.
+- **OBS** usa la conexión de **Ajustes → OBS** y solo se consulta mientras OBS está abierto.
+
+Los datos solo se leen mientras una tecla en vivo está en el pad o abierta en el
+configurador, cada fuente una vez para todas las teclas que la muestran. Las teclas en vivo
+comparten con las animaciones las ≈ 52 imágenes por segundo del pad, pero una tecla en vivo
+solo envía una imagen cuando cambia: un reloj una vez por minuto (una por segundo con
+`{seconds}`), un medidor cada 2 segundos. Mientras mantienes pulsada una tecla en vivo se
+queda quieta y oscurecida.
 
 ## Editar la configuración a mano
 
@@ -354,6 +418,14 @@ completo.
 `corner_radius` redondea las esquinas de todas las imágenes de las teclas, en píxeles de la
 cara de 102 píxeles: `0` es cuadrada, `12` es el valor por defecto, `51` es redonda.
 
+Un reloj en vivo y un medidor de CPU:
+
+```json
+"3": {"label": "{weekday} {day}\n{time}", "color": "#1C1C24", "live": {"source": "clock"}},
+"4": {"label": "CPU", "live": {"source": "cpu", "style": "meter"},
+      "actions": [{"type": "open", "target": "Activity Monitor"}]}
+```
+
 **Páginas que se abren con apps:** una página puede tener `"apps"`, los nombres del `.app`
 de cada app como los lista el configurador, y `"when"`: `"open"` (lo normal: se muestra
 mientras una de ellas está abierta) o `"front"` (se muestra mientras una está al frente).
@@ -376,6 +448,7 @@ no necesita ningún permiso más para ello.
 | `text_color` | Color del texto |
 | `action` / `actions` | Una acción, o una lista que se ejecuta en orden |
 | `folder` | Convierte la tecla en carpeta: `{"keys": {"2": {...}, "3": {...}}}`, con las teclas 2 a 12 (la 1 es su tecla Volver). Una carpeta puede tener carpetas. Sus propias acciones, si tiene, se ejecutan antes de abrirla |
+| `live` | La convierte en [tecla en vivo](#teclas-en-vivo): `{"source": "cpu", "style": "meter"}`. `source` es obligatorio; `style` es `text` (por defecto) o `meter`; `alert`: `false` mantiene los colores; una tecla `command` lleva además `command` y `every` (segundos). El `label` es el texto, con valores como `{time}` en su lugar |
 
 **Acciones**
 
@@ -487,6 +560,12 @@ cd ~/Library/Application\ Support/DisplayPadMac
   OBS debe estar abierto con **Herramientas → Ajustes del servidor WebSocket → Habilitar
   servidor WebSocket** activado, y la contraseña debe ser la de **Mostrar información de
   conexión**.
+- **Una tecla «Lo que suena» dice que lo permitas en Ajustes:** macOS preguntó si
+  DisplayPad puede controlar Música o Spotify y se rechazó. Permítelo en **Ajustes del
+  Sistema → Privacidad y seguridad → Automatización**.
+- **Una tecla en vivo con comando muestra un guion o un error:** la vista previa muestra el
+  error del comando; pruébalo en Terminal con `zsh -lc '...'`. Los comandos que tardan más
+  de 10 segundos se detienen.
 - **`Another DisplayPadMac instance is already running`:** solo un programa puede usar el
   DisplayPad a la vez. Detén el servicio antes de usar `test`.
 

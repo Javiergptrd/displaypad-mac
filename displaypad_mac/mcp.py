@@ -24,7 +24,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import __version__, actions, appwatch, daemon, obs, presets, render, web  # daemon/web: circular, used at call time only
+from . import __version__, actions, appwatch, daemon, live, obs, presets, render, web  # daemon/web: circular, used at call time only
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +35,9 @@ INSTRUCTIONS = """\
 These tools set up the user's Mountain DisplayPad on this Mac: 12 keys with a small screen each \
 (2 rows of 6; keys 1-6 top row, 7-12 bottom row), grouped in pages; a key can also be a folder \
 that holds more keys (folders can hold folders). Each key has a look (emoji, \
-picture or animation, label, colors) and a list of actions run when it is pressed (open apps or \
+picture or animation, label, colors), can show something live (the time, CPU/GPU/RAM use, \
+battery, volume, what is playing, OBS, a command's output) and has a list of actions run when it \
+is pressed (open apps or \
 websites, keyboard shortcuts, typed text, media keys, macros of keyboard and mouse steps, shell \
 commands, AppleScript, page switches, brightness).
 
@@ -65,6 +67,7 @@ KEY FIELDS (all optional; a key with nothing is simply left out)
 - icon_scale: 30-200, size of the emoji or picture in percent (default 100; over 100 zooms in).
 - crop: [left, top, right, bottom] for pictures, as fractions of the picture (0-1), e.g. [0.25, 0, 0.75, 1] for the middle square of a 2:1 picture. Keys are square, so make the cropped area square in pixels or the picture is centred inside it (never stretched). Without crop the middle of the picture covers the key, or, on a key with visible text or fill false, the whole picture is shown smaller. Values past 0-1 zoom out: that part shows the key color (for a 2:1 picture, [0, -0.5, 1, 1.5] shows it whole). upload_image tells the picture's size. Setting a new image without crop drops the old crop.
 - actions: list of actions run in order when the key is pressed. ("action": {...} with a single action is also accepted.)
+- live: {"source": "cpu"} makes the key show something that keeps changing; the pad redraws it by itself. Sources: clock (time and date), cpu, gpu, ram, battery, volume (output), mic (input level), music (what Music or Spotify plays; only an app already open is asked, and macOS asks the user once to allow it), obs (streaming, recording, scene; uses the connection in Settings > OBS), command (with "command": a zsh command, and "every": seconds between runs, 2-3600, default 10; shows the first line it prints). The label is the text shown, with values in braces: clock {time} {time12} {ampm} {seconds} {weekday} {day} {month} {year} {date}; cpu/gpu {value}; ram {value} {used} {total} (GB); battery {value} {state}; volume/mic {value} {state}; music {title} {artist} {app} {state}; obs {status} {scene} {stream_time} {record_time}; command {output} {value}. Without a label: "{time}", "CPU {value}%", "{title}", "{status}"... An emoji or picture stays above the text. "style": "meter" (cpu, gpu, ram, battery, volume, mic, or a command that prints a number 0-100) draws a gauge instead: the label as its title, the number, the last minute as a line and a bar that turns amber at 70% and red at 90% (ram: by memory pressure; battery: when low). A text key turns amber or red when the reading needs attention (OBS live or recording, mic at 0, sound muted, CPU/GPU high, battery low, a failing command); "alert": false keeps its color. Readings are only taken while the key is on the pad or open in the configurator. A command source can only be set by you when the user turned on "Allow running actions" in Settings > AI assistants (otherwise ask them to add it in the configurator). Examples: {"label": "{time}", "live": {"source": "clock"}}; {"label": "CPU", "color": "#1A1A19", "live": {"source": "cpu", "style": "meter"}}.
 - folder: {"keys": {"2": spec, "3": spec, ...}} makes the key a folder (keys 2-12; key 1 is the Back key). Make an empty one with {"folder": {"keys": {}}} plus a look (e.g. "emoji": "📁", "label": "Work"), then fill it with set_key on page "<page>/<key>". A folder key may have actions too: they run, then the folder opens. To change a folder key's look use set_key with merge true: replacing the whole key would drop the folder, so set_key refuses that while the folder has keys.
 
 ACTIONS
@@ -122,6 +125,13 @@ KEY_SPEC = {
                  "description": "[left, top, right, bottom], fractions of the picture; see get_reference."},
         "actions": {"type": "array", "items": ACTION},
         "folder": {"type": "object", "description": "Makes the key a folder: {\"keys\": {\"2\": spec, ...}}; see get_reference."},
+        "live": {"type": "object", "description": "Shows something that keeps changing (the label is its text, with {values}); see get_reference.",
+                 "properties": {"source": {"type": "string", "enum": list(live.SOURCES)},
+                                "style": {"type": "string", "enum": list(live.STYLES)},
+                                "alert": {"type": "boolean"},
+                                "command": {"type": "string"}, "every": {"type": "number", "minimum": live.COMMAND_MIN,
+                                                                           "maximum": live.COMMAND_MAX}},
+                 "required": ["source"]},
     },
 }
 
@@ -219,8 +229,10 @@ def _act_summary(a: dict) -> str:
 
 
 def _summary(spec: dict) -> str:
+    lv = spec.get("live") if isinstance(spec.get("live"), dict) else None
     look = " ".join(x for x in (spec.get("emoji"), spec.get("image") and f"[{os.path.basename(spec['image'])}]",
-                                spec.get("label") and json.dumps(spec["label"], ensure_ascii=False)) if x)
+                                spec.get("label") and json.dumps(spec["label"], ensure_ascii=False),
+                                lv and f"[live {lv.get('source')}{' meter' if lv.get('style') == 'meter' else ''}]") if x)
     acts = "; ".join(_act_summary(a) for a in _actions(spec) if isinstance(a, dict))
     if isinstance(spec.get("folder"), dict):
         return (look or "(no icon)") + f" -> folder with {_folder_size(spec)} key(s)" + (f", after: {acts}" if acts else "")
@@ -231,6 +243,28 @@ def _check_image(svc, spec: dict):
     img = spec.get("image")
     if img and not os.path.isfile(os.path.join(svc.cfg["base_dir"], os.path.expanduser(img))):
         raise ToolError(f"image '{img}' not found: add it with upload_image and use the path it returns")
+
+
+def _live_commands(spec: dict) -> set:
+    """The commands of the live keys in a key and the folders inside it."""
+    found = set()
+    for _, _, s in _walk({"pages": {"x": {"keys": {"k": spec}}}}):
+        lv = s.get("live")
+        if isinstance(lv, dict) and lv.get("source") == "command" and isinstance(lv.get("command"), str):
+            found.add(lv["command"].strip())
+    return found
+
+
+def _check_live_commands(svc, raw: dict, new: dict):
+    """A live command runs by itself, every few seconds, without anyone pressing a key: an
+    assistant may only add one when the user allowed it to run actions."""
+    if svc.cfg["mcp"]["allow_run"]:
+        return
+    saved = set().union(*(_live_commands(s) for _, _, s in _walk(raw))) if raw else set()
+    if _live_commands(new) - saved:
+        raise ToolError("a live key with a command runs it by itself every few seconds, so it needs \"Allow running "
+                        "actions\" on in DisplayPad Settings > AI assistants. Ask the user to turn it on, or to add the "
+                        "command in the configurator (Live tab of the key).")
 
 
 def _without_page_refs(raw: dict, name: str) -> list:
@@ -325,6 +359,7 @@ def set_key(svc, a):
             else:
                 new[f] = v
         _check_image(svc, new)
+        _check_live_commands(svc, raw, new)
         if new:
             keys[k] = new
         else:
@@ -611,10 +646,16 @@ def preview_page(svc, a):
     name = a.get("page") or svc.page
     if name not in cfg["pages"]:
         raise ToolError(f"there is no page '{name}'. Pages: {', '.join(cfg['pages'])}")
+    lives = [s["live"] for s in cfg["pages"][name] if s and "live" in s]
+    if lives:  # take readings for its live keys (up to 2 s for the first ones)
+        svc.live.watch("preview", lives, ttl=live.LOOKER_TTL)
+        end = time.monotonic() + 2
+        while not svc.live.ready(lives) and time.monotonic() < end:
+            time.sleep(0.1)
     buf = io.BytesIO()
-    render.preview_sheet(cfg["pages"][name], cfg["base_dir"], cfg["corner_radius"]).save(buf, "PNG")
+    render.preview_sheet(cfg["pages"][name], cfg["base_dir"], cfg["corner_radius"], live=svc.live.face).save(buf, "PNG")
     return [{"type": "text", "text": f"Page '{name}' as the DisplayPad draws it: keys 1-6 top row, 7-12 bottom row "
-                                     "(animated keys show their first frame)."},
+                                     "(animated keys show their first frame" + (", live keys their reading now" if lives else "") + ")."},
             {"type": "image", "data": base64.b64encode(buf.getvalue()).decode(), "mimeType": "image/png"}]
 
 

@@ -8,7 +8,7 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
 
 [Español](README.es.md)
 
-![The configurator: the 12 keys of a page on the left, the editor for key 1 on the right](docs/configurator-keys.png)
+![The configurator starting up: the DisplayPad rises in the middle of the screen, its 12 keys light up and it flies to its place on the page](docs/intro.gif)
 
 > **Made with AI.** This project was written with [Claude Code](https://claude.com/claude-code)
 > (Anthropic's AI coding assistant), directed and tested by a person on a real DisplayPad.
@@ -35,6 +35,11 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
 - **OBS Studio:** start and stop streaming, recording and the virtual camera, switch
   scenes and mute microphones straight through OBS's WebSocket server, even while OBS is
   in the background and without setting up hotkeys in OBS.
+- **Live keys:** a key can show something that keeps changing and redraw itself: the
+  time and date, CPU, GPU and memory use, the battery, the volume and the microphone,
+  what Music or Spotify is playing, whether OBS is live or recording, or a command's
+  output. As text, or as a meter with the number, the last minute as a line and a bar
+  that turns amber and red.
 - **Macros:** record what you do with the keyboard and the mouse (keys, clicks, drags,
   scrolling), edit the steps and the delays, and play it from a key once, several times,
   while the key is held, or on and off with each press.
@@ -98,6 +103,9 @@ Add `--all` to also delete your configuration and pictures.
 Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with the
 **⚙️ Configure** key on the pad, or with `python -m displaypad_mac configure`.
 
+![The configurator: the 12 keys of a page on the left, the editor for key 1 on the right](docs/configurator-keys.png)
+
+
 - **Pages:** tabs at the top. Create, rename and delete pages, mark the start page (★)
   or show a page on the pad.
 - **Ready-made app pages:** **+ Page** and **+ App page** can start from an empty page
@@ -134,7 +142,7 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   picture on it. Copy and paste keys between pages.
 - **The key editor:** the preview and the key's **Name** stay at the top; the rest is in
   tabs: **Style** (icon, size and colors), **Actions** (what the key does; the tab shows
-  how many) and **Folder**. The tab bar stays in view while you scroll, and the editor
+  how many), **Folder** and **Live**. The tab bar stays in view while you scroll, and the editor
   remembers the tab you were on when you pick another key.
 - **Folders:** in the **Folder** tab, **Make this key a folder**, then **Open folder ›** (or
   double-click the key). Inside, key 1 is a fixed **Back** key and the path at the top
@@ -182,6 +190,10 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   scenes. Leave the audio source empty to mute every microphone at once. The editor lists
   your scenes and sources and says whether OBS can be reached. In studio mode, scene keys
   change the preview. Set up the connection first in **Settings → OBS**.
+- **Live:** pick what the key shows (see [Live keys](#live-keys)). For a number (CPU,
+  memory, battery…) choose **Text** or **Meter**. The values you can use in the key's
+  **Name**, like `{time}` or `{value}`, are buttons that add them where the cursor is; the
+  clock has quick formats. The previews on both pads update while you look at them.
 - **Save** (⌘S) checks everything first and tells you which key has a problem. The
   previous file is kept as `config.json.previous`.
 
@@ -208,7 +220,7 @@ The **Settings** tab applies changes right away:
 - **About:** version, service and permission status, and where the configuration and
   log are.
 
-![The Settings tab: language, appearance, DisplayPad brightness and AI assistants](docs/configurator-settings.png)
+![The Settings tab: language, appearance, DisplayPad brightness and key corners, and the OBS connection](docs/configurator-settings.png)
 
 ## AI assistants (MCP)
 
@@ -266,7 +278,7 @@ The server only listens on this Mac, so assistants that run in the cloud and can
 | `update_settings` | Brightness, press feedback, language, appearance, start page |
 | `list_apps` | Installed apps, for "open" actions and pages that open with apps |
 | `upload_image` | Add a picture or animation from a file or base64 |
-| `preview_page` | Picture of a page as the pad draws it |
+| `preview_page` | Picture of a page as the pad draws it, live keys included |
 | `test_actions` | Run actions now (only if you allow it, see below) |
 
 **Security**
@@ -278,7 +290,8 @@ The server only listens on this Mac, so assistants that run in the cloud and can
 - Assistants save actions on keys, and those actions run when you press the key. Only
   connect assistants you trust, and check new keys that run shell commands or AppleScript.
 - **Let assistants run actions right away** is off by default. While it is off,
-  `test_actions` refuses to run anything.
+  `test_actions` refuses to run anything, and an assistant can't add a live key that runs
+  a new command (it can still add every other kind of live key).
 
 ## Animations (GIF and Lottie)
 
@@ -305,6 +318,52 @@ can still be framed), and at most 180 frames (frames in between are dropped if t
 Lottie files are drawn with rlottie at 25 frames per second. Some After Effects features
 (expressions, effects, text layers) may not be drawn; if a Lottie comes out without
 motion the configurator tells you: export it as a GIF instead.
+
+## Live keys
+
+A live key shows a reading instead of a fixed name, and the service redraws it on the pad
+by itself, only when what it shows changes. In the configurator, open a key's **Live** tab;
+by hand, add `"live"` to the key (see [Key fields](#editing-the-configuration-by-hand)).
+
+| `source` | What it shows | Values for the name | Read every |
+|---|---|---|---|
+| `clock` | Time and date | `{time}` (14:05), `{time12}` (2:05), `{ampm}`, `{seconds}`, `{weekday}`, `{day}`, `{month}`, `{year}`, `{date}` (Fri 20 Nov) | second |
+| `cpu` | CPU use, all cores | `{value}` | 2 s |
+| `gpu` | GPU use, as Activity Monitor's GPU History | `{value}` | 2 s |
+| `ram` | Memory used, as Activity Monitor counts it | `{value}` (%), `{used}` (12.5 GB), `{total}` | 2 s |
+| `battery` | Battery charge | `{value}`, `{state}` (charging, on battery…) | 30 s |
+| `volume` | Output volume | `{value}`, `{state}` (muted) | 2 s |
+| `mic` | Microphone input level | `{value}`, `{state}` (muted) | 2 s |
+| `music` | What Music or Spotify is playing | `{title}`, `{artist}`, `{app}`, `{state}` | 3 s |
+| `obs` | OBS Studio streaming and recording | `{status}` (LIVE · REC, Off air), `{scene}`, `{stream_time}`, `{record_time}` | 2 s |
+| `command` | A shell command's output | `{output}` (its first line), `{value}` (the first number in it) | `every` seconds |
+
+- **Text** (the default) draws the key's **Name** with the values in place, like
+  `"{weekday} {day} {time}"`. With no name it shows the reading on its own
+  (`{time}`, `CPU {value}%`, `{title}`…).
+- **Meter** (`"style": "meter"`, for CPU, GPU, memory, battery, volume, microphone and
+  commands) draws the name as a title, the number large, the last minute as a line and a
+  bar. The bar turns amber at 70 % and red at 90 %; memory follows macOS's memory
+  pressure instead, the battery turns amber at 20 % and red at 10 % unless it is
+  charging, and volume and microphone meters turn grey while muted. The key's colors are used for the background and the text.
+- **Alert:** text keys turn amber or red when the reading needs attention (OBS live or
+  recording, the microphone muted, the sound muted, high CPU or GPU, a low battery, a
+  command that fails). `"alert": false` turns that off.
+- **Commands** run with `zsh -l` every `every` seconds (2 to 3600, 10 by default) and are
+  stopped after 10 seconds. A meter uses the first number the command prints, from 0 to
+  100. A command only runs once the key is saved, and the configurator's preview shows
+  "save the key to run its command" until then.
+- **What is playing:** only an app that is already open is asked, so a live key never
+  opens Music or Spotify. The first time, macOS asks whether DisplayPad may control the
+  app; if you said no, the key says so and you can allow it in **System Settings → Privacy
+  & Security → Automation**.
+- **OBS** uses the connection in **Settings → OBS** and is only asked while OBS is open.
+
+Readings are only taken while a live key is on the pad or open in the configurator, each
+source once for all the keys that show it. Live keys share the ≈ 52 pictures per second of
+the pad with animations, but a live key only sends a picture when it changes: a clock
+once a minute (once a second with `{seconds}`), a meter every 2 seconds. While you hold a
+live key down it stays still and darkened.
 
 ## Editing the configuration by hand
 
@@ -337,6 +396,14 @@ reloaded as soon as you save it.** Keys are numbered 1 to 12: 1-6 on the top row
 `corner_radius` rounds the corners of every key picture, in pixels of the 102-pixel face:
 `0` is square, `12` is the default, `51` is round.
 
+A live clock and a CPU meter:
+
+```json
+"3": {"label": "{weekday} {day}\n{time}", "color": "#1C1C24", "live": {"source": "clock"}},
+"4": {"label": "CPU", "live": {"source": "cpu", "style": "meter"},
+      "actions": [{"type": "open", "target": "Activity Monitor"}]}
+```
+
 **Pages that open with apps:** a page can have `"apps"`, the names of the apps' `.app`
 as the configurator lists them, and `"when"`: `"open"` (the default: shown while one of
 them is open) or `"front"` (shown while one of them is in front). For example:
@@ -359,6 +426,7 @@ needs no extra permission for it.
 | `text_color` | Text color |
 | `action` / `actions` | One action, or a list run in order |
 | `folder` | Makes the key a folder: `{"keys": {"2": {...}, "3": {...}}}`, with keys 2 to 12 (key 1 is its Back key). A folder can hold folders. Its own actions, if any, run before it opens |
+| `live` | Makes it a [live key](#live-keys): `{"source": "cpu", "style": "meter"}`. `source` is required; `style` is `text` (default) or `meter`; `alert`: `false` keeps the colors; a `command` key also has `command` and `every` (seconds). The `label` is the text, with values like `{time}` in place |
 
 **Actions**
 
@@ -468,6 +536,12 @@ cd ~/Library/Application\ Support/DisplayPadMac
 - **OBS keys do nothing:** **Settings → OBS → Test connection** says why. OBS must be
   open with **Tools → WebSocket Server Settings → Enable WebSocket server** on, and the
   password must match the one in **Show Connect Info**.
+- **A "What is playing" key says to allow it in Settings:** macOS asked whether
+  DisplayPad may control Music or Spotify and it was refused. Allow it in **System
+  Settings → Privacy & Security → Automation**.
+- **A live command key shows a dash or an error:** the preview shows the command's error;
+  test the command in Terminal with `zsh -lc '...'`. Commands that take longer than 10
+  seconds are stopped.
 - **`Another DisplayPadMac instance is already running`:** only one program can use the
   DisplayPad at a time. Stop the service before using `test`.
 

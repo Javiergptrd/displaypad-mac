@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DisplayPad</title>
+<script>
+// The boot-up intro (in the look script at the end) keeps the page hidden until the pad has flown into
+// its place. Never with reduced motion; and the page shows by itself after 10 s whatever happens (CSS).
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("booting");
+</script>
 <style>
 [hidden] { display: none !important; }
 :root {
@@ -29,15 +34,67 @@
   --err-bg: #2f181c; --err-line: #5e2a32; --pad: #0c0c0f; --pad-edge: #26262e; --shadow: none;
   color-scheme: dark;
 }
+/* ---------------------------------------------------------------- backdrop: dark colours that drift and
+   slowly shift from one to the next, with a dot grid rippling over them in a wave */
+:root {
+  --bd-top: #f8f9fd; --bd-base: #eceef5;
+  --glow-a: rgba(120,110,255,.20); --glow-b: rgba(60,190,215,.16); --glow-c: rgba(215,120,225,.16);
+  --glow-d: rgba(90,140,255,.18); --glow-e: rgba(70,200,160,.14); --glow-f: rgba(255,150,120,.13);
+  --dot: 50,56,96; --dot-max: .2;
+  --glass: color-mix(in srgb, var(--panel) 80%, transparent);
+  /* raised buttons: face top and bottom, edge, the wall under them, the light on the top lip, the shadow they cast */
+  --btn-top: #ffffff; --btn-bot: #e9ebf2; --btn-line: #d2d5de; --btn-wall: #b9bdcb; --btn-hi: rgba(255,255,255,.95); --btn-drop: rgba(30,35,60,.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bd-top: #0f0f18; --bd-base: #07070b;
+    --glow-a: rgba(88,70,220,.30); --glow-b: rgba(18,130,160,.24); --glow-c: rgba(150,48,170,.24);
+    --glow-d: rgba(36,84,220,.28); --glow-e: rgba(16,150,120,.20); --glow-f: rgba(190,60,100,.18);
+    --dot: 190,200,255; --dot-max: .3;
+    --btn-top: #373742; --btn-bot: #22222a; --btn-line: #42424d; --btn-wall: #16161c; --btn-hi: rgba(255,255,255,.14); --btn-drop: rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --bd-top: #0f0f18; --bd-base: #07070b;
+  --glow-a: rgba(88,70,220,.30); --glow-b: rgba(18,130,160,.24); --glow-c: rgba(150,48,170,.24);
+  --glow-d: rgba(36,84,220,.28); --glow-e: rgba(16,150,120,.20); --glow-f: rgba(190,60,100,.18);
+  --dot: 190,200,255; --dot-max: .3;
+  --btn-top: #373742; --btn-bot: #22222a; --btn-line: #42424d; --btn-wall: #16161c; --btn-hi: rgba(255,255,255,.14); --btn-drop: rgba(0,0,0,.6);
+}
+#backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% -10%, var(--bd-top), var(--bd-base) 70%); }
+#backdrop .glow { position: absolute; inset: -30%; opacity: 0; will-change: opacity, transform;
+  animation: glow-fade 54s linear infinite, glow-drift 36s ease-in-out infinite alternate; }
+#backdrop .g1 { background: radial-gradient(32% 38% at 28% 32%, var(--glow-a), transparent 70%),
+  radial-gradient(26% 32% at 74% 68%, var(--glow-b), transparent 70%); }
+#backdrop .g2 { background: radial-gradient(30% 36% at 70% 30%, var(--glow-c), transparent 70%),
+  radial-gradient(30% 34% at 30% 72%, var(--glow-d), transparent 70%); animation-delay: -18s, -12s; }
+#backdrop .g3 { background: radial-gradient(34% 40% at 50% 45%, var(--glow-e), transparent 70%),
+  radial-gradient(24% 30% at 82% 22%, var(--glow-f), transparent 70%); animation-delay: -36s, -24s; }
+@keyframes glow-fade { 0%, 50%, 100% { opacity: 0; } 16%, 34% { opacity: 1; } }
+@keyframes glow-drift { from { transform: translate3d(-5%, -4%, 0) rotate(-4deg); } to { transform: translate3d(5%, 4%, 0) rotate(6deg) scale(1.12); } }
+#dots { position: absolute; inset: 0; width: 100%; height: 100%;
+  -webkit-mask-image: radial-gradient(140% 110% at 50% 35%, #000 35%, rgba(0,0,0,.3)); mask-image: radial-gradient(140% 110% at 50% 35%, #000 35%, rgba(0,0,0,.3)); }
+@media (prefers-reduced-motion: reduce) { #backdrop .glow { animation: none; } #backdrop .g2 { opacity: 1; } }
+#gate, #app { position: relative; z-index: 1; }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; }
+/* buttons stand up off the page like keys: a lit top lip, a wall under them, a soft shadow; pressed, they go down */
+button { cursor: pointer; border: 1px solid var(--btn-line); border-radius: 8px; padding: 6px 12px;
+  background: linear-gradient(180deg, var(--btn-top), var(--btn-bot));
+  box-shadow: inset 0 1px 0 var(--btn-hi), inset 0 -1px 0 rgba(0,0,0,.1), 0 3px 0 var(--btn-wall), 0 5px 10px -3px var(--btn-drop);
+  transition: transform .07s ease, box-shadow .07s ease, border-color .15s; }
 button:hover:not(:disabled) { border-color: var(--muted); }
+button:where(:not(:disabled, .key, .auto-app *, .ed-tabs *, .palette *, .ep-nav *, .seg *)):active {
+  transform: translateY(3px); box-shadow: inset 0 1px 3px var(--btn-drop), inset 0 0 0 transparent, 0 0 0 var(--btn-wall), 0 1px 2px -1px var(--btn-drop); }
 button:disabled { opacity: .45; cursor: default; }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-button.ghost { background: transparent; }
+button.primary { --btn-wall: color-mix(in srgb, var(--accent) 50%, #000); --btn-hi: rgba(255,255,255,.3);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent));
+  border-color: color-mix(in srgb, var(--accent) 82%, #000); color: var(--on-accent); font-weight: 600; }
+button.ghost { background: linear-gradient(180deg, color-mix(in srgb, var(--btn-top) 45%, transparent), color-mix(in srgb, var(--btn-bot) 45%, transparent)); }
 button.small { padding: 3px 9px; font-size: 13px; }
 button.icon { padding: 3px 7px; min-width: 28px; }
 button.danger { color: var(--danger); }
@@ -55,7 +112,7 @@ small, .hint { color: var(--muted); font-size: 12px; }
 code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius: 5px; word-break: break-all; }
 
 header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 20px;
-  background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  background: color-mix(in srgb, var(--bg) 62%, transparent); -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%); border-bottom: 1px solid var(--line); }
 .brand { font-weight: 700; font-size: 16px; display: flex; gap: 8px; align-items: center; }
 .brand i { width: 22px; height: 14px; border-radius: 3px; background:
   linear-gradient(90deg, var(--accent) 0 30%, transparent 30% 35%, var(--accent) 35% 65%, transparent 65% 70%, var(--accent) 70%); opacity: .85; }
@@ -72,17 +129,20 @@ header { position: sticky; top: 0; z-index: 5; display: flex; align-items: cente
 
 main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; padding: 16px 20px 40px; max-width: 1240px; margin: 0 auto; align-items: start; }
 @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.card { background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
 h2 { font-size: 15px; margin: 0 0 12px; }
 h3 { font-size: 13px; margin: 18px 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .tab { border-radius: 99px; padding: 5px 14px; }
-.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); transform: translateY(2px);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.35), inset 0 0 0 transparent, 0 1px 0 var(--btn-wall), 0 2px 4px -2px var(--btn-drop); }
 .tab .star { color: #e2a400; margin-left: 4px; }
 .pagebar { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 16px; }
-.pad-card { transition: border-color .15s, box-shadow .15s; }
+.pad-card { transition: border-color .15s, box-shadow .15s; background: color-mix(in srgb, var(--panel) 38%, transparent);
+  -webkit-backdrop-filter: none; backdrop-filter: none; } /* the pad stands over the moving dots */
 .pad-card.active { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow); }
 .pad-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .pad-head h2 { margin: 0; }
@@ -105,7 +165,7 @@ dialog.auto-dlg { width: min(480px, 94vw); }
 dialog.auto-dlg h2 { margin: 0 0 6px; }
 .auto-apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; min-height: 26px; align-items: center; }
 .auto-app { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 99px; padding: 2px 2px 2px 10px; background: var(--bg); }
-.auto-app button { border: 0; background: none; padding: 0 7px; color: var(--muted); font-size: 15px; line-height: 1.2; }
+.auto-app button { border: 0; background: none; box-shadow: none; padding: 0 7px; color: var(--muted); font-size: 15px; line-height: 1.2; }
 .auto-dlg .field-line input { flex: 1; }
 .auto-dlg .lbl { margin-top: 12px; }
 .auto-when { align-items: flex-start; margin-top: 6px; }
@@ -137,23 +197,115 @@ dialog.np-dlg h2 { margin: 0 0 12px; }
 .preset-keys kbd { flex: none; font: 12px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
 @media (max-width: 520px) { .preset-keys { grid-template-columns: 1fr; } }
 
-.device { background: linear-gradient(180deg, var(--pad-edge), var(--pad)); border-radius: 22px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: 760px; }
-.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
-.key { position: relative; aspect-ratio: 1; padding: 0; border-radius: calc(var(--face-r, 11.76) * 1%); border: 2px solid transparent; background: #000; overflow: hidden; }
-.key img { width: 100%; height: 100%; display: block; image-rendering: auto; border-radius: calc(var(--face-r, 11.76) * 1%); }
-.key .n { position: absolute; top: 3px; left: 5px; font-size: 10px; color: rgba(255,255,255,.55); text-shadow: 0 0 3px #000; }
-.key .acts { position: absolute; right: 4px; bottom: 3px; font-size: 10px; color: rgba(255,255,255,.7); text-shadow: 0 0 3px #000; }
-.key.sel { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
-.key.over { border-color: #fff; border-style: dashed; }
-.key:hover:not(.sel) { border-color: rgba(255,255,255,.35); }
-.key .fold { position: absolute; top: 3px; right: 4px; font-size: 10px; line-height: 15px; padding: 0 4px; border-radius: 6px; color: #fff; background: rgba(0,0,0,.6); }
-.key.back { border-style: dashed; border-color: rgba(255,255,255,.25); }
+/* ---------------------------------------------------------------- the DisplayPad in 3D, as it sits on the desk:
+   a brushed black aluminium plate leaning back on a glossy black base, with clear glass caps over the screens.
+   Sizes are in cqi (1% of the pad's width), in the real pad's proportions, so it looks the same at any size.
+   It turns a little towards the pointer (not while dragging, and not with reduced motion). */
+.device { --lean: 21deg; container-type: inline-size; position: relative; max-width: 780px; margin: 4px auto 0; padding: 6px 8px 34px;
+  border-radius: 24px; perspective: 1400px; perspective-origin: 50% 10%; }
+.device::after { content: ""; position: absolute; z-index: -1; left: 6%; right: 6%; bottom: 10px; height: 34px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.65), transparent); filter: blur(6px); }
+.dp-body { position: relative; perspective: 1100px; perspective-origin: 50% 0%;
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); transition: transform .7s cubic-bezier(.2,.7,.2,1); }
+.dp-plate { position: relative; z-index: 2; transform-style: preserve-3d; transform-origin: 50% 100%; transform: rotateX(var(--lean));
+  padding: 5.8cqi 9.6cqi 6.2cqi; border-radius: 1.6cqi;
+  background:
+    linear-gradient(115deg, transparent calc(28% + var(--sheen, 0%)), rgba(255,255,255,.07) calc(42% + var(--sheen, 0%)), transparent calc(56% + var(--sheen, 0%))),
+    linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.035) .9cqi, transparent 1.3cqi),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='700'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0018 .95' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='3 0 0 0 -1 3 0 0 0 -1 3 0 0 0 -1 0 0 0 0 .06'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #19191e, #0d0d10 45%, #060608);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 1px 0 0 rgba(255,255,255,.06), inset -1px 0 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.45); }
+/* the plate's thickness along its bottom edge, brushed like the face */
+.dp-plate::after { content: ""; position: absolute; left: .5cqi; right: .5cqi; top: calc(100% - 1px); height: 3.2cqi; border-radius: 0 0 1.2cqi 1.2cqi;
+  transform-origin: 50% 0; transform: rotateX(-90deg);
+  background: linear-gradient(180deg, rgba(255,255,255,.2), transparent 2px), repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #2a2a31, #111114 60%, #08080a); }
+/* the glossy base: a polished bevel along the top, then a black face with the mark in the middle */
+.dp-base { position: relative; z-index: 1; display: flex; align-items: center; height: 10.4cqi; margin: -1.8cqi -1cqi 0; padding: 3.4cqi 3.6cqi 0;
+  border-radius: .8cqi .8cqi 2cqi 2cqi;
+  background:
+    linear-gradient(180deg, transparent 1.8cqi, rgba(255,255,255,.42) 1.8cqi, rgba(255,255,255,.12) calc(1.8cqi + 1.5px), rgba(255,255,255,.04) 2.6cqi,
+      transparent calc(3.4cqi - 2px), rgba(255,255,255,.16) calc(3.4cqi - 1px), transparent 3.4cqi),
+    radial-gradient(60% 50% at 50% 3.4cqi, rgba(255,255,255,.06), transparent 70%),
+    linear-gradient(90deg, rgba(255,255,255,.02), rgba(255,255,255,.07) 22%, rgba(255,255,255,.015) 48%, rgba(255,255,255,.05) 78%, rgba(255,255,255,.015)),
+    linear-gradient(180deg, #1c1c21 0, #111115 3.4cqi, #050506 3.4cqi, #030304 70%, #0b0b0e);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.1), inset 1px 0 0 rgba(255,255,255,.05), inset -1px 0 0 rgba(255,255,255,.05),
+    0 2.6cqi 4cqi -1.6cqi rgba(0,0,0,.85); }
+.dp-mark { position: absolute; left: 50%; top: calc(50% + 1.7cqi); width: 8.6cqi; height: 1.15cqi; transform: translate(-50%, -50%); opacity: .9;
+  background: linear-gradient(90deg, #6a6a74, #e4e4ec); clip-path: polygon(0 100%, 100% 0, 86% 100%); }
+.device-foot { flex: 1; min-width: 0; display: flex; justify-content: space-between; color: #6f6f7a; font-size: 10px; letter-spacing: .08em; }
+.device-foot span { max-width: calc(50% - 5.4cqi - 6px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* clear of the mark */
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2.5cqi; transform-style: preserve-3d; }
+/* a key is the screen set inside a thick clear cap: the glass walls catch the light around the screen,
+   the cap's lower wall shows under it, and it stands off the plate. Pressing pushes it in. */
+.key { --cap: 8%; --wall: .5cqi; --rim: rgba(255,255,255,.36); --glow: rgba(120,160,255,.1); --ring: 0 0 transparent;
+  position: relative; aspect-ratio: 1; padding: var(--cap); border: 0; overflow: hidden;
+  border-radius: calc(var(--face-r, 11.76) * .84% + 8%);
+  background: linear-gradient(165deg, rgba(222,232,255,.5), rgba(150,168,210,.26) 38%, rgba(110,128,175,.22) 70%, rgba(170,188,230,.36));
+  transform: translateZ(8px); transition: transform .1s ease, box-shadow .15s, opacity .15s;
+  box-shadow: var(--ring), inset 0 0 0 1px var(--rim), inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.35),
+    0 var(--wall) 0 rgba(150,166,205,.38), 0 calc(var(--wall) * 1.8) 1.3cqi rgba(0,0,0,.65), 0 0 2.6cqi var(--glow); }
+/* the glass's top surface: a reflection over the whole cap */
+.key::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(155deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.05) 30%, transparent 47%),
+    radial-gradient(120% 60% at 50% 118%, rgba(255,255,255,.08), transparent 60%); }
+.key img { width: 100%; height: 100%; display: block; image-rendering: auto; background: #000;
+  border-radius: calc(var(--face-r, 11.76) * 1%); box-shadow: 0 0 0 1px rgba(0,0,0,.7), 0 0 5px rgba(0,0,0,.45); }
+.key:active { --wall: .12cqi; transform: translateZ(2px); }
+@container (max-width: 520px) {
+  .dp-plate { --lean: 14deg; padding: 4.6cqi 5cqi 5cqi; border-radius: 2cqi; }
+  .grid { gap: 2cqi; }
+  .key { --cap: 7%; border-radius: calc(var(--face-r, 11.76) * .86% + 7%); }
+}
+@media (max-width: 640px) { .device { padding: 4px 2px 28px; } }
+@media (prefers-reduced-motion: reduce) { .dp-body, .key { transition: none; } }
+.key .n { position: absolute; top: calc(var(--cap) + 2px); left: calc(var(--cap) + 4px); font-size: 10px; color: rgba(255,255,255,.55); text-shadow: 0 0 3px #000; }
+.key.meter .n { display: none; } /* a meter has its title there; the key number is in the editor */
+.key .acts { position: absolute; right: calc(var(--cap) + 3px); bottom: calc(var(--cap) + 2px); font-size: 10px; color: rgba(255,255,255,.7); text-shadow: 0 0 3px #000; }
+.key.sel { --rim: color-mix(in srgb, var(--accent) 60%, #fff); --glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --ring: 0 0 0 2px #0b0b0e, 0 0 0 4px var(--accent); }
+.key.over { outline: 2px dashed #fff; outline-offset: 3px; }
+.key:hover:not(.sel) { --rim: rgba(255,255,255,.62); --glow: rgba(140,180,255,.22); }
+.key .fold { position: absolute; top: calc(var(--cap) + 2px); right: calc(var(--cap) + 3px); font-size: 10px; line-height: 15px; padding: 0 4px; border-radius: 6px; color: #fff; background: rgba(0,0,0,.6); }
+.key.back { outline: 1.5px dashed rgba(255,255,255,.3); outline-offset: 3px; }
+/* ---------------------------------------------------------------- boot-up intro: the pad rises in the middle of the
+   screen and its plate comes up, the screens power on in a wave while the page loads (the bar on the base follows
+   the loading), the keys come up on them, and the pad flies to its place as the page fades in.
+   A click or a key skips ahead. The intro is a copy of the first pad; the real one is hidden until it lands. */
+html.booting #app { opacity: 0; pointer-events: none; animation: boot-failsafe 0s 10s forwards; }
+@keyframes boot-failsafe { to { opacity: 1; pointer-events: auto; } }
+#intro { position: fixed; inset: 0; z-index: 50; pointer-events: none; overflow: hidden; }
+#intro .device { position: absolute; left: 0; top: 0; margin: 0; max-width: none; transform-origin: 0 0; }
+.device.intro-hide { visibility: hidden; }
+.boot-scr { position: absolute; inset: var(--cap); border-radius: calc(var(--face-r, 11.76) * 1%); background: #000; transition: opacity .38s ease; }
+.boot-scr::before { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0;
+  background: radial-gradient(130% 100% at 50% 18%, hsl(calc(220deg + var(--c, 0) * 9deg) 92% 64%), hsl(calc(230deg + var(--c, 0) * 9deg) 74% 30%) 55%,
+    hsl(calc(238deg + var(--c, 0) * 9deg) 70% 11%));
+  animation: scr-on .55s cubic-bezier(.2,.7,.2,1) var(--d, 0s) forwards; }
+.boot-scr.lit::before { animation: none; opacity: 1; }
+.boot-scr.off { opacity: 0; }
+@keyframes scr-on { 0% { opacity: 0; } 25% { opacity: 1; filter: brightness(2.3) saturate(.6); } 100% { opacity: 1; filter: none; } }
+.boot-sweep { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; transform: translateZ(14px); transition: opacity .3s; }
+.boot-sweep::before { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(200,215,255,.16), transparent); animation: boot-sweep 1.5s cubic-bezier(.45,0,.55,1) 1.1s infinite backwards; }
+@keyframes boot-sweep { from { transform: translateX(0); } to { transform: translateX(350%); } }
+#intro.faces .boot-sweep { opacity: 0; }
+#intro .dp-mark { animation: mark-on 1s ease .25s backwards; }
+@keyframes mark-on { from { opacity: .08; filter: brightness(.5); } 45% { opacity: 1; filter: brightness(1.7); } }
+.boot-bar { position: absolute; left: 50%; top: calc(50% + 3.4cqi); width: 15cqi; height: max(2px, .3cqi); transform: translate(-50%, -50%);
+  border-radius: 99px; background: rgba(255,255,255,.09); overflow: hidden; transition: opacity .3s; }
+.boot-bar b { display: block; width: var(--p, 3%); height: 100%; border-radius: inherit; background: linear-gradient(90deg, #4f74ff, #a8d4ff);
+  box-shadow: 0 0 6px #6d97ff; transition: width .45s ease; }
+#intro .device-foot { opacity: 0; transition: opacity .5s; }
+#intro.flying .device-foot { opacity: 1; }
+#intro.flying .boot-bar { opacity: 0; }
 .tab.over, .crumbs button.over { outline: 2px dashed var(--accent); outline-offset: 2px; }
 .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: -4px 0 12px; font-size: 13px; }
 .crumbs button { border-radius: 99px; padding: 3px 12px; }
 .crumbs .sep { color: var(--muted); }
 .crumbs .here { font-weight: 600; padding: 3px 6px; }
-.device-foot { display: flex; justify-content: space-between; color: #8a8a96; font-size: 11px; margin-top: 14px; letter-spacing: .05em; }
 
 .left > * + * { margin-top: 16px; }
 .slider { display: flex; gap: 10px; align-items: center; }
@@ -168,9 +320,9 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .ed-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .ed-name small { display: block; }
 .ed-tabs { position: sticky; top: -16px; z-index: 2; display: flex; gap: 2px; margin: 16px -16px 0; padding: 0 10px;
-  background: var(--panel); border-bottom: 1px solid var(--line); }
+  background: color-mix(in srgb, var(--panel) 92%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
 .ed-tabs button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
-  background: none; padding: 10px 10px 8px; margin-bottom: -1px; color: var(--muted); font-weight: 600; }
+  background: none; box-shadow: none; padding: 10px 10px 8px; margin-bottom: -1px; color: var(--muted); font-weight: 600; }
 .ed-tabs button:hover { color: var(--text); }
 .ed-tabs button[aria-selected=true], .ed-tabs button[aria-selected=true]:hover { color: var(--text); border-bottom-color: var(--accent); }
 .ed-tabs .badge { font-size: 11px; line-height: 17px; min-width: 18px; padding: 0 6px; border-radius: 99px; text-align: center;
@@ -180,12 +332,15 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .ed-panel > h3:first-child { margin-top: 0; }
 .tab-intro { margin: 0 0 12px; }
 .stack > .tab-intro { margin-bottom: 0; }
+.live-fields button { padding: 2px 8px; }
 .ed-top img { width: 112px; height: 112px; border-radius: calc(var(--face-r, 11.76) * 1%); background: #000; flex: none; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--chip); }
-.seg button { border: 0; background: transparent; border-radius: 7px; padding: 4px 12px; }
-.seg button[aria-pressed=true] { background: var(--panel); box-shadow: var(--shadow); font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--chip);
+  box-shadow: inset 0 1px 3px var(--btn-drop), inset 0 -1px 0 var(--btn-hi); }
+.seg button { border: 0; background: transparent; box-shadow: none; border-radius: 7px; padding: 4px 12px; }
+.seg button[aria-pressed=true] { background: linear-gradient(180deg, var(--btn-top), var(--btn-bot)); font-weight: 600;
+  box-shadow: inset 0 1px 0 var(--btn-hi), 0 0 0 1px var(--btn-line), 0 1px 0 1px var(--btn-wall), 0 2px 5px -1px var(--btn-drop); }
 .palette { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; margin-top: 8px; }
-.palette button { border: 0; background: transparent; font-size: 20px; padding: 3px 0; border-radius: 6px; }
+.palette button { border: 0; background: transparent; box-shadow: none; font-size: 20px; padding: 3px 0; border-radius: 6px; }
 .palette button:hover { background: var(--chip); }
 .palette button[aria-pressed=true] { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .emoji-picker { display: flex; flex-direction: column; gap: 8px; }
@@ -197,7 +352,7 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .ep-lbl { margin: 2px 0 0; }
 .ep-err { color: var(--danger); }
 .ep-nav { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
-.ep-nav button { border: 0; background: transparent; font-size: 17px; padding: 3px 4px; border-radius: 6px; opacity: .55; }
+.ep-nav button { border: 0; background: transparent; box-shadow: none; font-size: 17px; padding: 3px 4px; border-radius: 6px; opacity: .55; }
 .ep-nav button:hover, .ep-nav button[aria-current=true] { opacity: 1; background: var(--chip); }
 .ep-scroll { position: relative; max-height: 330px; overflow-y: auto; overscroll-behavior: contain; margin-top: -4px; }
 .ep-sec h4 { position: sticky; top: 0; z-index: 1; margin: 0; padding: 6px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--panel); }
@@ -222,16 +377,17 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .kbd { display: flex; }
 .kbd { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .kbd span { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 7px; background: var(--panel); font-size: 13px; min-width: 24px; text-align: center; }
-button.rec { background: var(--danger); border-color: var(--danger); color: #fff; }
+button.rec { --btn-wall: color-mix(in srgb, var(--danger) 48%, #000); --btn-hi: rgba(255,255,255,.3);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--danger) 82%, #fff), var(--danger)); border-color: color-mix(in srgb, var(--danger) 80%, #000); color: #fff; }
 dialog.osk-dlg { width: min(780px, 96vw); }
 dialog.osk-dlg h2 { margin: 0 0 6px; }
 .osk { display: flex; flex-direction: column; gap: 4px; user-select: none; -webkit-user-select: none; }
 .osk-row { display: flex; gap: 4px; }
-.osk-key { flex: 1 1 0; min-width: 0; height: 34px; padding: 0 3px; font-size: 12px; border-radius: 6px;
-  border-bottom-width: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.osk-key { flex: 1 1 0; min-width: 0; height: 34px; padding: 0 3px; font-size: 12px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .osk-key.mod { font-size: 15px; }
 .osk-key.word { font-size: 11px; }
-.osk-key.on, .osk-key.mod.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.osk-key.on, .osk-key.mod.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); transform: translateY(3px);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.3), inset 0 0 0 transparent, 0 0 0 color-mix(in srgb, var(--accent) 50%, #000); }
 .osk-key.gap { visibility: hidden; }
 .osk-more { display: flex; flex-wrap: wrap; gap: 4px; }
 .osk-more .osk-key { flex: 0 0 auto; min-width: 46px; }
@@ -322,6 +478,7 @@ a { color: var(--accent); }
 </style>
 </head>
 <body>
+<div id="backdrop" aria-hidden="true"><i class="glow g1"></i><i class="glow g2"></i><i class="glow g3"></i><canvas id="dots"></canvas></div>
 <div id="gate" hidden>
   <h2 data-t="gate_title"></h2>
   <p class="hint" data-t-html="gate_text"></p>
@@ -364,8 +521,10 @@ a { color: var(--accent); }
         <nav class="crumbs" id="crumbs" hidden data-t-aria="crumbs_label"></nav>
       </div>
       <div class="device">
-        <div class="grid"></div>
-        <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span class="pname"></span></div>
+        <div class="dp-body">
+          <div class="dp-plate"><div class="grid"></div></div>
+          <div class="dp-base"><i class="dp-mark"></i><div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span class="pname"></span></div></div>
+        </div>
       </div>
       <div class="pad-empty" hidden><p data-t="pad_empty_pages"></p><button class="small" id="pad-new-page" data-t="new_page_btn"></button></div>
     </div>
@@ -378,8 +537,10 @@ a { color: var(--accent); }
       <div class="tabs" id="app-tabs" role="tablist" aria-labelledby="apps-h"></div>
       <div class="pad-tools"></div>
       <div class="device">
-        <div class="grid"></div>
-        <div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span class="pname"></span></div>
+        <div class="dp-body">
+          <div class="dp-plate"><div class="grid"></div></div>
+          <div class="dp-base"><i class="dp-mark"></i><div class="device-foot"><span>MOUNTAIN DISPLAYPAD</span><span class="pname"></span></div></div>
+        </div>
       </div>
       <div class="pad-empty" hidden><p data-t="pad_empty_apps"></p><button class="small" id="pad-new-app" data-t="new_app_page_btn"></button></div>
     </div>
@@ -499,7 +660,25 @@ const STRINGS = {
     size_hint_icon: "Over 100 % makes the icon bigger; if there is text, the text stays on top.",
     page_ref: "page “{name}”", copy: "Copy", copy_title: "Copy this key", copied_key: "Key copied.",
     paste: "Paste", paste_title: "Paste onto this key", clear: "Clear", clear_title: "Make this key empty",
-    key_tabs: "Key settings", tab_style: "Style", tab_actions: "Actions", tab_folder: "Folder",
+    key_tabs: "Key settings", tab_style: "Style", tab_actions: "Actions", tab_folder: "Folder", tab_live: "Live",
+    live_intro: "Show something that keeps changing: the time, CPU or memory use, what is playing, OBS… The key redraws by itself, on the pad and here. Readings are only taken while the key is on the pad or open here.",
+    live_shows: "Shows", live_none: "Nothing (a normal key)",
+    src_clock: "Time and date", src_cpu: "CPU use", src_gpu: "GPU use", src_ram: "Memory (RAM) use", src_battery: "Battery",
+    src_volume: "Volume", src_mic: "Microphone level", src_music: "What is playing (Music, Spotify)", src_obs: "OBS: live, recording, scene",
+    src_command: "A command's output", src_mic_short: "Mic",
+    live_style: "Look", style_text: "Text", style_meter: "Meter",
+    live_text_hint: "The key shows its Name (above) with these values in place. Click one to add it:",
+    live_default_text: "Default text", live_formats: "Quick formats",
+    live_meter_hint: "A gauge with the number, the last minute as a line and a bar. The key's Name (above) is its title. The bar turns amber at 70% and red at 90% (memory: by macOS's memory pressure; battery: when it runs low; volume and mic: grey while muted).",
+    live_alert: "Color the key amber or red when it needs attention",
+    live_alert_hint: "OBS live or recording, the microphone at 0, the sound muted, CPU or GPU high, the battery low, a command that fails.",
+    live_cmd: "Command", live_every: "Every (seconds)",
+    live_cmd_hint: "Runs with zsh every few seconds while the key is on view; the key shows the first line it prints ({output}), and a meter the first number in it (0-100). It runs once you save.",
+    live_cmd_empty: "Write the command to run.",
+    live_music_hint: "Only an app that is already open is asked, so nothing opens by itself. The first time, macOS asks whether DisplayPad may control Music or Spotify: allow it.",
+    live_obs_hint: "Uses the connection in Settings › OBS. The key turns red while you are live or recording.",
+    live_gpu_hint: "The use the graphics chip reports, like Activity Monitor's GPU History.",
+    live_badge: "●",
     icon_h: "Icon", colors_h: "Colors", text_field: "Name", text_ph: "E.g. Outlook",
     hide_text: "Hide the name on the key", hide_text_title: "It is kept, so you can show it again.",
     bg: "Background", fg: "Text color", default_colors: "Default colors",
@@ -728,7 +907,25 @@ const STRINGS = {
     size_hint_icon: "Más de 100 % agranda el ícono; si hay texto, el texto queda encima.",
     page_ref: "página «{name}»", copy: "Copiar", copy_title: "Copiar esta tecla", copied_key: "Tecla copiada.",
     paste: "Pegar", paste_title: "Pegar sobre esta tecla", clear: "Vaciar", clear_title: "Dejar esta tecla vacía",
-    key_tabs: "Ajustes de la tecla", tab_style: "Estilo", tab_actions: "Acciones", tab_folder: "Carpeta",
+    key_tabs: "Ajustes de la tecla", tab_style: "Estilo", tab_actions: "Acciones", tab_folder: "Carpeta", tab_live: "En vivo",
+    live_intro: "Muestra algo que va cambiando: la hora, el uso de CPU o memoria, lo que suena, OBS… La tecla se redibuja sola, en el pad y aquí. Los datos solo se leen mientras la tecla está en el pad o abierta aquí.",
+    live_shows: "Muestra", live_none: "Nada (una tecla normal)",
+    src_clock: "Hora y fecha", src_cpu: "Uso de CPU", src_gpu: "Uso de GPU", src_ram: "Uso de memoria (RAM)", src_battery: "Batería",
+    src_volume: "Volumen", src_mic: "Nivel del micrófono", src_music: "Lo que suena (Música, Spotify)", src_obs: "OBS: en vivo, grabando, escena",
+    src_command: "La salida de un comando", src_mic_short: "Micro",
+    live_style: "Aspecto", style_text: "Texto", style_meter: "Medidor",
+    live_text_hint: "La tecla muestra su Nombre (arriba) con estos valores en su lugar. Haz clic en uno para añadirlo:",
+    live_default_text: "Texto por defecto", live_formats: "Formatos rápidos",
+    live_meter_hint: "Un medidor con el número, el último minuto como una línea y una barra. El Nombre de la tecla (arriba) es su título. La barra se pone ámbar al 70 % y roja al 90 % (memoria: según la presión de memoria de macOS; batería: cuando se está agotando; volumen y micro: gris mientras están silenciados).",
+    live_alert: "Poner la tecla ámbar o roja cuando requiera atención",
+    live_alert_hint: "OBS en vivo o grabando, el micrófono a 0, el sonido silenciado, CPU o GPU altas, la batería baja, un comando que falla.",
+    live_cmd: "Comando", live_every: "Cada (segundos)",
+    live_cmd_hint: "Se ejecuta con zsh cada pocos segundos mientras la tecla está a la vista; la tecla muestra la primera línea que imprime ({output}) y un medidor el primer número (0-100). Se ejecuta cuando guardas.",
+    live_cmd_empty: "Escribe el comando que se ejecutará.",
+    live_music_hint: "Solo se consulta una app que ya está abierta, así que nada se abre solo. La primera vez, macOS pregunta si DisplayPad puede controlar Música o Spotify: permítelo.",
+    live_obs_hint: "Usa la conexión de Ajustes › OBS. La tecla se pone roja mientras estás en vivo o grabando.",
+    live_gpu_hint: "El uso que informa el chip gráfico, como el Historial de la GPU del Monitor de Actividad.",
+    live_badge: "●",
     icon_h: "Ícono", colors_h: "Colores", text_field: "Nombre", text_ph: "Ej.: Outlook",
     hide_text: "Ocultar el nombre en la tecla", hide_text_title: "Se conserva para volver a mostrarlo.",
     bg: "Fondo", fg: "Color del texto", default_colors: "Colores por defecto",
@@ -1068,11 +1265,11 @@ const spec = (n = sel) => keys()[n];
 function ensure(n = sel) { return keys()[n] ??= { actions: [] }; }
 function prune(n = sel) {
   const k = keys()[n];
-  if (k && !k.emoji && !k.image && !k.label && !k.color && !k.folder && !(k.actions || []).length) delete keys()[n];
+  if (k && !k.emoji && !k.image && !k.label && !k.color && !k.folder && !k.live && !(k.actions || []).length) delete keys()[n];
 }
 function look(k) {
   if (!k) return {};
-  const o = Object.fromEntries(["emoji", "image", "crop", "label", "hide_label", "color", "text_color", "fill", "icon_scale"].filter(f => k[f] !== undefined && k[f] !== "").map(f => [f, k[f]]));
+  const o = Object.fromEntries(["emoji", "image", "crop", "label", "hide_label", "color", "text_color", "fill", "icon_scale", "live"].filter(f => k[f] !== undefined && k[f] !== "").map(f => [f, k[f]]));
   if (!o.color) o.color = DEFAULT_BG; // a key that exists is drawn on the default background
   return o;
 }
@@ -1087,8 +1284,20 @@ function corners() {
 }
 function applyCorners(r = corners()) { document.documentElement.style.setProperty("--face-r", (r / 102 * 100).toFixed(2)); }
 const previews = new Map();
+// Live keys: the service says (/api/live) when what a key shows changes; the picture is asked
+// for again then, and the one it replaces is let go.
+const liveSigs = new Map(), liveIds = new Map();
 function preview(k) {
-  const body = JSON.stringify(look(k)), c = corners(), id = c + " " + body;
+  const body = JSON.stringify(look(k)), c = corners(), base = c + " " + body;
+  const id = k?.live ? base + " " + (liveSigs.get(body) || "") : base;
+  if (k?.live && !previews.has(id)) {
+    const old = liveIds.get(base);
+    liveIds.set(base, id);
+    if (old && old !== id) {
+      previews.get(old)?.then(p => setTimeout(() => URL.revokeObjectURL(p.url), 5000)).catch(() => {});
+      previews.delete(old);
+    }
+  }
   if (!previews.has(id)) {
     const p = api("/api/render?corner=" + c, { method: "POST", body }).then(async r => ({
       url: URL.createObjectURL(await r.blob()),
@@ -1101,6 +1310,7 @@ function preview(k) {
 function paintFace(btn, n, k, back) {
   preview(k).then(p => { btn.querySelector("img").src = p.url; }).catch(() => {});
   btn.querySelector(".acts").textContent = !back && (k?.actions?.length || 0) > 1 ? t("n_actions", { n: k.actions.length }) : "";
+  btn.classList.toggle("meter", !back && k?.live?.style === "meter");
   const fold = btn.querySelector(".fold");
   fold.hidden = !k?.folder; fold.textContent = k?.folder ? "📁 " + countKeys(k) : "";
   btn.setAttribute("aria-label", t("key_n", { n }) + (k?.label ? ": " + k.label : k?.emoji ? ": " + k.emoji : t("key_empty")));
@@ -1929,7 +2139,8 @@ function renderEditor() {
           h("p", { class: "hint tab-intro", text: t("folder_hint") }),
           h("div", { class: "row" }, h("button", { class: "none", onclick: makeFolder, text: t("folder_make") }))),
   };
-  const badges = { actions: k?.actions?.length || "", folder: k?.folder ? "📁 " + countKeys(k) : "" };
+  panels.live = livePanel(k, field);
+  const badges = { actions: k?.actions?.length || "", folder: k?.folder ? "📁 " + countKeys(k) : "", live: k?.live ? t("live_badge") : "" };
   ed.replaceChildren(
     h("div", { class: "ed-head" }, h("h2", { text: t("key_n", { n: sel }) }), h("span", { class: "hint", text: t("page_ref", { name: locTitle(page, folder) }) }),
       h("div", { class: "tools" },
@@ -1938,7 +2149,9 @@ function renderEditor() {
         h("button", { class: "small danger", title: t("clear_title"), disabled: !k, onclick: async () => { if (!await confirmFolderLoss(spec())) return; delete keys()[sel]; renderEditor(); changed(); }, text: t("clear") }))),
     h("div", { class: "ed-top" }, h("img", { id: "ed-img", alt: "" }),
       h("div", { class: "ed-name" },
-        field(t("text_field"), h("input", { id: "f-label", value: k?.label || "", maxLength: 40, placeholder: t("text_ph"), oninput: e => set("label", e.target.value) })),
+        field(t("text_field"), h("input", { id: "f-label", value: k?.label || "", maxLength: 60,
+          placeholder: k?.live ? (k.live.style === "meter" ? liveTitle(k.live.source) : liveDefault(k.live.source)) : t("text_ph"),
+          oninput: e => set("label", e.target.value) })),
         h("label", { class: "check", title: t("hide_text_title") },
           h("input", { type: "checkbox", id: "f-hide-label", checked: !!k?.hide_label,
             onchange: e => { set("hide_label", e.target.checked ? true : ""); renderEditor(); } }),
@@ -1952,7 +2165,7 @@ function renderEditor() {
 // The key editor's tabs. Every panel is built and kept in the page (hidden when not chosen),
 // so code that updates one (the action list, the test output) finds it whichever tab is open.
 // The chosen tab stays when you select another key, and next time the configurator opens.
-const ED_TABS = ["style", "actions", "folder"];
+const ED_TABS = ["style", "actions", "folder", "live"];
 let edTab = (() => { try { const v = localStorage.getItem("dp-ed-tab"); return ED_TABS.includes(v) ? v : "style"; } catch { return "style"; } })();
 function edTabs(panels, badges) {
   const btns = {};
@@ -1983,6 +2196,119 @@ function edTabs(panels, badges) {
   show(edTab);
   return [bar, ...ED_TABS.map(id => panels[id])];
 }
+
+// ---------------------------------------------------------------- live keys
+// What a live key can show (live.py FIELDS), and its text when it has none.
+const LIVE_SOURCES = ["clock", "cpu", "gpu", "ram", "battery", "volume", "mic", "music", "obs", "command"];
+const LIVE_NUMERIC = ["cpu", "gpu", "ram", "battery", "volume", "mic", "command"];
+const LIVE_FIELDS = { clock: ["time", "time12", "ampm", "seconds", "weekday", "day", "month", "year", "date"],
+  cpu: ["value"], gpu: ["value"], ram: ["value", "used", "total"], battery: ["value", "state"], volume: ["value", "state"],
+  mic: ["value", "state"], music: ["title", "artist", "app", "state"], obs: ["status", "scene", "stream_time", "record_time"],
+  command: ["output", "value"] };
+const liveDefault = s => ({ clock: "{time}", cpu: "CPU {value}%", gpu: "GPU {value}%", ram: "RAM {value}%", battery: "{value}%",
+  volume: "{value}%", mic: "{value}%", music: "{title}", obs: "{status}", command: "{output}" })[s] || "";
+const liveTitle = s => ({ cpu: "CPU", gpu: "GPU", ram: "RAM", battery: t("src_battery"), volume: t("src_volume"), mic: t("src_mic_short") })[s] || "";
+const CLOCK_FORMATS = ["{time}", "{time12} {ampm}", "{time}:{seconds}", "{date}", "{weekday} {day}", "{day} {month} {year}"];
+function clockSample(fmt) { // the format filled in with now, as the service would
+  const d = new Date(), p2 = n => String(n).padStart(2, "0");
+  const days = LANG === "es" ? ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = LANG === "es" ? ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const f = { time: p2(d.getHours()) + ":" + p2(d.getMinutes()), time12: (d.getHours() % 12 || 12) + ":" + p2(d.getMinutes()),
+    ampm: d.getHours() < 12 ? "AM" : "PM", seconds: p2(d.getSeconds()), weekday: days[d.getDay()], day: d.getDate(),
+    month: months[d.getMonth()], year: d.getFullYear() };
+  f.date = `${f.weekday} ${f.day} ${f.month}`;
+  return fmt.replace(/\{(\w+)\}/g, (m, n) => n in f ? f[n] : m);
+}
+// The label follows the source while it is still what the old source put there.
+const liveAuto = (label, src) => !label || label === liveDefault(src) || label === liveTitle(src);
+function setLive(change) {
+  const k = ensure(), old = k.live ? { ...k.live } : null;
+  change(k);
+  const lv = k.live;
+  if (lv && liveAuto(k.label, old?.source) && (!old || old.source !== lv.source || old.style !== lv.style))
+    k.label = lv.style === "meter" ? liveTitle(lv.source) : liveDefault(lv.source);
+  if (!lv && old && liveAuto(k.label, old.source)) delete k.label;
+  prune(); renderEditor(); changed();
+}
+function livePanel(k, field) {
+  const lv = k?.live, src = lv?.source || "";
+  const pick = h("select", { id: "f-live-src", onchange: e => setLive(s => {
+      const v = e.target.value;
+      if (!v) return void delete s.live;
+      s.live = { source: v };
+      if (["cpu", "gpu", "ram", "battery"].includes(v)) s.live.style = "meter";
+      if (v === "command") Object.assign(s.live, { command: "", every: 10 });
+    }) },
+    h("option", { value: "", text: t("live_none"), selected: !src }),
+    LIVE_SOURCES.map(v => h("option", { value: v, text: t("src_" + v), selected: v === src })));
+  const box = h("div", { class: "stack" }, h("p", { class: "hint tab-intro", text: t("live_intro") }), field(t("live_shows"), pick));
+  if (!lv) return box;
+  const upd = (f, v) => { const s = ensure(); s.live = { ...s.live }; if (v === "" || v == null) delete s.live[f]; else s.live[f] = v; changed(); };
+  const meter = lv.style === "meter";
+  if (LIVE_NUMERIC.includes(src))
+    box.append(h("div", {}, h("span", { class: "lbl", text: t("live_style") }),
+      h("div", { class: "seg", role: "group", "aria-label": t("live_style") },
+        [["text", t("style_text")], ["meter", t("style_meter")]].map(([v, label]) =>
+          h("button", { type: "button", "aria-pressed": String((lv.style || "text") === v), text: label,
+            onclick: () => setLive(s => { s.live = { ...s.live }; if (v === "meter") s.live.style = "meter"; else delete s.live.style; }) })))));
+  if (src === "command") {
+    const every = h("input", { type: "number", min: 2, max: 3600, step: 1, value: lv.every ?? 10, style: "max-width:110px",
+      onchange: e => { const v = Math.max(2, Math.min(3600, Math.round(+e.target.value || 10))); e.target.value = v; upd("every", v); } });
+    box.append(field(t("live_cmd"), h("textarea", { class: "mono", rows: 3, spellcheck: "false", value: lv.command || "",
+        placeholder: "curl -s 'wttr.in?format=%t'", oninput: e => upd("command", e.target.value) }), lv.command?.trim() ? t("live_cmd_hint") : t("live_cmd_empty")),
+      field(t("live_every"), every));
+  }
+  if (meter) box.append(h("small", { class: "hint", text: t("live_meter_hint") }));
+  else {
+    const chips = h("div", { class: "kbd live-fields" }, LIVE_FIELDS[src].map(f => h("button", { type: "button", class: "small mono", text: "{" + f + "}",
+      onclick: () => { // into the Text field, where the cursor is
+        const inp = $("#f-label"), at = inp.selectionStart ?? inp.value.length, end = inp.selectionEnd ?? at;
+        inp.value = inp.value.slice(0, at) + "{" + f + "}" + inp.value.slice(end);
+        inp.dispatchEvent(new Event("input")); inp.focus(); inp.setSelectionRange(at + f.length + 2, at + f.length + 2);
+      } })));
+    box.append(h("div", { class: "stack" }, h("small", { class: "hint", text: t("live_text_hint") }), chips,
+      src === "clock" ? h("div", {}, h("span", { class: "lbl", text: t("live_formats") }),
+        h("div", { class: "kbd" }, CLOCK_FORMATS.map(fmt => h("button", { type: "button", class: "small", text: clockSample(fmt), title: fmt,
+          onclick: () => { const s = ensure(); s.label = fmt; renderEditor(); changed(); } })))) : null,
+      h("div", {}, h("button", { type: "button", class: "small", text: t("live_default_text"),
+        onclick: () => { const s = ensure(); s.label = liveDefault(src); renderEditor(); changed(); } }))),
+      h("label", { class: "check" }, h("input", { type: "checkbox", checked: lv.alert !== false,
+        onchange: e => { upd("alert", e.target.checked ? "" : false); paintKey(sel); } }), t("live_alert")),
+      h("small", { class: "hint", text: t("live_alert_hint") }));
+  }
+  const note = { music: "live_music_hint", obs: "live_obs_hint", gpu: "live_gpu_hint" }[src];
+  if (note) box.append(h("small", { class: "hint", text: t(note) }));
+  return box;
+}
+// Every second, while this page is in front: which live keys the pads show, and whether
+// what they show changed (that also keeps their readings going in the service).
+let liveTimer;
+async function livePoll() {
+  clearTimeout(liveTimer);
+  try {
+    if (cfg && view === "keys" && document.visibilityState === "visible") {
+      const shown = [];
+      for (const g of GROUPS) {
+        const s = shownOf(g);
+        if (!s) continue;
+        for (const [n, k] of Object.entries(keysAt(s.page, s.folder) || {}))
+          if (k?.live && !(s.folder.length && n === "1")) shown.push([g, n, look(k)]);
+      }
+      if (shown.length) {
+        const r = await postJSON("/api/live", { keys: shown.map(x => x[2]) });
+        shown.forEach(([g, n, lk], i) => {
+          const body = JSON.stringify(lk), sig = r.sigs?.[i] || "";
+          if (!sig || liveSigs.get(body) === sig) return;
+          liveSigs.set(body, sig);
+          if (g === groupOf(page)) { if (keys()[n] && JSON.stringify(look(keys()[n])) === body) paintKey(n); }
+          else { const s = shownOf(g), b = padGrid(g)?.querySelector(`.key[data-n="${n}"]`), k = keysAt(s.page, s.folder)?.[n]; if (b && k) paintFace(b, n, k, false); }
+        });
+      }
+    }
+  } catch {}
+  liveTimer = setTimeout(livePoll, 1000);
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") livePoll(); });
 
 function renderActions() {
   const box = $("#actions"), list = spec()?.actions || [];
@@ -2899,20 +3225,190 @@ $("#pg-delete").onclick = deletePage;
 $("#pad-new-page").onclick = () => addPage();
 $("#pad-new-app").onclick = () => addPage(true);
 
+// how far loading is, for the boot-up intro: "status", then "ready" or "failed"
+const bootStage = st => { document.documentElement.dataset.boot = st; dispatchEvent(new Event("dp-boot")); };
 (async () => {
-  if (!TOKEN) { $("#gate").hidden = false; return; }
+  if (!TOKEN) { $("#gate").hidden = false; return bootStage("failed"); }
   $("#app").hidden = false;
   try {
     status = await getJSON("/api/status");
+    bootStage("status");
     renderStatus();
     getJSON("/api/apps").then(a => { apps = a; }).catch(() => {});
     await load();
     if (START_VIEW === "settings") setView("settings");
     pollTimer = setTimeout(poll, 3000);
+    livePoll();
+    bootStage("ready");
   } catch (e) {
     $("#app").hidden = true; $("#gate").hidden = false;
     $("#gate p").textContent = e.status === 401 ? t("gate_bad_token") : t("gate_no_service", { msg: e.message });
+    bootStage("failed");
   }
+})();
+</script>
+<script>
+"use strict";
+// The look only, apart from the configurator: the dot grid wave behind the page, and the
+// DisplayPad turning a little towards the pointer. With reduced motion both stay still.
+(() => {
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  // ---- dot grid wave: about 30 frames a second, dots grouped by brightness so each group is one fill
+  const cv = document.getElementById("dots"), ctx = cv.getContext("2d");
+  const GAP = 26, LEVELS = 7;
+  let w = 0, h = 0, rgb = "190,200,255", max = .3, last = 0;
+  const colors = () => {
+    const cs = getComputedStyle(document.documentElement);
+    rgb = cs.getPropertyValue("--dot").trim() || rgb;
+    max = parseFloat(cs.getPropertyValue("--dot-max")) || max;
+  };
+  const size = () => {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    w = innerWidth; h = innerHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  const draw = ms => {
+    const T = ms / 1000, paths = Array.from({ length: LEVELS }, () => new Path2D());
+    for (let y0 = GAP / 2; y0 < h + GAP; y0 += GAP) {
+      for (let x0 = GAP / 2; x0 < w + GAP; x0 += GAP) {
+        const p = Math.sin(x0 * .0095 + y0 * .0042 - T * .55) + .6 * Math.sin(x0 * .0038 - y0 * .011 + T * .32); // -1.6 to 1.6
+        const a = (p + 1.6) / 3.2, y = y0 + p * 3.2, r = .55 + a * a * 1.55;
+        const path = paths[Math.min(LEVELS - 1, Math.floor(a * LEVELS))];
+        path.moveTo(x0 + r, y); path.arc(x0, y, r, 0, Math.PI * 2);
+      }
+    }
+    ctx.clearRect(0, 0, w, h);
+    paths.forEach((path, i) => { ctx.fillStyle = `rgba(${rgb},${(max * ((i + 1) / LEVELS) ** 1.6).toFixed(3)})`; ctx.fill(path); });
+  };
+  const loop = ms => {
+    if (still.matches) return draw(0);
+    requestAnimationFrame(loop);
+    if (ms - last >= 33) { last = ms; draw(ms); }
+  };
+  colors(); size(); requestAnimationFrame(loop);
+  addEventListener("resize", () => { size(); draw(still.matches ? 0 : last); });
+  const recolor = () => { colors(); draw(still.matches ? 0 : last); };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recolor);
+  still.addEventListener("change", () => requestAnimationFrame(loop));
+
+  // ---- the pads turn a little towards the pointer, and a sheen moves across the plate
+  const fine = matchMedia("(pointer: fine)");
+  document.querySelectorAll(".device").forEach(dev => {
+    const body = dev.querySelector(".dp-body"), plate = dev.querySelector(".dp-plate");
+    let px = 0, py = 0, raf = 0;
+    const apply = () => {
+      raf = 0;
+      body.style.setProperty("--tilt-y", (px * 5).toFixed(2) + "deg");
+      body.style.setProperty("--tilt-x", (-py * 2.5).toFixed(2) + "deg");
+      plate.style.setProperty("--sheen", (px * 18).toFixed(1) + "%");
+    };
+    const aim = (x, y) => { px = x; py = y; if (!raf) raf = requestAnimationFrame(apply); };
+    dev.addEventListener("pointermove", e => {
+      if (still.matches || !fine.matches || e.buttons) return;
+      const r = dev.getBoundingClientRect();
+      aim(Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1)), Math.max(-1, Math.min(1, (e.clientY - r.top) / r.height * 2 - 1)));
+    });
+    dev.addEventListener("pointerleave", () => aim(0, 0));
+    dev.addEventListener("dragstart", () => aim(0, 0));
+  });
+
+  // ---- boot-up intro, once as the page loads (the look and the steps are with its CSS)
+  const root = document.documentElement;
+  if (!root.classList.contains("booting")) return;
+  const app = document.getElementById("app"), real = document.querySelector("#card-pages .device");
+  let intro = null, skip = false, wake = null;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const pause = ms => skip ? Promise.resolve() : new Promise(r => { const id = setTimeout(go, ms); function go() { clearTimeout(id); wake = null; r(); } wake = go; });
+  const onSkip = () => { skip = true; wake?.(); };
+  const finish = () => {
+    removeEventListener("pointerdown", onSkip, true); removeEventListener("keydown", onSkip, true);
+    root.classList.remove("booting"); real?.classList.remove("intro-hide"); intro?.remove(); intro = null;
+    setTimeout(() => { app.style.transition = ""; }, 1000);
+  };
+  const fadeOut = async () => {
+    app.style.transition = "opacity .35s ease"; root.classList.remove("booting"); real?.classList.remove("intro-hide");
+    if (intro) await intro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).finished.catch(() => {});
+    finish();
+  };
+  try {
+    if (still.matches || document.hidden || app.hidden || !real || !real.offsetWidth) return finish();
+    // a copy of the first pad, the same size as the real one, shown bigger in the middle of the screen
+    const dev = real.cloneNode(true), grid = dev.querySelector(".grid"), plate = dev.querySelector(".dp-plate");
+    const slot = i => { const c = i % 6, r = (i / 6) | 0; return { c, d: .42 + (c + r) * .05 }; };
+    const screen = (i, lit) => {
+      const el = document.createElement("i");
+      el.className = "boot-scr" + (lit ? " lit" : ""); el.style.setProperty("--c", slot(i).c); el.style.setProperty("--d", slot(i).d + "s");
+      return el;
+    };
+    grid.replaceChildren(...Array.from({ length: 12 }, (_, i) => { const k = document.createElement("div"); k.className = "key"; k.append(screen(i)); return k; }));
+    plate.append(Object.assign(document.createElement("i"), { className: "boot-sweep" }));
+    const bar = Object.assign(document.createElement("i"), { className: "boot-bar" }), fill = document.createElement("b");
+    bar.append(fill); dev.querySelector(".dp-mark").after(bar);
+    const progress = p => fill.style.setProperty("--p", p + "%");
+    intro = document.createElement("div"); intro.id = "intro"; intro.setAttribute("aria-hidden", "true"); intro.append(dev);
+    const at = (x, y, sc) => `translate(${x}px, ${y}px) scale(${sc})`;
+    dev.style.width = real.offsetWidth + "px";
+    document.body.append(intro);
+    // in the middle of what is on screen (on a phone that can be less than the page's width)
+    const vv = window.visualViewport, vw = vv?.width || innerWidth, vh = vv?.height || innerHeight;
+    const w = dev.offsetWidth, hgt = dev.offsetHeight;
+    const sc = Math.max(.4, Math.min(1.45, vw * .88 / w, vh * .64 / hgt));
+    const x = (vv?.offsetLeft || 0) + (vw - w * sc) / 2, y = (vv?.offsetTop || 0) + (vh - hgt * sc) / 2 - vh * .03;
+    dev.style.transform = at(x, y, sc);
+    real.classList.add("intro-hide");
+    addEventListener("pointerdown", onSkip, true); addEventListener("keydown", onSkip, true);
+    const t0 = performance.now();
+    // it rises in, and the plate comes up off the base
+    dev.animate([{ opacity: 0, transform: at(x, y + 60, sc * .93) }, { opacity: 1, transform: at(x, y, sc) }], { duration: 750, easing: "cubic-bezier(.2,.8,.2,1)" });
+    const lean = getComputedStyle(plate).getPropertyValue("--lean").trim() || "21deg";
+    plate.animate([{ transform: "rotateX(80deg)" }, { transform: `rotateX(${lean})` }], { duration: 1000, delay: 100, easing: "cubic-bezier(.3,.9,.25,1)", fill: "backwards" });
+    requestAnimationFrame(() => progress(12));
+    (async () => {
+      // the page loads meanwhile
+      const stage = () => root.dataset.boot || "";
+      const loaded = new Promise(res => {
+        const check = () => {
+          if (stage() === "status") progress(45);
+          if (stage() === "ready" || stage() === "failed") { removeEventListener("dp-boot", check); res(stage()); }
+        };
+        addEventListener("dp-boot", check); check();
+      });
+      const st = await Promise.race([loaded, sleep(8000).then(() => "slow")]);
+      if (st !== "ready") return fadeOut();
+      progress(78);
+      const pictures = new Promise(res => {
+        const check = () => {
+          const imgs = [...real.querySelectorAll(".key img")];
+          imgs.length && imgs.every(im => im.getAttribute("src") && im.complete) ? res() : setTimeout(check, 60);
+        };
+        check();
+      });
+      await Promise.race([pictures, sleep(1500)]);
+      progress(100);
+      await pause(Math.max(0, 1350 - (performance.now() - t0)));
+      // the keys come up on the screens, in the same wave
+      grid.replaceChildren(...[...real.querySelectorAll(".grid > .key")].map((k, i) => {
+        const c = k.cloneNode(true); c.removeAttribute("draggable"); c.tabIndex = -1; c.append(screen(i, true)); return c;
+      }));
+      dev.querySelector(".pname").textContent = real.querySelector(".pname")?.textContent || "";
+      intro.classList.add("faces");
+      grid.querySelectorAll(".boot-scr").forEach((el, i) => setTimeout(() => el.classList.add("off"), skip ? 0 : (slot(i).d - .42) * 900));
+      await pause(480);
+      // and it flies to its place as the page fades in; where it lands, it is the real pad
+      const r = real.getBoundingClientRect();
+      if (!r.width || document.getElementById("main").hidden) return fadeOut();
+      if (Math.abs(dev.offsetWidth - r.width) > .5) dev.style.width = r.width + "px";
+      intro.classList.add("flying");
+      const dur = skip ? 420 : 900;
+      app.style.transition = `opacity ${Math.round(dur * .75)}ms ease ${Math.round(dur * .15)}ms`;
+      root.classList.remove("booting");
+      await dev.animate([{ transform: dev.style.transform }, { transform: at(r.left, r.top, 1) }],
+        { duration: dur, easing: "cubic-bezier(.55,0,.15,1)", fill: "forwards" }).finished.catch(() => {});
+      finish();
+    })().catch(() => fadeOut());
+  } catch { fadeOut(); }
 })();
 </script>
 </body>

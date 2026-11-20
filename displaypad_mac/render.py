@@ -1,12 +1,13 @@
 """Draw 102x102 key faces from a key's config: image, emoji, label, colours.
-Animated images (GIF, WebP, APNG, converted Lottie) give one face per frame."""
+Animated images (GIF, WebP, APNG, converted Lottie) give one face per frame; live keys
+(live.py) get their text, or are drawn as a meter."""
 
 import functools
 import logging
 import os
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
 
 from . import anim
 from .driver import ICON_SIZE
@@ -208,15 +209,129 @@ def round_corners(img: Image.Image, radius: int = DEFAULT_CORNER) -> Image.Image
     return out
 
 
+# ---------------------------------------------------------------- live keys
+ALERT_BG = {1: "#B45309", 2: "#B91C1C"}  # a live text key that needs attention (white text stays readable)
+METER_COLORS = ("#3987E5", "#FAB219", "#D03B3B")  # normal, warning, critical
+METER_DIM = "#807F79"
+_K = 4  # meters are drawn 4x larger and scaled down, for smooth lines
+
+
+@functools.lru_cache(maxsize=32)
+def _weight_font(size: int, weight: str):
+    for path in TEXT_FONTS:
+        if os.path.exists(path):
+            try:
+                f = ImageFont.truetype(path, size)
+                try:
+                    f.set_variation_by_name(weight)
+                except Exception:
+                    pass
+                return f
+            except OSError:
+                continue
+    return ImageFont.load_default(size)
+
+
+def _rgb(color: str, fallback: str) -> tuple:
+    try:
+        return ImageColor.getrgb(color)[:3]
+    except (ValueError, TypeError, AttributeError):
+        return ImageColor.getrgb(fallback)[:3]
+
+
+def _mix(a: tuple, b: tuple, k: float) -> tuple:
+    return tuple(round(x + (y - x) * k) for x, y in zip(a, b))
+
+
+def _fit_text(draw, text: str, weight: str, size: int, max_w: float):
+    """The font (down to 10 px) and text, cut with "…" when even that is too wide."""
+    for px in range(size, 9, -1):
+        font = _weight_font(px * _K, weight)
+        if draw.textlength(text, font=font) <= max_w:
+            return font, text
+    while text and draw.textlength(text + "…", font=font) > max_w:
+        text = text[:-1]
+    return font, (text + "…") if text else ""
+
+
+def _meter(spec: dict, face: dict) -> Image.Image:
+    """A gauge: title, the number, the last minute as a line, and a bar coloured by level."""
+    W = S * _K
+    bg = _rgb(spec.get("color", DEFAULT_BG), DEFAULT_BG)
+    ink = _rgb(spec.get("text_color", DEFAULT_FG), DEFAULT_FG)
+    ink2, muted = _mix(bg, ink, 0.78), _mix(bg, ink, 0.52)
+    level = max(0, min(2, int(face.get("level") or 0)))
+    color = _rgb(METER_DIM, METER_DIM) if face.get("dim") else _rgb(METER_COLORS[level], METER_COLORS[0])
+    img = Image.new("RGB", (W, W), bg)
+    d = ImageDraw.Draw(img)
+    m = 10 * _K  # side margin, clear of the rounded corners
+
+    note = face.get("note") or ""
+    note_font, note = _fit_text(d, note, "Medium", 11, W * 0.45) if note else (None, "")
+    note_w = d.textlength(note, font=note_font) + 4 * _K if note else 0
+    if note:
+        d.text((W - m, 9 * _K), note, font=note_font, fill=muted, anchor="ra")
+    title_font, title = _fit_text(d, face.get("title") or "", "Semibold", 15, W - 2 * m - note_w)
+    if title:
+        d.text((m, 8 * _K), title, font=title_font, fill=ink2)
+
+    value = face.get("value")
+    big = _weight_font(36 * _K, "Bold")
+    text = "–" if value is None else str(value)
+    while d.textlength(text, font=big) > W - 2 * m - 20 * _K and big.size > 16 * _K:
+        big = _weight_font(big.size - 2 * _K, "Bold")
+    base = 58 * _K
+    d.text((m, base), text, font=big, fill=ink, anchor="ls")
+    if value is not None and face.get("unit"):
+        x = m + d.textlength(text, font=big) + 2 * _K
+        d.text((x, base), face["unit"], font=_weight_font(17 * _K, "Semibold"), fill=ink2, anchor="ls")
+
+    # the last minute, on a fixed 0-100 scale so a flat line at the bottom really means idle
+    top, bottom, left, right = 64 * _K, 82 * _K, m, W - m
+    vals = list(face.get("history") or ())[-30:]
+    if len(vals) >= 2:
+        step = (right - left) / 29
+        x0 = right - step * (len(vals) - 1)
+        pts = [(x0 + i * step, bottom - (bottom - top) * max(0.0, min(100.0, v)) / 100) for i, v in enumerate(vals)]
+        line = _mix(bg, ink, 0.45)
+        d.polygon(pts + [(pts[-1][0], bottom), (pts[0][0], bottom)], fill=_mix(bg, line, 0.35))
+        d.line(pts, fill=line, width=2 * _K, joint="curve")
+        cx, cy = pts[-1]
+        r = 3 * _K
+        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=color, outline=bg, width=_K)
+
+    # the bar, on a track in a dark step of its own colour
+    my, mh = 88 * _K, 7 * _K
+    d.rounded_rectangle((left, my, right, my + mh), radius=mh // 2, fill=_mix(bg, color, 0.28))
+    fill_w = 0 if value is None else (right - left) * max(0.0, min(100.0, float(value))) / 100
+    if fill_w >= mh:
+        d.rounded_rectangle((left, my, left + fill_w, my + mh), radius=mh // 2, fill=color)
+    elif fill_w > 0:
+        d.ellipse((left, my, left + mh, my + mh), fill=color)
+    return img.resize((S, S), Image.LANCZOS)
+
+
 def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False, frame: int = 0,
-               first_only: bool = False, corner: int = DEFAULT_CORNER) -> Image.Image:
-    """The key face; `frame` picks the frame of an animated image, `corner` rounds it."""
+               first_only: bool = False, corner: int = DEFAULT_CORNER, live: Optional[dict] = None) -> Image.Image:
+    """The key face; `frame` picks the frame of an animated image, `corner` rounds it.
+    `live` is what a live key shows now (live.Engine.face): its text in place of the label,
+    or the whole face for a meter."""
     spec = spec or {}
+    if live and live.get("style") == "meter":
+        img = _meter(spec, live)
+        if pressed:
+            img = Image.blend(img, Image.new("RGB", (S, S), "#000000"), 0.45)
+        return round_corners(img, corner)
     bg = spec.get("color", DEFAULT_BG if spec else "#000000")
+    if live and live.get("level"):  # needs attention: amber, or red
+        bg = ALERT_BG[min(2, live["level"])]
     fg = spec.get("text_color", DEFAULT_FG)
     img = Image.new("RGB", (S, S), bg)
     icon = _load_icon(spec, base_dir, frame, first_only)
-    label = "" if spec.get("hide_label") else spec.get("label", "")  # hidden labels stay in the config
+    if live:
+        label = live.get("text", "")
+    else:
+        label = "" if spec.get("hide_label") else spec.get("label", "")  # hidden labels stay in the config
 
     scale = _icon_scale(spec)
     if icon is not None and spec.get("image") and spec.get("fill", True) and not label:
@@ -246,12 +361,13 @@ def to_bgr(img: Image.Image) -> bytes:
     return Image.merge("RGB", (b, g, r)).tobytes()
 
 
-def preview_sheet(keys: list, base_dir: str = ".", corner: int = DEFAULT_CORNER) -> Image.Image:
-    """Render 12 key specs as the physical 6x2 layout (for previews / docs)."""
+def preview_sheet(keys: list, base_dir: str = ".", corner: int = DEFAULT_CORNER, live=None) -> Image.Image:
+    """Render 12 key specs as the physical 6x2 layout (for previews / docs). `live(spec)`
+    gives what a live key shows now."""
     gap = 14
     sheet = Image.new("RGB", (6 * S + 7 * gap, 2 * S + 3 * gap), "#0B0B0E")
     for i, spec in enumerate(keys[:12]):
         x = gap + (i % 6) * (S + gap)
         y = gap + (i // 6) * (S + gap)
-        sheet.paste(render_key(spec, base_dir, corner=corner), (x, y))
+        sheet.paste(render_key(spec, base_dir, corner=corner, live=live(spec) if live else None), (x, y))
     return sheet
