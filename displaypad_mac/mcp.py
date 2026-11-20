@@ -24,7 +24,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import __version__, actions, appwatch, daemon, live, obs, presets, render, web  # daemon/web: circular, used at call time only
+from . import __version__, actions, appwatch, daemon, live, obs, presets, render, sound, web  # daemon/web: circular, used at call time only
 
 log = logging.getLogger(__name__)
 
@@ -38,8 +38,8 @@ that holds more keys (folders can hold folders). Each key has a look (emoji, \
 picture or animation, label, colors), can show something live (the time, CPU/GPU/RAM use, \
 battery, volume, what is playing, OBS, a command's output) and has a list of actions run when it \
 is pressed (open apps or \
-websites, keyboard shortcuts, typed text, media keys, macros of keyboard and mouse steps, shell \
-commands, AppleScript, page switches, brightness).
+websites, keyboard shortcuts, typed text, media keys, macros of keyboard and mouse steps, \
+sounds, shell commands, AppleScript, page switches, brightness).
 
 Call get_reference once for every key field and action type. Look before you change anything \
 (list_pages, get_config) and ask before replacing keys the user already uses. Changes are saved at \
@@ -85,6 +85,8 @@ ACTIONS
 - {"type": "delay", "ms": 300}: wait between two actions (e.g. open an app, then send it a shortcut).
 - {"type": "configurator"}: open the DisplayPad configurator in the browser.
 - {"type": "obs", "do": "record"}: controls OBS Studio through its WebSocket server, whichever app is in front (no hotkeys needed in OBS). do: stream (start/stop), record (start/stop), pause (the recording), scene (with "scene": a scene name, or "#2" for the second scene in OBS's Scenes list from the top), next_scene, previous_scene, mute (with "source": an audio source name; empty or missing: every microphone), virtualcam, studio (studio mode on/off), transition (studio mode: preview to program), replay (save the replay buffer). In studio mode scene changes go to the preview. The user sets up the connection in the configurator, Settings > OBS (turn on OBS's WebSocket server and enter its password; you never see it). get_obs_info tells whether OBS can be reached and lists its scenes and sources.
+- {"type": "sound", "file": "sounds/applause-1a2b3c.mp3", "volume": 80, "play": "restart"}: plays a sound through the Mac's sound output, for soundboard keys. file: a path returned by upload_sound, one of list_sounds (the sounds already added, and the Mac's alert sounds such as "/System/Library/Sounds/Glass.aiff"), or any file on the Mac ("~/Music/intro.mp3"); MP3, M4A/AAC, WAV, AIFF, CAF or FLAC. volume: 0-100 (default 100). play, for a press while the sound still plays: "restart" (default: from the start again), "toggle" (stops it), "overlap" (another copy on top). While it plays, a ring around the key shows how far it has got. Label sound keys with the sound's name.
+- {"type": "stop_sounds"}: stops every sound playing (a soundboard's Stop key).
 - {"type": "macro", "steps": [...], "play": "once", "delays": "recorded"}: plays keyboard and mouse steps in order. The user usually records one in the configurator (Record… on a Macro action); you cannot record, but you can write or edit the steps:
   {"do": "keys", "keys": "cmd+c"} a whole shortcut (same names as "shortcut"); {"do": "key_down", "key": "rcmd"} / {"do": "key_up", "key": "rcmd"} one key held and let go; {"do": "text", "text": "Hello"};
   {"do": "click", "button": "left", "count": 2, "x": 640, "y": 400} (no x/y: where the pointer is); {"do": "mouse_down", "button": "right", "x": .., "y": ..} / {"do": "mouse_up", ...}; {"do": "move", "x": .., "y": ..} (drags while a button is down); {"do": "scroll", "dy": -120, "dx": 0} (pixels, positive dy scrolls up, optional x/y); {"do": "wait", "ms": 250}.
@@ -111,7 +113,7 @@ KEY = {"type": "integer", "minimum": 1, "maximum": 12,
 ACTION = {"type": "object", "required": ["type"], "description": "One action; see get_reference.",
           "properties": {"type": {"type": "string", "enum": ["open", "shortcut", "text", "media", "shell", "applescript",
                                                              "page", "screen_brightness", "brightness", "delay",
-                                                             "configurator", "macro", "obs"]}}}
+                                                             "configurator", "macro", "obs", "sound", "stop_sounds"]}}}
 KEY_SPEC = {
     "type": "object", "description": "How the key looks and what it does; see get_reference.",
     "properties": {
@@ -649,6 +651,38 @@ def upload_image(svc, a):
     return out
 
 
+def upload_sound(svc, a):
+    name = os.path.basename(str(a.get("name") or a.get("file_path") or ""))
+    if a.get("file_path"):
+        path = os.path.expanduser(a["file_path"])
+        if not os.path.isfile(path):
+            raise ToolError(f"file not found: {path}")
+        if os.path.getsize(path) > sound.MAX_UPLOAD:
+            raise ToolError("the sound is too large (50 MB max)")
+        with open(path, "rb") as f:
+            data = f.read()
+    elif a.get("data_base64"):
+        if not name:
+            raise ToolError("give name (the file's name with its type, e.g. \"applause.mp3\") with data_base64")
+        b64 = a["data_base64"]
+        b64 = b64.split(",", 1)[1] if b64.startswith("data:") else b64
+        try:
+            data = base64.b64decode(b64, validate=False)
+        except ValueError as e:
+            raise ToolError(f"data_base64 is not valid base64: {e}")
+    else:
+        raise ToolError("give file_path (a file on this Mac) or data_base64 with name")
+    try:
+        out = sound.save_upload(data, name, svc.cfg["base_dir"])
+    except ValueError as e:
+        raise ToolError(str(e))
+    return {**out, "next": "use it as the \"file\" of a {\"type\": \"sound\"} action with set_key"}
+
+
+def list_sounds(svc, a):
+    return sound.list_sounds(svc.cfg["base_dir"])
+
+
 def preview_page(svc, a):
     try:
         cfg = daemon.parse_config(svc.read_config(), svc.cfg["base_dir"])
@@ -760,6 +794,15 @@ TOOLS = [
           "for keys. Returns the path to use as a key's \"image\".",
           {"file_path": {"type": "string", "description": "A file on this Mac."},
            "data_base64": {"type": "string", "description": "The file's bytes in base64 (a data: URL works too)."}}),
+    _tool(upload_sound, "Add a sound",
+          "Copy a sound file (MP3, M4A/AAC, WAV, AIFF, CAF or FLAC, up to 50 MB) into the configuration for "
+          "soundboard keys. Returns the path to use as the \"file\" of a \"sound\" action, its name and its length.",
+          {"file_path": {"type": "string", "description": "A file on this Mac."},
+           "data_base64": {"type": "string", "description": "The file's bytes in base64 (a data: URL works too)."},
+           "name": {"type": "string", "description": "The file's name with its type (e.g. \"applause.mp3\"); needed with data_base64."}}),
+    _tool(list_sounds, "List sounds",
+          "The sounds already added for sound keys (\"mine\", newest first, with their length) and the Mac's own "
+          "alert sounds (\"mac\"), each with the \"file\" to use in a \"sound\" action.", read_only=True),
     _tool(preview_page, "Preview a page",
           "A picture of a page exactly as the DisplayPad draws it. Without page, the page on the pad now.",
           {"page": PAGE}, read_only=True),

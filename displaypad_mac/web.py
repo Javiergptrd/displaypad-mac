@@ -24,7 +24,7 @@ from urllib.parse import parse_qs, urlparse
 
 from PIL import Image
 
-from . import anim, daemon, emojidata, i18n, keycapture, live, macos, macro, mcp, obs, presets  # daemon: circular, used at call time only
+from . import anim, daemon, emojidata, i18n, keycapture, live, macos, macro, mcp, obs, presets, sound  # daemon: circular, used at call time only
 from .actions import test_actions
 from .i18n import t
 from .render import MAX_CORNER, effect_of, effect_preview, frame_durations, render_key
@@ -186,10 +186,11 @@ class _Handler(BaseHTTPRequestHandler):
     def _json(self, obj, code: int = 200, headers: dict = None):
         self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8", headers)
 
-    def _body(self) -> bytes:
+    def _body(self, limit: int = MAX_BODY) -> bytes:
         n = int(self.headers.get("Content-Length") or 0)
-        if n > MAX_BODY:
-            raise ValueError(t("file too large (12 MB max)"))
+        if n > limit:
+            raise ValueError(t("file too large (12 MB max)") if limit == MAX_BODY
+                             else t("the sound is too large (50 MB max)"))
         return self.rfile.read(n)
 
     def _guard(self) -> bool:
@@ -273,6 +274,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._json(obs.public(obs.load_settings(self.service.cfg["base_dir"])))
         elif path == "/api/obs/info":  # asks OBS: its scenes and sources, or why it can't be reached
             self._json(obs.info(self.service.cfg["base_dir"]))
+        elif path == "/api/sounds":  # the sounds added here and the Mac's own, for the sound picker
+            self._json(sound.list_sounds(svc.cfg["base_dir"]))
         elif path == "/api/macro/record":
             self._json(macro.recorder.status())
         elif path == "/api/keys/capture":  # polled by the page while it records: stops when it stops
@@ -344,6 +347,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json({"sigs": [f["sig"] if f else "" for f in faces]})
             elif path == "/api/upload":
                 self._json({"path": save_upload(self._body(), svc.cfg["base_dir"])})
+            elif path == "/api/sound":  # ?name=<the file's name>, the file in the body
+                name = parse_qs(urlparse(self.path).query).get("name", [""])[0]
+                self._json(sound.save_upload(self._body(sound.MAX_UPLOAD), name, svc.cfg["base_dir"]))
+            elif path == "/api/sound/stop":
+                self._json({"stopped": sound.stop_all()})
             elif path == "/api/test":
                 body = json.loads(self._body())
                 pages = (body.get("pages") or svc.cfg["pages"])

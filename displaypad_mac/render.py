@@ -1,7 +1,8 @@
 """Draw 102x102 key faces from a key's config: image, emoji, label, colours.
 Animated images (GIF, WebP, APNG, converted Lottie) give one face per frame; live keys
 (live.py) get their text, or are drawn as a meter. A key's background can be a gradient,
-a moving one or waves, and a press effect (ripple, flash...) can play over it."""
+a moving one or waves, and a press effect (ripple, flash...) can play over it. While a
+sound key's sound plays (sound.py), a ring around its edge shows how far it has got."""
 
 import bisect
 import functools
@@ -585,6 +586,54 @@ def _bounce(img: Image.Image, p: float) -> Image.Image:
     return out
 
 
+# ---------------------------------------------------------------- sound keys
+RING_W = 4        # the playing ring's width, px
+RING_STEPS = 60   # the ring moves in this many steps (the service sends a key again on each)
+
+
+@functools.lru_cache(maxsize=8)
+def _ring_path(corner: int) -> tuple:
+    """Points along the key's edge (at 4x), clockwise from the top middle, following its
+    rounded corners, and the length of the path up to each point."""
+    d = RING_W / 2 + 1                                 # the line's middle, from the edge
+    rc = max(0.5, max(0, min(MAX_CORNER, corner)) - d)  # its corners' radius, around the key's
+    lo, hi = d + rc, S - d - rc
+    pts = [(S / 2, d)]
+    for cx, cy, a0, (ex, ey) in ((hi, lo, -90, (S - d, hi)), (hi, hi, 0, (lo, S - d)),
+                                 (lo, hi, 90, (d, lo)), (lo, lo, 180, (S / 2, d))):
+        pts += [(cx + rc * math.cos(math.radians(a0 + j * 10)), cy + rc * math.sin(math.radians(a0 + j * 10)))
+                for j in range(10)]
+        pts.append((ex, ey))
+    pts = [(x * 4, y * 4) for x, y in pts]
+    cum = [0.0]
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        cum.append(cum[-1] + math.hypot(x1 - x0, y1 - y0))
+    return tuple(pts), tuple(cum)
+
+
+def _ring(img: Image.Image, p: float, corner: int, color) -> Image.Image:
+    """A ring around the key: faint all the way round while its sound plays, solid as far
+    as the sound has got (p, 0-1)."""
+    pts, cum = _ring_path(corner)
+    rgb = ImageColor.getrgb(color) if isinstance(color, str) else tuple(color)[:3]
+    w = RING_W * 4
+    layer = Image.new("RGBA", (S * 4, S * 4), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    draw.line(pts, fill=rgb + (80,), width=w, joint="curve")
+    want = max(0.0, min(1.0, p)) * cum[-1]
+    if want > 0:
+        i = bisect.bisect_left(cum, want)
+        f = (want - cum[i - 1]) / ((cum[i] - cum[i - 1]) or 1)
+        end = (pts[i - 1][0] + f * (pts[i][0] - pts[i - 1][0]), pts[i - 1][1] + f * (pts[i][1] - pts[i - 1][1]))
+        part = list(pts[:i]) + [end]
+        draw.line(part, fill=rgb + (255,), width=w, joint="curve")
+        for x, y in (part[0], end):  # round ends
+            draw.ellipse((x - w / 2, y - w / 2, x + w / 2, y + w / 2), fill=rgb + (255,))
+    out = img.convert("RGBA")
+    out.alpha_composite(layer.resize((S, S), Image.LANCZOS))
+    return out.convert("RGB")
+
+
 def _finish(img: Image.Image, corner: int, effect: Optional[tuple]) -> Image.Image:
     if effect and effect[0] != "bounce":
         img = _overlay(img, effect[0], effect[1], max(0.0, min(1.0, effect[2])), corner)
@@ -611,14 +660,17 @@ def effect_preview(spec: dict, base_dir: str = ".", corner: int = DEFAULT_CORNER
 
 def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False, frame: int = 0,
                first_only: bool = False, corner: int = DEFAULT_CORNER, live: Optional[dict] = None,
-               effect: Optional[tuple] = None) -> Image.Image:
+               effect: Optional[tuple] = None, playing: Optional[float] = None) -> Image.Image:
     """The key face; `frame` picks the frame of a key that moves (its animated picture and
     moving background), `corner` rounds it. `live` is what a live key shows now
     (live.Engine.face): its text in place of the label, or the whole face for a meter.
-    `effect` is (style, color, progress 0-1) of a press effect playing over it."""
+    `effect` is (style, color, progress 0-1) of a press effect playing over it, `playing`
+    how far the key's sound has got (0-1) while it plays."""
     spec = spec or {}
     if live and live.get("style") == "meter":
         img = _meter(spec, live)
+        if playing is not None:
+            img = _ring(img, playing, corner, spec.get("text_color", DEFAULT_FG))
         if pressed:
             img = Image.blend(img, Image.new("RGB", (S, S), "#000000"), 0.45)
         return _finish(img, corner, effect)
@@ -656,6 +708,8 @@ def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False,
     elif label:
         _put_text(img, label, (6, 6, S - 6, S - 6), fg, 30)
 
+    if playing is not None:
+        img = _ring(img, playing, corner, fg)
     if pressed:
         img = Image.blend(img, Image.new("RGB", (S, S), "#000000"), 0.45)
     return _finish(img, corner, effect)

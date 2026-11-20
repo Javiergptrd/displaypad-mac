@@ -369,6 +369,19 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .grad-colors { display: flex; gap: 6px; align-items: center; }
 .grad-colors button { padding: 4px 10px; }
 .dir { display: inline-block; width: 18px; text-align: center; color: var(--muted); }
+.snd { border-radius: 10px; }
+.snd > * + * { margin-top: 8px; }
+.snd.over { outline: 2px dashed var(--accent); outline-offset: 4px; }
+.snd-now { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.snd-now b { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.snd-now.empty b { color: var(--muted); font-weight: 400; }
+.snd-now .hint { flex: none; }
+.vol { display: flex; align-items: center; gap: 10px; }
+.vol input { flex: 1; min-width: 0; }
+.vol output { flex: none; width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.np-sb { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sb-files { list-style: none; margin: 6px 0; padding: 0; font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; }
+.sb-files li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row > * { flex: 1; }
 .row > .none { flex: none; }
 .stack > * + * { margin-top: 12px; }
@@ -707,6 +720,22 @@ const STRINGS = {
     t_open: "Open app, website or folder", t_shortcut: "Keyboard shortcut", t_text: "Type text", t_media: "Media key",
     t_screen_brightness: "Screen brightness", t_page: "Go to another page", t_brightness: "DisplayPad brightness",
     t_configurator: "Open this configurator", t_shell: "Terminal command", t_applescript: "AppleScript", t_delay: "Wait",
+    g_sound: "Sound", t_sound: "Play a sound", t_stop_sounds: "Stop all sounds",
+    snd_none: "No sound chosen yet", snd_choose: "Choose a file…", snd_pick: "Pick a sound…", snd_mine: "Your sounds", snd_mac: "Mac sounds",
+    snd_drop: "Or drop a sound file here, or onto any key of the pad.", snd_listen: "Listen", snd_stop: "Stop",
+    snd_volume: "Volume", snd_play: "Pressed again while it plays", snd_restart: "Play it again from the start", snd_toggle: "Stop it",
+    snd_overlap: "Play another copy on top", snd_path: "File on this Mac",
+    snd_path_hint: "A file anywhere on the Mac also works (~/Music/intro.mp3). Files you choose above are copied into DisplayPad, so they keep working if you move the original.",
+    snd_hint: "Plays through the Mac's sound output. While it plays, a ring around the key shows how far it has got. MP3, M4A, WAV, AIFF, CAF or FLAC, up to 50 MB.",
+    snd_bad: "That isn't a sound DisplayPad can play (use MP3, M4A, WAV, AIFF, CAF or FLAC).", snd_too_big: "The sound is too large (50 MB max).",
+    snd_adding: "Adding {name}…", snd_added: "Added {name}", stop_hint: "Stops every sound the pad is playing.",
+    np_sb: "Soundboard", np_sb_hint: "One key per sound, and a Stop key", np_sb_choose: "Choose sounds…",
+    np_sb_files: "{n} sounds chosen", np_sb_files_1: "1 sound chosen",
+    np_sb_mac: "Without files it starts with 10 of the Mac's own sounds; you can change the sound of each key afterwards.",
+    np_sb_keys: "Each sound gets a key with its name; key 11 stops every sound and key 12 goes back.",
+    np_sb_max: "Up to 10 sounds fit: the first 10 are used.", np_sb_adding: "Adding sounds… {i}/{n}",
+    np_sb_none: "None of the sounds could be added.", np_sb_done: "Soundboard created with {n} sounds. Save to send it to the pad.",
+    sb_stop: "Stop",
     m_play_pause: "Play / pause", m_next: "Next", m_previous: "Previous", m_volume_up: "Volume up",
     m_volume_down: "Volume down", m_mute: "Mute", key_space: "space",
     needs_access: "Needs the Accessibility permission (see the notice above).",
@@ -965,6 +994,22 @@ const STRINGS = {
     t_open: "Abrir app, web o carpeta", t_shortcut: "Atajo de teclado", t_text: "Escribir texto", t_media: "Tecla multimedia",
     t_screen_brightness: "Brillo de la pantalla", t_page: "Ir a otra página", t_brightness: "Brillo del DisplayPad",
     t_configurator: "Abrir este configurador", t_shell: "Comando de terminal", t_applescript: "AppleScript", t_delay: "Esperar",
+    g_sound: "Sonido", t_sound: "Reproducir un sonido", t_stop_sounds: "Detener todos los sonidos",
+    snd_none: "Aún no hay un sonido elegido", snd_choose: "Elegir archivo…", snd_pick: "Elegir un sonido…", snd_mine: "Tus sonidos", snd_mac: "Sonidos del Mac",
+    snd_drop: "O suelta aquí un archivo de sonido, o sobre cualquier tecla del pad.", snd_listen: "Escuchar", snd_stop: "Detener",
+    snd_volume: "Volumen", snd_play: "Si se pulsa otra vez mientras suena", snd_restart: "Volver a empezar", snd_toggle: "Detenerlo",
+    snd_overlap: "Sonar otra copia encima", snd_path: "Archivo en este Mac",
+    snd_path_hint: "También sirve un archivo en cualquier carpeta del Mac (~/Music/intro.mp3). Los que eliges arriba se copian a DisplayPad, así siguen funcionando aunque muevas el original.",
+    snd_hint: "Suena por la salida de sonido del Mac. Mientras suena, un anillo alrededor de la tecla muestra cuánto lleva. MP3, M4A, WAV, AIFF, CAF o FLAC, hasta 50 MB.",
+    snd_bad: "Ese archivo no es un sonido que DisplayPad pueda reproducir (usa MP3, M4A, WAV, AIFF, CAF o FLAC).", snd_too_big: "El sonido es demasiado grande (máximo 50 MB).",
+    snd_adding: "Agregando {name}…", snd_added: "Se agregó {name}", stop_hint: "Detiene todos los sonidos que está reproduciendo el pad.",
+    np_sb: "Tablero de sonidos", np_sb_hint: "Una tecla por sonido y una tecla para detener", np_sb_choose: "Elegir sonidos…",
+    np_sb_files: "{n} sonidos elegidos", np_sb_files_1: "1 sonido elegido",
+    np_sb_mac: "Sin archivos empieza con 10 sonidos del propio Mac; luego puedes cambiar el sonido de cada tecla.",
+    np_sb_keys: "Cada sonido tiene una tecla con su nombre; la tecla 11 detiene todos los sonidos y la 12 vuelve atrás.",
+    np_sb_max: "Caben hasta 10 sonidos: se usan los 10 primeros.", np_sb_adding: "Agregando sonidos… {i}/{n}",
+    np_sb_none: "No se pudo agregar ninguno de los sonidos.", np_sb_done: "Tablero de sonidos creado con {n} sonidos. Guarda para enviarlo al pad.",
+    sb_stop: "Detener",
     m_play_pause: "Reproducir / pausa", m_next: "Siguiente", m_previous: "Anterior", m_volume_up: "Subir volumen",
     m_volume_down: "Bajar volumen", m_mute: "Silenciar", key_space: "espacio",
     needs_access: "Necesita el permiso de Accesibilidad (ver aviso arriba).",
@@ -1171,6 +1216,7 @@ async function copyText(text) {
 // ---------------------------------------------------------------- data
 const TYPES = () => [
   [t("g_apps"), ["open", "obs"]],
+  [t("g_sound"), ["sound", "stop_sounds"]],
   [t("g_keyboard"), ["shortcut", "text", "media", "macro"]],
   [t("g_screen"), ["screen_brightness", "page", "brightness", "configurator"]],
   [t("g_auto"), ["shell", "applescript", "delay"]],
@@ -1477,6 +1523,9 @@ async function addPage(forApp = false) { // forApp: from the app pad; the page i
   let list = [];
   try { list = await loadPresets(); } catch {}
   let choice = null, auto = ""; // auto: the name this dialog filled in, replaced when another preset is picked
+  const SB = { name: t("np_sb"), installed: [], keys: [] }, sbFiles = []; // the soundboard, and the sounds chosen for it
+  const sbInput = h("input", { type: "file", accept: SOUND_ACCEPT, multiple: true, hidden: true,
+    onchange: e => { sbFiles.splice(0, sbFiles.length, ...[...e.target.files].filter(isSound)); pick(SB); } });
   const grp = "np-" + Math.random().toString(36).slice(2);
   const nameIn = h("input", { id: grp + "-name", placeholder: t("np_name_ph"), autocomplete: "off",
     oninput: () => { err.hidden = true; },
@@ -1486,33 +1535,71 @@ async function addPage(forApp = false) { // forApp: from the app pad; the page i
   const linkText = h("span", {});
   const linkRow = h("label", { class: "check np-link", hidden: true }, linkIn, linkText);
   const detail = h("div", { class: "np-detail", "aria-live": "polite" });
+  const createBtn = h("button", { type: "button", class: "primary", text: t("np_create"), onclick: () => create() });
   const opt = p => h("label", { class: "np-opt" },
     h("input", { type: "radio", name: grp, checked: p === choice, onchange: () => pick(p) }),
     h("span", { class: "np-main" },
       h("b", { text: p ? p.name : t("np_empty") }),
-      h("small", { text: p ? p.keys.map(k => k.emoji).join(" ") : t("np_empty_hint") })),
+      h("small", { text: p === SB ? "🔊 🥁 📣 👏 ⏹️ · " + t("np_sb_hint") : p ? p.keys.map(k => k.emoji).join(" ") : t("np_empty_hint") })),
     p?.installed.length ? h("span", { class: "np-tag", text: t("np_installed") }) : null);
   function pick(p) {
     choice = p;
     const typed = nameIn.value.trim();
     if (!typed || typed === auto) { auto = p ? uniquePageName(p.name) : ""; nameIn.value = auto; }
+    if (p === SB) {
+      linkRow.hidden = true;
+      detail.replaceChildren(...[h("div", { class: "np-sb" },
+          h("button", { type: "button", text: t("np_sb_choose"), onclick: () => { sbInput.value = ""; try { sbInput.showPicker(); } catch { sbInput.click(); } } }),
+          sbFiles.length ? h("span", { class: "hint", text: t("np_sb_files", { n: sbFiles.length }) }) : null),
+        sbFiles.length ? h("ul", { class: "sb-files" }, sbFiles.slice(0, 10).map(f => h("li", { text: "🔊 " + soundName(f.name) }))) : null,
+        h("small", { text: t(sbFiles.length > 10 ? "np_sb_max" : sbFiles.length ? "np_sb_keys" : "np_sb_mac") }), sbInput].filter(Boolean));
+      return;
+    }
     linkRow.hidden = !p;
     if (p) linkText.textContent = t(p.page.when === "open" ? "np_link_open" : "np_link", { app: p.installed[0] || p.apps[0] });
     detail.replaceChildren(...(p ? [h("span", { class: "lbl", text: t(presetWord(p, "np_keys"), { n: p.keys.length }) }), presetKeyList(p),
       h("small", { text: t(p.setup === "obs" ? "np_obs_hint" : "np_keys_hint") })] : []));
   }
-  function create() {
+  async function soundboard() { // the keys: the chosen sounds (or the Mac's), Stop and Back
+    let sounds = [];
+    if (sbFiles.length) {
+      const files = sbFiles.slice(0, 10);
+      for (const [i, f] of files.entries()) {
+        createBtn.textContent = t("np_sb_adding", { i: i + 1, n: files.length });
+        try { sounds.push(await uploadSound(f)); } catch (e) { toast(f.name + ": " + e.message); }
+      }
+    } else {
+      const mac = (await soundList()).mac, like = ["Glass", "Hero", "Ping", "Pop", "Funk", "Submarine", "Purr", "Frog", "Bottle", "Blow"];
+      sounds = [...like.map(n => mac.find(x => x.name === n)).filter(Boolean), ...mac.filter(x => !like.includes(x.name))].slice(0, 10);
+    }
+    if (!sounds.length) return null;
+    const emoji = "🔊 🎵 🥁 📣 👏 🎺 🔔 💥 🎸 🎶".split(" "), keys = {};
+    sounds.forEach((x, i) => keys[String(i + 1)] = { emoji: emoji[i % emoji.length], label: x.name,
+      background: { style: "gradient", colors: GRADIENTS[i % (GRADIENTS.length - 2)][1] }, press_effect: { style: "ripple" },
+      actions: [{ type: "sound", file: x.file }] });
+    keys["11"] = { emoji: "⏹️", label: t("sb_stop"), color: "#2B2B33", actions: [{ type: "stop_sounds" }] };
+    keys["12"] = { emoji: "⬅️", label: t("back_label"), color: "#2B2B33", actions: [{ type: "page", page: "back" }] };
+    return { keys };
+  }
+  async function create() {
     const name = nameIn.value.trim(), bad = validName(name);
     if (bad) { err.textContent = bad; err.hidden = false; nameIn.focus(); return; }
+    if (createBtn.disabled) return;
     let pg;
-    if (choice) {
+    if (choice === SB) {
+      createBtn.disabled = true;
+      try { pg = await soundboard(); } finally { createBtn.disabled = false; createBtn.textContent = t("np_create"); }
+      if (!pg) { err.textContent = t("np_sb_none"); err.hidden = false; return; }
+      if (cfg.pages[name]) { err.textContent = validName(name); err.hidden = false; return; }
+    } else if (choice) {
       pg = structuredClone(choice.page);
       if (!linkIn.checked) { delete pg.apps; delete pg.when; }
     } else pg = { keys: { "1": { emoji: "⬅️", label: t("back_label"), color: "#2B2B33", actions: [{ type: "page", page: "back" }] } } };
     cfg.pages[name] = normalise({ pages: { x: pg } }).pages.x;
     dlg.close();
     showPage(name); changed(false);
-    toast(choice ? t(presetWord(choice, "np_done"), { n: choice.keys.length, app: choice.name }) : t("page_created"));
+    toast(choice === SB ? t("np_sb_done", { n: Object.keys(pg.keys).length - 2 })
+      : choice ? t(presetWord(choice, "np_done"), { n: choice.keys.length, app: choice.name }) : t("page_created"));
     if (forApp && !pg.apps?.length) editAuto(); // which app it comes up with
   }
   if (forApp) pick(list.find(p => p.installed.length) || null);
@@ -1521,12 +1608,12 @@ async function addPage(forApp = false) { // forApp: from the app pad; the page i
     forApp ? h("p", { class: "hint", text: t("np_app_help") }) : null,
     h("label", { for: grp + "-name", class: "lbl", text: t("np_name") }), nameIn, err,
     h("span", { class: "lbl np-from", id: grp + "-from", text: t("np_from") }),
-    h("div", { class: "np-opts", role: "radiogroup", "aria-labelledby": grp + "-from" }, opt(null), list.map(opt)),
+    h("div", { class: "np-opts", role: "radiogroup", "aria-labelledby": grp + "-from" }, opt(null), forApp ? null : opt(SB), list.map(opt)),
     list.length ? null : h("small", { text: t("np_no_presets") }),
     linkRow, detail,
     h("div", { class: "btns" },
       h("button", { type: "button", text: t("cancel"), onclick: () => dlg.close() }),
-      h("button", { type: "button", class: "primary", text: t("np_create"), onclick: create })));
+      createBtn));
   dlg.addEventListener("close", () => dlg.remove());
   document.body.append(dlg);
   dlg.showModal();
@@ -1743,7 +1830,7 @@ GROUPS.forEach(padDrop);
 function onKeyDrop(n, e) {
   const file = e.dataTransfer.files?.[0], d = dragKey;
   dragKey = null;
-  if (file) { if (isBack(n)) return; sel = n; renderGrid(); renderEditor(); return uploadImage(file); }
+  if (file) { if (isBack(n)) return; if (isSound(file)) return dropSound(n, file); sel = n; renderGrid(); renderEditor(); return uploadImage(file); }
   if (!d) return;
   if (isBack(n)) return moveTo(d, [page, ...folder.slice(0, -1)].join("/"));
   const here = where();
@@ -2460,7 +2547,8 @@ function defaults(type) {
   const other = Object.keys(cfg.pages).find(p => p !== page);
   return { open: { target: "" }, shortcut: { keys: "" }, text: { text: "" }, media: { key: "play_pause" }, shell: { command: "" },
     applescript: { script: "" }, page: { page: other || "back" }, screen_brightness: { value: "+10", display: "all" },
-    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {}, macro: { steps: [], play: "once" }, obs: { do: "record" } }[type];
+    brightness: { value: "+10" }, delay: { ms: 200 }, configurator: {}, macro: { steps: [], play: "once" }, obs: { do: "record" },
+    sound: { file: "" }, stop_sounds: {} }[type];
 }
 
 function actionCard(a, i, list) {
@@ -2533,6 +2621,10 @@ function fields(a) {
       return macroFields(a, accessNote);
     case "obs":
       return obsFields(a);
+    case "sound":
+      return soundFields(a);
+    case "stop_sounds":
+      return [hint(t("stop_hint"))];
   }
   return [];
 }
@@ -2593,6 +2685,109 @@ function obsFields(a) {
 }
 function obsText(a) { // short, for lists: "OBS", "OBS #2", "OBS Mic/Aux"
   return "OBS" + (a.do === "scene" && a.scene ? " " + a.scene : a.do === "mute" && a.source ? " " + a.source : "");
+}
+
+// ---------------------------------------------------------------- sounds (sound.py)
+// Files chosen here are copied into the configuration's sounds/ folder; the Mac plays them.
+const SOUND_EXT = /\.(mp3|m4a|aac|wav|aif|aiff|aifc|caf|flac|m4r)$/i;
+const SOUND_ACCEPT = "audio/*,.mp3,.m4a,.aac,.wav,.aif,.aiff,.aifc,.caf,.flac,.m4r";
+const isSound = f => SOUND_EXT.test(f.name) || (f.type || "").startsWith("audio/");
+let soundCache = null; // the sounds added here and the Mac's own
+const soundList = (fresh = false) => (!fresh && soundCache) || (soundCache = getJSON("/api/sounds").catch(() => ({ mine: [], mac: [] })));
+const soundName = f => String(f || "").split("/").pop().replace(/\.[^.]+$/, "").replace(/-[0-9a-f]{6}$/, "").replace(/[-_]+/g, " ").trim();
+const secsText = s => s == null ? "" : s < 60 ? String(+(+s).toFixed(1)) + " s" : Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
+async function uploadSound(file) { // -> {file, name, seconds}
+  if (!SOUND_EXT.test(file.name)) throw new Error(t("snd_bad"));
+  if (file.size > 50e6) throw new Error(t("snd_too_big"));
+  const r = await api("/api/sound?name=" + encodeURIComponent(file.name), { method: "POST", body: file,
+    headers: { "Content-Type": "application/octet-stream" } }).then(r => r.json());
+  soundCache = null;
+  return r;
+}
+// A key that gets a sound and has no look of its own shows its name and a speaker; its
+// name follows the sound when it was the old sound's name. True if the look changed.
+function soundLook(k, old, file, name) {
+  let look = false;
+  if (!k.label || (old && k.label === soundName(old))) { k.label = name || soundName(file); look = true; }
+  if (!k.emoji && !k.image) { k.emoji = "🔊"; look = true; }
+  return look;
+}
+async function dropSound(n, file) { // a sound file dropped on a key of the pad
+  sel = n; iconUi = null; renderGrid(); renderEditor();
+  toast(t("snd_adding", { name: file.name }));
+  try {
+    const r = await uploadSound(file), k = ensure(n);
+    let a = (k.actions ||= []).find(x => x.type === "sound");
+    const old = a?.file;
+    if (a) a.file = r.file; else k.actions.push(a = { type: "sound", file: r.file });
+    soundLook(k, old, r.file, r.name);
+    edTab = "actions";
+    renderGrid(); renderEditor(); changed();
+    toast(t("snd_added", { name: r.name }));
+  } catch (e) { toast(t("upload_failed", { msg: e.message })); }
+}
+function soundFields(a) {
+  const now = h("div", { class: "snd-now" });
+  const show = (secs) => {
+    now.classList.toggle("empty", !a.file);
+    now.replaceChildren(...[h("span", { "aria-hidden": "true", text: "🔊" }), h("b", { text: a.file ? soundName(a.file) : t("snd_none") }),
+      secs ? h("span", { class: "hint", text: secsText(secs) }) : null].filter(Boolean));
+  };
+  const use = (file, secs, name) => {
+    const old = a.file;
+    a.file = file; pathIn.value = file; show(secs);
+    if (soundLook(ensure(), old, file, name)) { renderEditor(); changed(); } else changed(false);
+  };
+  const add = async (f) => {
+    toast(t("snd_adding", { name: f.name }));
+    try { const r = await uploadSound(f); use(r.file, r.seconds, r.name); toast(t("snd_added", { name: r.name })); fill(); }
+    catch (e) { toast(t("upload_failed", { msg: e.message })); }
+  };
+  const file = h("input", { type: "file", accept: SOUND_ACCEPT, hidden: true, onchange: e => { const f = e.target.files[0]; if (f) add(f); } });
+  const choose = h("button", { type: "button", text: t("snd_choose"), onclick: () => { file.value = ""; try { file.showPicker(); } catch { file.click(); } } });
+  const pick = h("select", { "aria-label": t("snd_pick"), onchange: async e => {
+    const v = e.target.value; e.target.value = "";
+    if (!v) return;
+    const list = await soundList(), s = [...list.mine, ...list.mac].find(x => x.file === v);
+    use(v, s?.seconds, s?.name);
+  } }, h("option", { value: "", text: t("snd_pick") }));
+  const fill = () => soundList().then(list => {
+    pick.replaceChildren(...[h("option", { value: "", text: t("snd_pick") }),
+      list.mine.length ? h("optgroup", { label: t("snd_mine") },
+        list.mine.map(x => h("option", { value: x.file, text: x.name + (x.seconds ? " · " + secsText(x.seconds) : "") }))) : null,
+      h("optgroup", { label: t("snd_mac") }, list.mac.map(x => h("option", { value: x.file, text: x.name + (x.seconds ? " · " + secsText(x.seconds) : "") })))].filter(Boolean));
+    show([...list.mine, ...list.mac].find(x => x.file === a.file)?.seconds);
+  });
+  const pathIn = h("input", { class: "mono", value: a.file || "", placeholder: "~/Music/intro.mp3", spellcheck: "false", autocomplete: "off",
+    "aria-label": t("snd_path"), onchange: e => { const v = e.target.value.trim(); if (v !== a.file) use(v); } });
+  const listen = h("button", { type: "button", text: "▶ " + t("snd_listen"), onclick: async () => {
+    if (!a.file) return toast(t("snd_none"));
+    try {
+      const [r] = await postJSON("/api/test", { spec: { actions: [a] }, pages: cfg.pages });
+      toast((r.ok ? "" : "✗ ") + (r.output || ""));
+    } catch (e) { toast(e.message); }
+  } });
+  const stop = h("button", { type: "button", text: "■ " + t("snd_stop"), onclick: () => postJSON("/api/sound/stop", {}).catch(e => toast(e.message)) });
+  const vol = a.volume ?? 100, volOut = h("output", { text: vol + "%" });
+  const volIn = h("input", { type: "range", min: 0, max: 100, step: 5, value: vol, "aria-label": t("snd_volume"), oninput: e => {
+    const v = +e.target.value;
+    if (v === 100) delete a.volume; else a.volume = v;
+    volOut.textContent = v + "%"; changed(false);
+  } });
+  const mode = h("select", { "aria-label": t("snd_play"), onchange: e => { if (e.target.value === "restart") delete a.play; else a.play = e.target.value; changed(false); } },
+    ["restart", "toggle", "overlap"].map(v => h("option", { value: v, text: t("snd_" + v), selected: (a.play || "restart") === v })));
+  const box = h("div", { class: "snd",
+    ondragover: e => { if (!e.dataTransfer.types.includes("Files")) return; e.preventDefault(); box.classList.add("over"); },
+    ondragleave: e => { if (!box.contains(e.relatedTarget)) box.classList.remove("over"); },
+    ondrop: e => { const f = e.dataTransfer.files?.[0]; if (!f) return; e.preventDefault(); box.classList.remove("over"); isSound(f) ? add(f) : toast(t("snd_bad")); } },
+    now, h("div", { class: "row" }, choose, pick, file), h("small", { text: t("snd_drop") }),
+    h("div", { class: "row" }, listen, stop),
+    h("span", { class: "lbl", text: t("snd_volume") }), h("div", { class: "vol" }, volIn, volOut),
+    h("span", { class: "lbl", text: t("snd_play") }), mode,
+    h("span", { class: "lbl", text: t("snd_path") }), pathIn, h("small", { text: t("snd_path_hint") }),
+    h("small", { text: t("snd_hint") }));
+  show(); fill();
+  return [box];
 }
 
 function level(a, unit) {

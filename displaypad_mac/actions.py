@@ -14,6 +14,8 @@
   {"type": "delay", "ms": 250}
   {"type": "macro", "steps": [...], "play": "once|repeat|while_held|toggle"}   (see macro.py)
   {"type": "obs", "do": "record" | "stream" | "scene" | ..., "scene": "Game"}     (see obs.py)
+  {"type": "sound", "file": "sounds/applause.mp3", "volume": 80, "play": "restart|toggle|overlap"}  (sound.py)
+  {"type": "stop_sounds"}                                  (stops every sound playing)
 """
 
 import logging
@@ -22,7 +24,7 @@ import subprocess
 import threading
 import time
 
-from . import macos, macro, obs, screens
+from . import macos, macro, obs, screens, sound
 from .i18n import t
 
 log = logging.getLogger(__name__)
@@ -32,7 +34,8 @@ NEEDS_POST_EVENTS = {"shortcut", "text", "media", "macro"}
 
 _REQUIRED = {"open": "target", "shortcut": "keys", "text": "text", "media": "key", "shell": "command",
              "applescript": "script", "page": "page", "brightness": "value",
-             "screen_brightness": "value", "delay": "ms", "configurator": None, "macro": None, "obs": "do"}
+             "screen_brightness": "value", "delay": "ms", "configurator": None, "macro": None, "obs": "do",
+             "sound": "file", "stop_sounds": None}
 
 
 def _is_level(value) -> bool:
@@ -71,6 +74,8 @@ def validate_action(action: dict, pages: dict) -> str:
         return macro.validate(action)
     if kind == "obs":
         return obs.validate(action)
+    if kind == "sound":
+        return sound.validate(action)
     return ""
 
 
@@ -133,6 +138,11 @@ def run_action(action: dict, ctx, released=None):
         macro.play(action, released)
     elif kind == "obs":
         log.info("OBS %s: %s", action.get("do"), obs.run(action, ctx.cfg["base_dir"]))
+    elif kind == "sound":
+        return sound.play(sound.resolve(action["file"], ctx.cfg["base_dir"]), action.get("volume", 100),
+                          action.get("play", "restart"))
+    elif kind == "stop_sounds":
+        return sound.stop_all()
     else:
         raise ValueError(f"unknown action type '{kind}'")
 
@@ -181,6 +191,17 @@ def test_actions(spec: dict, ctx, pages: dict) -> list:
                 res = {"ok": True, "output": t("held down for 1 second")}
             elif kind == "obs":
                 res = {"ok": True, "output": obs.run(action, ctx.cfg["base_dir"])}
+            elif kind == "sound":
+                path = sound.resolve(action["file"], ctx.cfg["base_dir"])
+                name = sound.name_of(path)
+                if run_action(action, ctx):
+                    secs = sound.seconds(path)
+                    res = {"ok": True, "output": t("playing {name} ({seconds} s)", name=name,
+                                                     seconds=f"{secs:.1f}" if secs else "?")}
+                else:
+                    res = {"ok": True, "output": t("stopped {name}", name=name)}
+            elif kind == "stop_sounds":
+                res = {"ok": True, "output": t("stopped {n} sound(s)", n=sound.stop_all())}
             elif kind == "macro":  # after a countdown, so the user can switch to the app it is for
                 r = macro.play(action, test=True)
                 if r["stopped"]:

@@ -24,6 +24,10 @@ configurar tus teclas.
   un degradado de dos o tres colores, un degradado que no deja de moverse u olas que
   ruedan, con degradados listos para empezar. Un efecto al pulsar (onda, destello, brillo,
   chispas, reflejo o rebote) se reproduce sobre la tecla en el pad cada vez que la pulsas.
+- **Tablero de sonidos:** una tecla puede reproducir un archivo de sonido de tu Mac (MP3,
+  M4A, WAV, AIFF, CAF o FLAC) con su propio volumen, y un anillo alrededor de la tecla
+  muestra cuánto lleva. **Nueva página → Tablero de sonidos** crea de una vez una página
+  de teclas de sonido con una tecla para detener.
 - **Las imágenes nunca se estiran:** las teclas son cuadradas, así que una imagen ancha o
   alta abre un editor de encuadre donde la mueves y la acercas para elegir la parte que
   muestra la tecla, o la muestras completa. Funciona igual con GIF y Lottie.
@@ -34,7 +38,7 @@ configurar tus teclas.
   a ella solo, mientras la app está abierta o mientras está al frente, y vuelve cuando la
   app ya no está.
 - **Acciones:** abrir una app, web o carpeta; atajos de teclado; escribir texto;
-  reproducir/pausar, volumen y otras teclas multimedia; comandos de terminal; AppleScript;
+  reproducir/pausar, volumen y otras teclas multimedia; reproducir sonidos; comandos de terminal; AppleScript;
   cambiar de página; brillo de las pantallas del Mac (la integrada y las externas por
   DDC/CI) y del pad; pausas entre acciones. Varias acciones por tecla, en orden.
 - **OBS Studio:** iniciar y detener la transmisión, la grabación y la cámara virtual,
@@ -149,7 +153,7 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
   "Adobe Photoshop" sigue funcionando cuando llega "Adobe Photoshop 2027". Nada cambia
   hasta que pulsas **Guardar**.
 - **Teclas:** haz clic en una para editarla. Arrastra una tecla sobre otra para
-  intercambiarlas, o suelta una imagen sobre ella. Copia y pega teclas entre páginas.
+  intercambiarlas, o suelta una imagen o un archivo de sonido sobre ella. Copia y pega teclas entre páginas.
 - **El editor de la tecla:** la vista previa y el **Nombre** de la tecla quedan arriba; lo
   demás va en pestañas: **Estilo** (ícono, tamaño, fondo y efecto al pulsar), **Acciones** (lo que hace la
   tecla; la pestaña muestra cuántas tiene), **Carpeta** y **En vivo**. La barra de pestañas queda a la
@@ -301,6 +305,7 @@ pueden llegar a `127.0.0.1` no podrán conectarse.
 | `update_settings` | Brillo, oscurecer al pulsar, idioma, apariencia, página inicial |
 | `list_apps` | Apps instaladas, para las acciones «abrir» y las páginas que se abren con apps |
 | `upload_image` | Agregar una imagen o animación desde un archivo o base64 |
+| `upload_sound`, `list_sounds` | Agregar un sonido para teclas de sonido, o ver los ya agregados y los del Mac |
 | `preview_page` | Imagen de una página tal como la dibuja el pad, con las teclas en vivo |
 | `test_actions` | Ejecutar acciones al momento (solo si lo permites, ver abajo) |
 
@@ -379,6 +384,36 @@ vez que la pulsas, en lugar de oscurecerla:
 Todos menos Rebote tienen color (blanco por defecto). El efecto se reproduce aunque
 **Oscurecer la tecla mientras está presionada** esté desactivado en Ajustes. Una tecla que
 abre una página o carpeta cambia al instante, así que su efecto se corta.
+
+## Tablero de sonidos
+
+Una tecla puede reproducir un sonido en tu Mac. Agrega una acción **Reproducir un sonido**
+(en **Sonido**, en la lista de acciones) y dale un sonido:
+
+- **Elegir archivo…** toma uno de tu Mac; también puedes soltar un archivo de sonido sobre
+  la acción, o directamente sobre cualquier tecla del pad (una tecla sin aspecto toma el
+  nombre del sonido y 🔊).
+- **Elegir un sonido…** reutiliza un sonido que ya agregaste, o uno de los sonidos del
+  propio Mac (Glass, Hero, Ping, Pop…).
+- **Archivo en este Mac** enlaza un archivo esté donde esté (`~/Music/intro.mp3`).
+
+Los archivos que eliges se copian a la carpeta `sounds` de DisplayPad, así la tecla sigue
+funcionando aunque muevas o borres el original. Sirven MP3, M4A/AAC, WAV, AIFF, CAF y FLAC,
+hasta 50 MB. **▶ Escuchar** lo reproduce en el Mac y **■ Detener** lo para.
+
+Cada sonido tiene un **Volumen** (una parte del volumen del Mac) y una opción para cuando
+pulsas la tecla otra vez mientras todavía suena: **Volver a empezar** (la opción normal),
+**Detenerlo** o **Sonar otra copia encima**. Mientras un sonido suena, un anillo alrededor
+de la tecla se va llenando, así ves qué está sonando y cuánto falta. La acción **Detener
+todos los sonidos** lo para todo.
+
+Los sonidos salen por la salida de sonido del Mac (la elegida en **Ajustes del Sistema →
+Sonido**) y siguen sonando aunque cambies de página.
+
+**Nueva página → Tablero de sonidos** arma una página completa de una vez: elige hasta 10
+archivos de sonido (o ninguno, para empezar con 10 sonidos del Mac) y cada uno tiene una
+tecla con su nombre, un fondo degradado y una onda al pulsar; la tecla 11 detiene todos los
+sonidos y la 12 vuelve atrás.
 
 ## Teclas en vivo
 
@@ -513,6 +548,8 @@ no necesita ningún permiso más para ello.
 | `macro` | `steps`; `play`: `once`, `repeat` (con `times`), `while_held` o `toggle`; `delays`: `recorded`, `fixed` (con `delay_ms`) o `none` | ver abajo |
 | `configurator` | ninguno: abre el configurador | |
 | `obs` | `do`: `stream`, `record`, `pause`, `scene` (con `scene`), `next_scene`, `previous_scene`, `mute` (con `source`, vacío para todos los micrófonos), `virtualcam`, `studio`, `transition`, `replay` | `{"do": "scene", "scene": "#2"}` |
+| `sound` | `file`: en la carpeta de configuración (`sounds/...`) o en cualquier parte del Mac; `volume`: 0 a 100 (100 si no se indica); `play` al pulsar otra vez mientras suena: `restart` (normal), `toggle` u `overlap` | `{"file": "sounds/aplauso-1a2b3c.mp3", "volume": 80}` |
+| `stop_sounds` | ninguno: detiene todos los sonidos | |
 
 `screen_brightness` cambia la pantalla del MacBook (como F1/F2) y los monitores externos
 por DDC/CI (activa DDC/CI en el menú del monitor si no responde).
@@ -599,6 +636,10 @@ cd ~/Library/Application\ Support/DisplayPadMac
 - **Una animación va a saltos:** las teclas animadas de esa página (también cuentan los
   fondos en movimiento y las olas) piden más de las ≈ 52 imágenes por segundo que acepta el pad. Deja menos teclas animadas en esa página o
   usa GIF con menos cuadros por segundo.
+- **Una tecla de sonido no suena:** revisa el volumen del Mac y la salida elegida en
+  **Ajustes del Sistema → Sonido**, y el **Volumen** de la tecla. **▶ Escuchar** en la acción
+  avisa si falta el archivo. Los altavoces Bluetooth pueden comerse el primer instante de un
+  sonido corto.
 - **Un asistente de IA no se conecta:** revisa que **Permitir que los asistentes de IA se
   conecten** esté activado y que el servicio esté en marcha. Un `401` significa que la clave
   de acceso es incorrecta o se reemplazó.

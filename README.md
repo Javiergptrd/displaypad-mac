@@ -23,6 +23,9 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
   two- or three-color gradient, a gradient that keeps flowing, or rolling waves, with
   ready-made gradients to start from. A press effect (ripple, flash, glow, sparkle, shine
   or bounce) plays over the key on the pad each time you press it.
+- **Soundboard:** a key can play a sound file from your Mac (MP3, M4A, WAV, AIFF, CAF or
+  FLAC) at its own volume, with a ring around the key that shows how far it has got.
+  **New page → Soundboard** makes a page of sound keys with a Stop key in one go.
 - **Pictures are never stretched:** keys are square, so a wide or tall picture opens a
   framing editor where you move and zoom it to choose the part the key shows, or show
   it whole. It works the same for GIF and Lottie animations.
@@ -33,7 +36,7 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
   by itself, either while the app is open or while it is in front, and goes back when the
   app is gone.
 - **Actions:** open an app, URL or folder; keyboard shortcuts; type text; play/pause,
-  volume and other media keys; shell commands; AppleScript; change page; brightness of the
+  volume and other media keys; play sounds; shell commands; AppleScript; change page; brightness of the
   Mac's screens (built-in and external over DDC/CI) and of the pad; pauses between actions.
   Several actions per key run in order.
 - **OBS Studio:** start and stop streaming, recording and the virtual camera, switch
@@ -143,7 +146,7 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   without the year, so a page linked to "Adobe Photoshop" keeps working when "Adobe
   Photoshop 2027" arrives. Nothing changes until you press **Save**.
 - **Keys:** click a key to edit it. Drag a key onto another to swap them, or drop a
-  picture on it. Copy and paste keys between pages.
+  picture or a sound file on it. Copy and paste keys between pages.
 - **The key editor:** the preview and the key's **Name** stay at the top; the rest is in
   tabs: **Style** (icon, size, background and press effect), **Actions** (what the key does; the tab shows
   how many), **Folder** and **Live**. The tab bar stays in view while you scroll, and the editor
@@ -285,6 +288,7 @@ The server only listens on this Mac, so assistants that run in the cloud and can
 | `update_settings` | Brightness, press feedback, language, appearance, start page |
 | `list_apps` | Installed apps, for "open" actions and pages that open with apps |
 | `upload_image` | Add a picture or animation from a file or base64 |
+| `upload_sound`, `list_sounds` | Add a sound for sound keys, or list the ones added and the Mac's own |
 | `preview_page` | Picture of a page as the pad draws it, live keys included |
 | `test_actions` | Run actions now (only if you allow it, see below) |
 
@@ -361,6 +365,34 @@ press it, in place of darkening it:
 Every effect but Bounce has a color (white by default). The effect plays even with
 **Darken a key while it is pressed** off in Settings. A key that opens a page or folder switches
 at once, so its effect is cut short.
+
+## Soundboard
+
+A key can play a sound on your Mac. Add a **Play a sound** action (under **Sound** in the
+action list) and give it a sound:
+
+- **Choose a file…** picks one from your Mac, or drop a sound file on the action, or
+  straight onto any key of the pad (a key with no look gets the sound's name and 🔊).
+- **Pick a sound…** reuses a sound you added before, or one of the Mac's own sounds
+  (Glass, Hero, Ping, Pop…).
+- **File on this Mac** links a file wherever it is (`~/Music/intro.mp3`).
+
+Files you choose are copied into DisplayPad's `sounds` folder, so the key keeps working if
+you move or delete the original. MP3, M4A/AAC, WAV, AIFF, CAF and FLAC work, up to 50 MB.
+**▶ Listen** plays it on the Mac and **■ Stop** stops it.
+
+Each sound has a **Volume** (a share of the Mac's volume) and a choice for when you press
+the key again while it still plays: **Play it again from the start** (the default),
+**Stop it**, or **Play another copy on top**. While a sound plays, a ring around the key
+fills up as it goes, so you can see what is playing and how much is left. A **Stop all
+sounds** action stops everything.
+
+Sounds play through the Mac's sound output (the one chosen in **System Settings → Sound**),
+and keep playing if you switch pages.
+
+**New page → Soundboard** builds a whole page at once: choose up to 10 sound files (or
+none, to start with 10 of the Mac's sounds) and each gets a key with its name, a gradient
+background and a ripple when pressed; key 11 stops every sound and key 12 goes back.
 
 ## Live keys
 
@@ -490,6 +522,8 @@ needs no extra permission for it.
 | `macro` | `steps`; `play`: `once`, `repeat` (with `times`), `while_held` or `toggle`; `delays`: `recorded`, `fixed` (with `delay_ms`) or `none` | see below |
 | `configurator` | none: opens the configurator | |
 | `obs` | `do`: `stream`, `record`, `pause`, `scene` (with `scene`), `next_scene`, `previous_scene`, `mute` (with `source`, empty for every microphone), `virtualcam`, `studio`, `transition`, `replay` | `{"do": "scene", "scene": "#2"}` |
+| `sound` | `file`: in the configuration folder (`sounds/...`) or anywhere on the Mac; `volume`: 0 to 100 (default 100); `play` when pressed again while it plays: `restart` (default), `toggle` or `overlap` | `{"file": "sounds/applause-1a2b3c.mp3", "volume": 80}` |
+| `stop_sounds` | none: stops every sound playing | |
 
 `screen_brightness` changes the MacBook screen (like F1/F2) and external monitors over
 DDC/CI (turn DDC/CI on in the monitor's menu if it doesn't respond).
@@ -576,6 +610,9 @@ cd ~/Library/Application\ Support/DisplayPadMac
 - **An animation stutters:** the animated keys on that page (moving and wave backgrounds
   count too) ask for more than the ≈ 52 pictures per second the pad accepts. Use fewer
   animated keys on that page, or GIFs with fewer frames per second.
+- **A sound key is silent:** check the Mac's volume and which output is chosen in
+  **System Settings → Sound**, and the key's **Volume**. **▶ Listen** in the action says if
+  the file is missing. Bluetooth speakers can swallow the first moment of a short sound.
 - **An AI assistant can't connect:** check that **Allow AI assistants to connect** is on
   and that the service is running. A `401` means the access key is wrong or was replaced.
 - **OBS keys do nothing:** **Settings → OBS → Test connection** says why. OBS must be

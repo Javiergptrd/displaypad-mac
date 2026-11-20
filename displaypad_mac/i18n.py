@@ -199,4 +199,16 @@ ES = {
     "the press effect must be one of: {values}": "el efecto al pulsar debe ser uno de: {values}",
     'the press effect color must be a color like "#FFFFFF"': 'el color del efecto al pulsar debe ser un color como "#FFFFFF"',
     "this key has no press effect": "esta tecla no tiene efecto al pulsar",
+    # sound.py: sound keys
+    "the sound must be an MP3, M4A, WAV, AIFF, CAF or FLAC file":
+        "el sonido debe ser un archivo MP3, M4A, WAV, AIFF, CAF o FLAC",
+    "the sound volume must be a number from 0 to 100": "el volumen del sonido debe ser un número de 0 a 100",
+    "the sound's play must be one of: {values}": "el «play» del sonido debe ser uno de: {values}",
+    "sound file not found: {path}": "no se encontró el archivo de sonido: {path}",
+    "the sound is too large (50 MB max)": "el sonido es demasiado grande (máximo 50 MB)",
+    "the file is not a sound macOS can play (use MP3, M4A, WAV, AIFF, CAF or FLAC)":
+        "el archivo no es un sonido que macOS pueda reproducir (usa MP3, M4A, WAV, AIFF, CAF o FLAC)",
+    "playing {name} ({seconds} s)": "reproduciendo {name} ({seconds} s)",
+    "stopped {name}": "se detuvo {name}",
+    "stopped {n} sound(s)": "se detuvieron {n} sonido(s)",
 }

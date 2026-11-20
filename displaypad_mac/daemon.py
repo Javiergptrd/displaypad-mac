@@ -14,6 +14,9 @@
 - Moving backgrounds (render.py) are animations like any other. A key with a press
   effect plays it when pressed (about 33 frames a second, ahead of the animations)
   over whatever the key shows at that moment, in place of darkening it.
+- Sound keys (sound.py): while a key's sound plays, a ring around the key shows how far it
+  has got; the main loop sends the key again each time the ring moves on (up to 10 times a
+  second), one key per turn, like live keys.
 """
 
 import bisect
@@ -32,12 +35,12 @@ import threading
 import time
 from typing import Dict, List, Optional
 
-from . import __version__, appwatch, i18n, keycapture, live, macos, macro, web
+from . import __version__, appwatch, i18n, keycapture, live, macos, macro, sound, web
 from .actions import NEEDS_POST_EVENTS, actions_of, run_actions, validate_action
 from .driver import NUM_KEYS, DisplayPad, DisplayPadError, device_present
 from .i18n import t
-from .render import (DEFAULT_CORNER, EFFECT_STEP, EFFECTS, MAX_CORNER, crop_of, effect_of, frame_durations,
-                     render_key, to_bgr, validate_background, validate_effect)
+from .render import (DEFAULT_CORNER, EFFECT_STEP, EFFECTS, MAX_CORNER, RING_STEPS, crop_of, effect_of,
+                     frame_durations, render_key, to_bgr, validate_background, validate_effect)
 
 log = logging.getLogger(__name__)
 
@@ -212,6 +215,10 @@ class Service:
         self._dark: set = set()                     # pressed keys showing their darkened face
         self._fx: Dict[int, dict] = {}              # key index -> press effect playing: style, color, start, step
         self._fx_faces: Dict[tuple, bytes] = {}     # (key index, frame, step, live picture) -> BGR, current page only
+        self._sound_keys: Dict[int, frozenset] = {}  # sound key index on the current page -> its sound files
+        self._sound_sent: Dict[int, Optional[float]] = {}  # sound key index -> ring shown (None: not playing)
+        self._sound_t: Dict[int, float] = {}        # sound key index -> when its ring was last sent
+        self._sound_due = 0.0
         self._released: Dict[int, threading.Event] = {}  # pad key -> set when it is let go ("hold" shortcuts)
         self._stop = threading.Event()
         self._reload = threading.Event()
@@ -242,7 +249,8 @@ class Service:
                 "language": self.cfg["language"], "mcp": self.cfg["mcp"],
                 "animation": {"keys": len(self._anims), "fps": self._anim_stats[0],
                               "ms_per_frame": self._anim_stats[1]},
-                "live": {"keys": len(self._live_keys), **self.live.status()}}
+                "live": {"keys": len(self._live_keys), **self.live.status()},
+                "sounds": {"keys": len(self._sound_keys), "playing": sound.playing_count()}}
 
     def config_rev(self) -> str:
         """Short hash of config.json, so a window or an assistant can tell it changed under them."""
@@ -312,9 +320,23 @@ class Service:
             self._pending_brightness = max(0, min(100, int(value)))
 
     # -------------------------------------------------- drawing
+    def _sound_at(self, idx: int) -> Optional[float]:
+        """How far the sound of a key on the current page has got, in ring steps (None: not playing)."""
+        files = self._sound_keys.get(idx)
+        p = sound.progress(files) if files else None
+        return None if p is None else round(p * RING_STEPS) / RING_STEPS
+
     def _face(self, page: str, idx: int, pressed: bool = False) -> bytes:
         spec = self.cfg["pages"][page][idx]
         lv = self.live.face(spec) if spec and "live" in spec else None
+        if page == self.page and idx in self._sound_keys:
+            pl = self._sound_sent[idx] = self._sound_at(idx)
+            if pl is not None:  # its sound plays: drawn with the ring as it is now, and not kept
+                a = self._anims.get(idx)
+                if lv and not pressed and idx in self._live_keys:
+                    self._live_keys[idx] = lv["sig"]
+                return to_bgr(render_key(spec, self.cfg["base_dir"], pressed=pressed, frame=a["i"] if a else 0,
+                                         corner=self.cfg["corner_radius"], live=lv, playing=pl))
         a = self._anims.get(idx) if page == self.page else None
         if a:  # animated: the frame currently shown
             sig = lv["sig"] if lv else ""
@@ -350,6 +372,12 @@ class Service:
         specs = self.cfg["pages"][self.page]
         self._live_keys = {i: "" for i, spec in enumerate(specs) if spec and "live" in spec and not live.validate(spec["live"])}
         self.live.watch("pad", [specs[i]["live"] for i in self._live_keys])
+        self._sound_keys, self._sound_sent = {}, {}
+        for i, spec in enumerate(specs):
+            files = frozenset(sound.resolve(a["file"], self.cfg["base_dir"]) for a in actions_of(spec)
+                              if isinstance(a, dict) and a.get("type") == "sound" and a.get("file"))
+            if files:
+                self._sound_keys[i] = files
         for i, spec in enumerate(specs):
             durs = frame_durations(spec, self.cfg["base_dir"]) if spec and not live.is_meter(spec) else None
             if durs:
@@ -422,6 +450,27 @@ class Service:
         self._live_due = now + 0.1  # the clock's seconds stay on time
         return 0.1
 
+    def _sound_step(self) -> float:
+        """Send a sound key again when its ring has moved on, or its sound started or ended.
+        Returns the seconds until it is worth looking again."""
+        if not self._sound_keys:
+            return 1.0
+        now = time.monotonic()
+        if now < self._sound_due:
+            return self._sound_due - now
+        hold = self._dark | self._fx.keys()
+        for idx in self._sound_keys:
+            at, sent = self._sound_at(idx), self._sound_sent.get(idx)
+            if idx in hold or at == sent:
+                continue
+            if at is not None and sent is not None and now - self._sound_t.get(idx, 0.0) < 0.1:
+                continue  # the ring moves on at most 10 times a second; starting and ending show at once
+            self._show_now(idx)
+            self._sound_t[idx] = time.monotonic()
+            return 0.0  # the others on the next turn, between key presses
+        self._sound_due = now + 0.05
+        return 0.05
+
     def _show_now(self, idx: int):
         """Send a key as it is now (after it is let go, or its press effect ends); an
         animated key goes on from the frame due now."""
@@ -462,14 +511,17 @@ class Service:
         lv = self.live.face(spec) if spec and "live" in spec else None
         a = self._anims.get(idx)
         frame = self._frame_now(a) if a else 0  # the key goes on moving under the effect
-        key = (idx, frame, step, lv["sig"] if lv else "")
+        pl = self._sound_at(idx)
+        if idx in self._sound_keys:
+            self._sound_sent[idx] = pl
+        key = (idx, frame, step, lv["sig"] if lv else "", pl)
         face = self._fx_faces.get(key)
         if face is None:
             if len(self._fx_faces) > 600:
                 self._fx_faces.clear()
             face = self._fx_faces[key] = to_bgr(render_key(
                 spec, self.cfg["base_dir"], frame=frame, corner=self.cfg["corner_radius"], live=lv,
-                effect=(f["style"], f["color"], step * EFFECT_STEP / total)))
+                effect=(f["style"], f["color"], step * EFFECT_STEP / total), playing=pl))
         self.pad.upload(idx, face)
         f["due"] = f["t0"] + (step + 1) * EFFECT_STEP / 1000
         return 0.0
@@ -642,7 +694,7 @@ class Service:
                 continue
             try:
                 self._apply_pending()
-                wait = min(self._fx_step(), self._animate(), self._live_step())
+                wait = min(self._fx_step(), self._animate(), self._live_step(), self._sound_step())
                 keys = self.pad.read_keys(max(1, min(40, int(wait * 1000))))
                 if keys is not None:
                     self._on_keys(keys)
@@ -657,6 +709,7 @@ class Service:
         self.pad.close()
         self._let_go()
         self.live.stop()
+        sound.stop_all()  # afplay runs on its own: stop what this service started
 
     def stop(self, *_):
         keycapture.capture.cancel()  # give the keyboard back first
