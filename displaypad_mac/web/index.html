@@ -362,6 +362,13 @@ aside.card { position: sticky; top: 72px; max-height: calc(100vh - 90px); overfl
 .drop:hover { border-color: var(--accent); }
 .drop.over { border-color: var(--accent); background: var(--accent-soft); }
 .row { display: flex; gap: 10px; align-items: flex-end; }
+.bg-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.grads { display: flex; flex-wrap: wrap; gap: 6px; }
+.grads button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.grads button[aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grad-colors { display: flex; gap: 6px; align-items: center; }
+.grad-colors button { padding: 4px 10px; }
+.dir { display: inline-block; width: 18px; text-align: center; color: var(--muted); }
 .row > * { flex: 1; }
 .row > .none { flex: none; }
 .stack > * + * { margin-top: 12px; }
@@ -682,6 +689,17 @@ const STRINGS = {
     icon_h: "Icon", colors_h: "Colors", text_field: "Name", text_ph: "E.g. Outlook",
     hide_text: "Hide the name on the key", hide_text_title: "It is kept, so you can show it again.",
     bg: "Background", fg: "Text color", default_colors: "Default colors",
+    bg_h: "Background", bg_style: "Background style", bg_solid: "Solid", bg_gradient: "Gradient", bg_animated: "Moving",
+    bg_waves: "Waves", bg_color: "Color", bg_colors: "Colors", bg_color_n: "Color {n}",
+    bg_add_color: "Add a third color", bg_remove_color: "Remove the third color", bg_presets: "Ready-made gradients",
+    bg_angle: "Direction", bg_speed: "Speed", speed_slow: "Slow", speed_normal: "Normal", speed_fast: "Fast",
+    bg_moving_note: "It moves on the DisplayPad too. Moving keys on one page share the pad's speed, so many at once move less smoothly.",
+    bg_meter_note: "Meters keep the plain background color.",
+    gp_sunset: "Sunset", gp_ocean: "Ocean", gp_purple: "Purple", gp_aurora: "Aurora", gp_fire: "Fire", gp_mint: "Mint",
+    gp_candy: "Candy", gp_neon: "Neon", gp_peach: "Peach", gp_night: "Night", gp_royal: "Royal blue",
+    fx_h: "When pressed", fx_style: "Press effect", fx_none: "None", fx_ripple: "Ripple", fx_flash: "Flash", fx_glow: "Glow",
+    fx_sparkle: "Sparkle", fx_shine: "Shine", fx_bounce: "Bounce", fx_color: "Effect color", fx_try: "▶ Try it",
+    fx_hint: "Plays over the key on the DisplayPad each time you press it, in place of darkening it.",
     actions_sub: "They run in order when you press the key.",
     add_action: "+ Add action", test: "▶ Test", no_actions: "This key does nothing yet.",
     action_type: "Action type", move_up: "Move up", move_down: "Move down", remove_action: "Remove action",
@@ -929,6 +947,17 @@ const STRINGS = {
     icon_h: "Ícono", colors_h: "Colores", text_field: "Nombre", text_ph: "Ej.: Outlook",
     hide_text: "Ocultar el nombre en la tecla", hide_text_title: "Se conserva para volver a mostrarlo.",
     bg: "Fondo", fg: "Color del texto", default_colors: "Colores por defecto",
+    bg_h: "Fondo", bg_style: "Estilo del fondo", bg_solid: "Liso", bg_gradient: "Degradado", bg_animated: "En movimiento",
+    bg_waves: "Olas", bg_color: "Color", bg_colors: "Colores", bg_color_n: "Color {n}",
+    bg_add_color: "Agregar un tercer color", bg_remove_color: "Quitar el tercer color", bg_presets: "Degradados listos",
+    bg_angle: "Dirección", bg_speed: "Velocidad", speed_slow: "Lenta", speed_normal: "Normal", speed_fast: "Rápida",
+    bg_moving_note: "También se mueve en el DisplayPad. Las teclas que se mueven en una página comparten la velocidad del pad, así que muchas a la vez se mueven con menos fluidez.",
+    bg_meter_note: "Los medidores mantienen el color de fondo liso.",
+    gp_sunset: "Atardecer", gp_ocean: "Océano", gp_purple: "Morado", gp_aurora: "Aurora", gp_fire: "Fuego", gp_mint: "Menta",
+    gp_candy: "Caramelo", gp_neon: "Neón", gp_peach: "Durazno", gp_night: "Noche", gp_royal: "Azul real",
+    fx_h: "Al pulsar", fx_style: "Efecto al pulsar", fx_none: "Ninguno", fx_ripple: "Onda", fx_flash: "Destello", fx_glow: "Brillo",
+    fx_sparkle: "Chispas", fx_shine: "Reflejo", fx_bounce: "Rebote", fx_color: "Color del efecto", fx_try: "▶ Probar",
+    fx_hint: "Se reproduce sobre la tecla en el DisplayPad cada vez que la pulsas, en lugar de oscurecerla.",
     actions_sub: "Se ejecutan en orden al presionar la tecla.",
     add_action: "+ Agregar acción", test: "▶ Probar", no_actions: "Esta tecla todavía no hace nada.",
     action_type: "Tipo de acción", move_up: "Subir", move_down: "Bajar", remove_action: "Quitar acción",
@@ -1151,6 +1180,21 @@ const MEDIA = ["play_pause", "next", "previous", "volume_up", "volume_down", "mu
 const NEEDS_ACCESS = new Set(["shortcut", "text", "media", "macro"]);
 const EMOJI = "📧 💬 📊 📈 📉 🌐 📁 🗂️ 📄 📋 🧮 🧾 💰 💵 🏦 💳 📸 🔒 🔓 🔍 ⏯️ ⏮️ ⏭️ 🔉 🔊 🔇 🎧 🎤 📷 📞 🔅 🔆 💡 🖥️ 💻 ⌨️ 🖨️ 🪟 📝 ✍️ 📅 ⏰ 🔔 ✅ ❌ ⭐ 🚀 ⚙️ 🛠️ 🔄 🔗 ☕ 🏠 ➡️ ⬅️ ⬆️ ⬇️ 🎨 🧑‍💻".split(" ");
 const DEFAULT_BG = "#1c1c24", DEFAULT_FG = "#ffffff";
+// Key backgrounds and press effects (drawn by the service, render.py)
+const BG_STYLES = ["solid", "gradient", "animated", "waves"], BG_MOVING = ["animated", "waves"];
+const BG_ANGLE = { gradient: 135, animated: 135, waves: 180 };
+const FX = ["ripple", "flash", "glow", "sparkle", "shine", "bounce"];
+const GRADIENTS = [["sunset", ["#FF5F6D", "#FFC371"]], ["ocean", ["#2193B0", "#6DD5ED"]], ["purple", ["#7F00FF", "#E100FF"]],
+  ["aurora", ["#00C9A7", "#845EC2"]], ["fire", ["#F12711", "#F5AF19"]], ["mint", ["#11998E", "#38EF7D"]],
+  ["candy", ["#FC5C7D", "#6A82FB"]], ["neon", ["#00F5A0", "#00D9F5", "#7B2FF7"]], ["peach", ["#FFB199", "#FF0844"]],
+  ["night", ["#232526", "#414345"]], ["royal", ["#141E30", "#243B55"]]];
+// The key's background as CSS, for what the page draws itself (the crop stage)
+function bgCss(k) {
+  const b = k?.background;
+  if (b && b.style !== "solid" && Array.isArray(b.colors) && b.colors.length >= 2)
+    return `linear-gradient(${b.angle ?? BG_ANGLE[b.style] ?? 135}deg, ${b.colors.join(", ")})`;
+  return k?.color || DEFAULT_BG;
+}
 const SLOTS = Array.from({ length: 12 }, (_, i) => String(i + 1)); // the pad's keys, as the config numbers them
 // Key names as the service knows them (macos.py). Plain modifier names are the left keys.
 const KEY_NAMES = { Space: "space", Enter: "return", NumpadEnter: "kpenter", Tab: "tab", Backspace: "delete", Delete: "forwarddelete",
@@ -1265,11 +1309,11 @@ const spec = (n = sel) => keys()[n];
 function ensure(n = sel) { return keys()[n] ??= { actions: [] }; }
 function prune(n = sel) {
   const k = keys()[n];
-  if (k && !k.emoji && !k.image && !k.label && !k.color && !k.folder && !k.live && !(k.actions || []).length) delete keys()[n];
+  if (k && !k.emoji && !k.image && !k.label && !k.color && !k.background && !k.press_effect && !k.folder && !k.live && !(k.actions || []).length) delete keys()[n];
 }
 function look(k) {
   if (!k) return {};
-  const o = Object.fromEntries(["emoji", "image", "crop", "label", "hide_label", "color", "text_color", "fill", "icon_scale", "live"].filter(f => k[f] !== undefined && k[f] !== "").map(f => [f, k[f]]));
+  const o = Object.fromEntries(["emoji", "image", "crop", "label", "hide_label", "color", "background", "text_color", "fill", "icon_scale", "live"].filter(f => k[f] !== undefined && k[f] !== "").map(f => [f, k[f]]));
   if (!o.color) o.color = DEFAULT_BG; // a key that exists is drawn on the default background
   return o;
 }
@@ -1806,7 +1850,7 @@ async function openCrop(auto = false) {
   const fromSlider = v => cMax * Math.pow(cMin / cMax, v / 1000);
 
   const stage = h("div", { class: "crop-stage", tabindex: 0, role: "application", "aria-label": t("crop_stage"),
-    style: `background:${k.color || DEFAULT_BG}` }, pic);
+    style: `background:${bgCss(k)}` }, pic);
   const zoom = h("input", { type: "range", min: 0, max: 1000, step: 1, "aria-label": t("crop_zoom"),
     oninput: e => { c = fromSlider(+e.target.value); update(false); } });
   const result = h("img", { class: "crop-result", alt: t("crop_result") });
@@ -2068,6 +2112,93 @@ function emojiPicker(field, current, pick) {
   return root;
 }
 
+// Style tab: the key's background (a plain color, a gradient, a moving one or waves) and text color
+let lastBg = null; // the last gradient used, so Solid and back keeps its colors
+function backgroundBox(k, field, set) {
+  const b = k?.background && k.background.style !== "solid" ? k.background : null, style = b?.style || "solid";
+  const bgNow = () => ensure().background;
+  const recolor = colors => { bgNow().colors = colors; lastBg = bgNow(); changed(false); paintSoon(); };
+  const pick = st => {
+    const s = ensure();
+    if (st === "solid") { if (s.background) lastBg = s.background; delete s.background; }
+    else {
+      const prev = s.background || lastBg || { colors: GRADIENTS[0][1] };
+      s.background = { style: st, colors: prev.colors.slice() };
+      if (prev.angle != null) s.background.angle = prev.angle;
+      if (prev.speed != null && BG_MOVING.includes(st)) s.background.speed = prev.speed;
+      lastBg = s.background;
+    }
+    prune(); renderEditor(); changed();
+  };
+  const seg = h("div", { class: "seg", role: "group", "aria-label": t("bg_style") },
+    BG_STYLES.map(st => h("button", { type: "button", "aria-pressed": String(style === st), onclick: () => pick(st), text: t("bg_" + st) })));
+  const fg = field(t("fg"), h("input", { type: "color", value: (k?.text_color || DEFAULT_FG).toLowerCase(), oninput: e => set("text_color", e.target.value) }));
+  const reset = h("div", {}, h("button", { class: "small", type: "button", text: t("default_colors"),
+    onclick: () => { const s = ensure(); delete s.color; delete s.text_color; delete s.background; prune(); renderEditor(); changed(); } }));
+  const meter = k?.live?.style === "meter" ? h("small", { class: "hint", text: t("bg_meter_note") }) : null;
+  if (!b) return [seg, h("div", { class: "bg-row" },
+    field(t("bg_color"), h("input", { type: "color", value: (k?.color || DEFAULT_BG).toLowerCase(), oninput: e => set("color", e.target.value) })),
+    fg, reset), meter];
+
+  const colors = b.colors || [];
+  const same = cs => cs.join() === colors.map(c => String(c).toUpperCase()).join();
+  const swatches = h("div", { class: "grads", role: "group", "aria-label": t("bg_presets") }, GRADIENTS.map(([id, cs]) =>
+    h("button", { type: "button", title: t("gp_" + id), "aria-label": t("gp_" + id), "aria-pressed": String(same(cs)),
+      style: `background:linear-gradient(135deg, ${cs.join(", ")})`,
+      onclick: () => { recolor(cs.slice()); renderEditor(); } })));
+  const pickers = h("div", {}, h("span", { class: "lbl", text: t("bg_colors") }), h("div", { class: "grad-colors" },
+    colors.map((c, i) => h("input", { type: "color", value: String(c).toLowerCase(), "aria-label": t("bg_color_n", { n: i + 1 }),
+      oninput: e => { const cs = bgNow().colors.slice(); cs[i] = e.target.value.toUpperCase(); recolor(cs); },
+      onchange: () => renderEditor() })),
+    colors.length < 3
+      ? h("button", { type: "button", class: "small", text: "+", title: t("bg_add_color"), "aria-label": t("bg_add_color"),
+          onclick: () => { recolor([...colors, colors[0]]); renderEditor(); } })
+      : h("button", { type: "button", class: "small", text: "×", title: t("bg_remove_color"), "aria-label": t("bg_remove_color"),
+          onclick: () => { recolor(colors.slice(0, 2)); renderEditor(); } })));
+  const ang = b.angle ?? BG_ANGLE[style];
+  const out = h("output", { text: ang + "°" });
+  const arrow = h("span", { class: "dir", "aria-hidden": "true", text: "→", style: `transform:rotate(${ang - 90}deg)` });
+  const angle = h("div", {}, h("span", { class: "lbl", text: t("bg_angle") }),
+    h("div", { class: "slider" }, h("input", { type: "range", min: 0, max: 355, step: 5, value: ang, "aria-label": t("bg_angle"),
+      oninput: e => { const v = +e.target.value, bg = bgNow(); if (v === BG_ANGLE[style]) delete bg.angle; else bg.angle = v;
+        out.textContent = v + "°"; arrow.style.transform = `rotate(${v - 90}deg)`; changed(false); paintSoon(); } }), arrow, out));
+  const speed = BG_MOVING.includes(style) ? h("div", {}, h("span", { class: "lbl", text: t("bg_speed") }),
+    h("div", { class: "seg", role: "group", "aria-label": t("bg_speed") }, [[0.5, "speed_slow"], [1, "speed_normal"], [2, "speed_fast"]].map(([v, key]) =>
+      h("button", { type: "button", "aria-pressed": String((b.speed ?? 1) === v), text: t(key),
+        onclick: () => { const bg = bgNow(); if (v === 1) delete bg.speed; else bg.speed = v; renderEditor(); changed(); } })))) : null;
+  return [seg, swatches, h("div", { class: "bg-row" }, pickers, fg, reset), angle, speed,
+    BG_MOVING.includes(style) ? h("small", { class: "hint", text: t("bg_moving_note") }) : null, meter];
+}
+
+// Style tab: the press effect, and "Try it", which plays it on the key's picture here
+function effectBox(k, field) {
+  const e = k?.press_effect, style = FX.includes(e?.style) ? e.style : "";
+  const choose = h("select", { "aria-label": t("fx_style"),
+    onchange: ev => { const s = ensure(), v = ev.target.value;
+      if (!v) delete s.press_effect; else s.press_effect = { style: v, ...(s.press_effect?.color ? { color: s.press_effect.color } : {}) };
+      prune(); renderEditor(); changed(); if (v) tryEffect(); } },
+    ["", ...FX].map(v => h("option", { value: v, selected: v === style, text: t(v ? "fx_" + v : "fx_none") })));
+  const color = style && style !== "bounce" ? field(t("fx_color"), h("input", { type: "color", value: (e.color || "#FFFFFF").toLowerCase(),
+    oninput: ev => { const fx = ensure().press_effect, c = ev.target.value.toUpperCase(); if (c === "#FFFFFF") delete fx.color; else fx.color = c; changed(false); },
+    onchange: () => tryEffect() })) : null;
+  return [h("div", { class: "bg-row" }, field(t("fx_style"), choose), color,
+      style ? h("div", {}, h("button", { type: "button", class: "small", text: t("fx_try"), onclick: tryEffect })) : null),
+    h("small", { class: "hint", text: t("fx_hint") })];
+}
+let fxPlaying = 0;
+async function tryEffect() {
+  const n = sel, k = spec(n);
+  if (!k?.press_effect || isBack(n)) return;
+  const id = ++fxPlaying;
+  try {
+    const r = await api("/api/render?effect=1&corner=" + corners(), { method: "POST", body: JSON.stringify({ ...look(k), press_effect: k.press_effect }) });
+    const url = URL.createObjectURL(await r.blob()), ms = +(r.headers.get("X-Duration") || 600);
+    if (id !== fxPlaying || n !== sel) return URL.revokeObjectURL(url);
+    for (const im of [$("#ed-img"), padGrid(groupOf(page))?.querySelector(`.key[data-n="${n}"] img`)]) if (im) im.src = url;
+    setTimeout(() => { if (id === fxPlaying) paintKey(n); setTimeout(() => URL.revokeObjectURL(url), 1000); }, ms);
+  } catch (err) { toast(err.message); }
+}
+
 function renderEditor() {
   if (isBack(sel)) return renderBackKey();
   const ed = $("#editor"), k = spec(), mode = iconMode(k);
@@ -2118,11 +2249,10 @@ function renderEditor() {
     style: h("div", {},
       h("h3", { text: t("icon_h") }),
       h("div", { class: "stack" }, seg, iconBox, sizeBox),
-      h("h3", { text: t("colors_h") }),
-      h("div", { class: "row" },
-        field(t("bg"), h("input", { type: "color", value: (k?.color || DEFAULT_BG).toLowerCase(), oninput: e => set("color", e.target.value) })),
-        field(t("fg"), h("input", { type: "color", value: (k?.text_color || DEFAULT_FG).toLowerCase(), oninput: e => set("text_color", e.target.value) })),
-        h("div", { class: "none" }, h("button", { class: "small", onclick: () => { const s = ensure(); delete s.color; delete s.text_color; prune(); renderEditor(); changed(); }, text: t("default_colors") })))),
+      h("h3", { text: t("bg_h") }),
+      h("div", { class: "stack" }, backgroundBox(k, field, set)),
+      h("h3", { text: t("fx_h") }),
+      h("div", { class: "stack" }, effectBox(k, field))),
     actions: h("div", {},
       h("p", { class: "hint tab-intro", text: t("actions_sub") }),
       actionsBox,

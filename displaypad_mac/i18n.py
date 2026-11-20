@@ -185,4 +185,18 @@ ES = {
     "took more than {seconds} s": "tardó más de {seconds} s",
     "save the key to run its command": "guarda la tecla para ejecutar su comando",
     "cannot read it now": "no se puede leer ahora",
+    # render.py: backgrounds and press effects
+    'background must be an object like {"style": "gradient", "colors": ["#FF5F6D", "#FFC371"]}':
+        'background debe ser un objeto como {"style": "gradient", "colors": ["#FF5F6D", "#FFC371"]}',
+    "the background style must be one of: {values}": "el estilo del fondo debe ser uno de: {values}",
+    'the background needs 2 or 3 colors, like ["#FF5F6D", "#FFC371"]':
+        'el fondo necesita 2 o 3 colores, como ["#FF5F6D", "#FFC371"]',
+    "the background angle must be a number of degrees from 0 to 360":
+        "el ángulo del fondo debe ser un número de grados de 0 a 360",
+    "the background speed must be a number from {min} to {max}":
+        "la velocidad del fondo debe ser un número de {min} a {max}",
+    'press_effect must be an object like {"style": "ripple"}': 'press_effect debe ser un objeto como {"style": "ripple"}',
+    "the press effect must be one of: {values}": "el efecto al pulsar debe ser uno de: {values}",
+    'the press effect color must be a color like "#FFFFFF"': 'el color del efecto al pulsar debe ser un color como "#FFFFFF"',
+    "this key has no press effect": "esta tecla no tiene efecto al pulsar",
 }

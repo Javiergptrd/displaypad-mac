@@ -19,6 +19,10 @@ and an optional **MCP server**, so an AI assistant can help you set up your keys
 - **12 keys with pictures:** emoji, PNG/JPG, animated GIF/WebP/APNG or **Lottie**
   (`.json`, `.lottie`, `.tgs`), with a label, colors and an icon size from 30 % to 200 %.
   You can **hide a key's text** without deleting it.
+- **Gradient backgrounds and press effects:** a key's background can be a plain color, a
+  two- or three-color gradient, a gradient that keeps flowing, or rolling waves, with
+  ready-made gradients to start from. A press effect (ripple, flash, glow, sparkle, shine
+  or bounce) plays over the key on the pad each time you press it.
 - **Pictures are never stretched:** keys are square, so a wide or tall picture opens a
   framing editor where you move and zoom it to choose the part the key shows, or show
   it whole. It works the same for GIF and Lottie animations.
@@ -141,7 +145,7 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
 - **Keys:** click a key to edit it. Drag a key onto another to swap them, or drop a
   picture on it. Copy and paste keys between pages.
 - **The key editor:** the preview and the key's **Name** stay at the top; the rest is in
-  tabs: **Style** (icon, size and colors), **Actions** (what the key does; the tab shows
+  tabs: **Style** (icon, size, background and press effect), **Actions** (what the key does; the tab shows
   how many), **Folder** and **Live**. The tab bar stays in view while you scroll, and the editor
   remembers the tab you were on when you pick another key.
 - **Folders:** in the **Folder** tab, **Make this key a folder**, then **Open folder ›** (or
@@ -156,6 +160,9 @@ Open it with the **DisplayPad** app (Applications, Launchpad or Spotlight), with
   pick a skin tone. The names come from macOS itself, and the browser sorts and groups
   them, so nothing is downloaded and anything the picker offers, the pad can draw.
   Tick **Hide the name on the key** (under the name) to keep the name without drawing it.
+  Under **Background** choose **Solid**, **Gradient**, **Moving** or **Waves** (see
+  [Backgrounds and press effects](#backgrounds-and-press-effects)); under **When pressed**
+  pick a press effect and **▶ Try it** to watch it on the preview.
   The preview is exactly what the pad draws.
 - **Adjust framing:** when you add a picture or animation that isn't square, a window
   opens where you drag it and zoom it (slider, scroll wheel, trackpad pinch, or arrow
@@ -309,7 +316,8 @@ the service sends the frames one by one. Measured on the pad:
   25 for a Lottie. Two Lottie keys fit at full speed.
 - If the animated keys ask for more than the pad can take, frames are skipped: each
   animation keeps its real speed but looks less smooth.
-- While you hold an animated key down it stays still and darkened.
+- While you hold an animated key down it stays still and darkened (a key with a press
+  effect plays its effect instead and keeps moving).
 - With the pad at its limit the service uses about 4 % CPU.
 
 Uploads are stored in `icons/` as animated WebP, with the shorter side at most 204 px (so
@@ -318,6 +326,41 @@ can still be framed), and at most 180 frames (frames in between are dropped if t
 Lottie files are drawn with rlottie at 25 frames per second. Some After Effects features
 (expressions, effects, text layers) may not be drawn; if a Lottie comes out without
 motion the configurator tells you: export it as a GIF instead.
+
+## Backgrounds and press effects
+
+In the key editor's **Style** tab, **Background** has four styles:
+
+- **Solid:** one color (the usual).
+- **Gradient:** two or three colors blending across the key. **Direction** turns it
+  (the arrow shows where it goes).
+- **Moving:** the gradient's colors keep flowing along that direction.
+- **Waves:** wavy bands of the colors that roll across the key.
+
+Pick one of the ready-made gradients (Sunset, Ocean, Purple, Aurora, Fire, Mint, Candy,
+Neon, Peach, Night, Royal blue) or your own colors; **+** adds a third color. **Moving**
+and **Waves** have a **Speed** (slow, normal, fast). They play on the pad like an
+animation, about 15 pictures per second each, and share the pad's speed with the other
+animated keys of the page (see [Animations](#animations-gif-and-lottie)), so a page full
+of moving keys moves less smoothly. With an animated picture on top, both play together
+(the background's speed adjusts a little so the two loop together).
+Meters, and live keys turning amber or red, keep a plain color.
+
+**When pressed** sets a **press effect**, played over the key on the pad each time you
+press it, in place of darkening it:
+
+| Effect | What it does |
+|---|---|
+| Ripple | A ring spreads out from the middle |
+| Flash | The key lights up and fades |
+| Glow | The edge of the key lights up |
+| Sparkle | A burst and little stars flying out |
+| Shine | A band of light sweeps across |
+| Bounce | The key is pushed in and springs back |
+
+Every effect but Bounce has a color (white by default). The effect plays even with
+**Darken a key while it is pressed** off in Settings. A key that opens a page or folder switches
+at once, so its effect is cut short.
 
 ## Live keys
 
@@ -424,6 +467,8 @@ needs no extra permission for it.
 | `hide_label` | `true` keeps the label without drawing it |
 | `color` | Background color, e.g. `#1C1C24` |
 | `text_color` | Text color |
+| `background` | A [gradient background](#backgrounds-and-press-effects): `{"style": "waves", "colors": ["#FC5C7D", "#6A82FB"]}`. `style`: `gradient`, `animated` (moving), `waves` or `solid`; `colors`: 2 or 3; `angle`: degrees, 0 is up and 90 is right (default 135, waves 180); `speed`: 0.25 to 4 for `animated` and `waves` (default 1). `color` is still used by meters and alerts |
+| `press_effect` | Played over the key when it is pressed: `{"style": "ripple", "color": "#FFFFFF"}`. `style`: `ripple`, `flash`, `glow`, `sparkle`, `shine` or `bounce`; `color` is optional |
 | `action` / `actions` | One action, or a list run in order |
 | `folder` | Makes the key a folder: `{"keys": {"2": {...}, "3": {...}}}`, with keys 2 to 12 (key 1 is its Back key). A folder can hold folders. Its own actions, if any, run before it opens |
 | `live` | Makes it a [live key](#live-keys): `{"source": "cpu", "style": "meter"}`. `source` is required; `style` is `text` (default) or `meter`; `alert`: `false` keeps the colors; a `command` key also has `command` and `every` (seconds). The `label` is the text, with values like `{time}` in place |
@@ -528,9 +573,9 @@ cd ~/Library/Application\ Support/DisplayPadMac
   program uses port 8765 the configurator can't start (the pad keeps working).
 - **Screen − / + doesn't change the external monitor:** turn DDC/CI on in the monitor's
   menu. Some USB-C adapters and docks don't pass DDC through.
-- **An animation stutters:** the animated keys on that page ask for more than the
-  ≈ 52 pictures per second the pad accepts. Use fewer animated keys on that page, or GIFs
-  with fewer frames per second.
+- **An animation stutters:** the animated keys on that page (moving and wave backgrounds
+  count too) ask for more than the ≈ 52 pictures per second the pad accepts. Use fewer
+  animated keys on that page, or GIFs with fewer frames per second.
 - **An AI assistant can't connect:** check that **Allow AI assistants to connect** is on
   and that the service is running. A `401` means the access key is wrong or was replaced.
 - **OBS keys do nothing:** **Settings → OBS → Test connection** says why. OBS must be

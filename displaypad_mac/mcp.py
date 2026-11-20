@@ -63,6 +63,8 @@ KEY FIELDS (all optional; a key with nothing is simply left out)
 - label: text at the bottom of the key, under the icon (about 8-10 characters fit per line; longer text shrinks and wraps). A key with only a label shows it large in the middle.
 - hide_label: true keeps the label in the configuration without drawing it.
 - color: background "#RRGGBB" (default "#1C1C24"). text_color: label color (default "#FFFFFF").
+- background: a gradient in place of the plain color: {"style": "gradient", "colors": ["#FF5F6D", "#FFC371"]}. Styles: gradient (still), animated (the colors keep flowing along the angle), waves (wavy bands of the colors that roll by), solid (the plain color). colors: 2 or 3 "#RRGGBB". angle: degrees, as in CSS (0 towards the top, 90 towards the right; default 135, waves 180). speed: 0.25-4 for animated and waves (default 1; 0.5 slow, 2 fast). Moving backgrounds play on the pad like animations (about 15 frames a second each) and share its speed with them. Keep "color" too: meters and amber/red alerts use it. Nice pairs: sunset #FF5F6D/#FFC371, ocean #2193B0/#6DD5ED, purple #7F00FF/#E100FF, aurora #00C9A7/#845EC2, fire #F12711/#F5AF19, mint #11998E/#38EF7D, candy #FC5C7D/#6A82FB, night #232526/#414345. Example: {"emoji": "🎵", "label": "Music", "background": {"style": "waves", "colors": ["#FC5C7D", "#6A82FB"]}}.
+- press_effect: an animation played over the key on the pad each time it is pressed, in place of darkening it: {"style": "ripple"}. Styles: ripple (a ring spreading from the middle), flash, glow (the edge lights up), sparkle (little stars flying out), shine (a band of light sweeping across), bounce (the key pushed in and springing back). color: "#RRGGBB" of the effect (default "#FFFFFF"; bounce has none). Keys that open a page or folder switch at once, so their effect is cut short.
 - fill: images only. true (default) makes a picture cover the whole key when no label is drawn; false keeps a margin.
 - icon_scale: 30-200, size of the emoji or picture in percent (default 100; over 100 zooms in).
 - crop: [left, top, right, bottom] for pictures, as fractions of the picture (0-1), e.g. [0.25, 0, 0.75, 1] for the middle square of a 2:1 picture. Keys are square, so make the cropped area square in pixels or the picture is centred inside it (never stretched). Without crop the middle of the picture covers the key, or, on a key with visible text or fill false, the whole picture is shown smaller. Values past 0-1 zoom out: that part shows the key color (for a 2:1 picture, [0, -0.5, 1, 1.5] shows it whole). upload_image tells the picture's size. Setting a new image without crop drops the old crop.
@@ -119,6 +121,15 @@ KEY_SPEC = {
         "hide_label": {"type": "boolean"},
         "color": {"type": "string", "description": "Background, #RRGGBB."},
         "text_color": {"type": "string", "description": "Label color, #RRGGBB."},
+        "background": {"type": "object", "description": "A gradient background, still or moving; see get_reference.",
+                       "properties": {"style": {"type": "string", "enum": list(render.BG_STYLES)},
+                                      "colors": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 3},
+                                      "angle": {"type": "number", "minimum": 0, "maximum": 360},
+                                      "speed": {"type": "number", "minimum": render.SPEED_MIN, "maximum": render.SPEED_MAX}}},
+        "press_effect": {"type": "object", "description": "Animation played over the key when pressed; see get_reference.",
+                         "properties": {"style": {"type": "string", "enum": list(render.EFFECTS)},
+                                        "color": {"type": "string", "description": "#RRGGBB, default #FFFFFF."}},
+                         "required": ["style"]},
         "fill": {"type": "boolean"},
         "icon_scale": {"type": "number", "minimum": 30, "maximum": 200},
         "crop": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4,

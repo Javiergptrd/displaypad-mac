@@ -1,16 +1,22 @@
 """Draw 102x102 key faces from a key's config: image, emoji, label, colours.
 Animated images (GIF, WebP, APNG, converted Lottie) give one face per frame; live keys
-(live.py) get their text, or are drawn as a meter."""
+(live.py) get their text, or are drawn as a meter. A key's background can be a gradient,
+a moving one or waves, and a press effect (ripple, flash...) can play over it."""
 
+import bisect
 import functools
+import itertools
 import logging
+import math
 import os
+import re
 from typing import Optional
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from . import anim
 from .driver import ICON_SIZE
+from .i18n import t
 
 log = logging.getLogger(__name__)
 
@@ -163,11 +169,30 @@ def _frames(path: str, crop: Optional[tuple] = None) -> tuple:
         return ()
 
 
+def _key_timeline(spec: dict, base_dir: str) -> tuple:
+    """One loop of a key that moves (see _timeline), () for a still one."""
+    path = _image_path(spec, base_dir)
+    frames = _frames(path, crop_of(spec)) if path else ()
+    period = _bg_period(spec)
+    if not frames and not period:
+        return ()
+    return _timeline(tuple(ms for _, ms in frames), period)
+
+
 def frame_durations(spec: Optional[dict], base_dir: str) -> Optional[list]:
-    """Milliseconds of each frame when the key shows an animation, otherwise None."""
-    path = _image_path(spec or {}, base_dir)
-    frames = _frames(path, crop_of(spec or {})) if path else ()
-    return [ms for _, ms in frames] if frames else None
+    """Milliseconds of each frame when the key moves (an animated picture, a moving
+    background or both), otherwise None."""
+    tl = _key_timeline(spec or {}, base_dir)
+    return [ms for ms, _, _ in tl] if tl else None
+
+
+def frame_at(spec: Optional[dict], base_dir: str, ms: float) -> int:
+    """The frame a moving key shows `ms` after its loop started (0 for a still key)."""
+    tl = _key_timeline(spec or {}, base_dir)
+    if not tl:
+        return 0
+    ends = list(itertools.accumulate(d for d, _, _ in tl))
+    return min(bisect.bisect_right(ends, ms % ends[-1]), len(tl) - 1)
 
 
 def _load_icon(spec: dict, base_dir: str, frame: int = 0, first_only: bool = False) -> Optional[Image.Image]:
@@ -177,8 +202,9 @@ def _load_icon(spec: dict, base_dir: str, frame: int = 0, first_only: bool = Fal
     if path:
         crop = crop_of(spec)
         frames = () if first_only else _frames(path, crop)
-        if frames:
-            return frames[frame % len(frames)][0]
+        if frames:  # `frame` is the key's frame; with a moving background it is not the picture's
+            tl = _timeline(tuple(ms for _, ms in frames), _bg_period(spec))
+            return frames[tl[frame % len(tl)][1] % len(frames)][0]
         try:
             with Image.open(path) as img:
                 img.seek(0)
@@ -311,22 +337,304 @@ def _meter(spec: dict, face: dict) -> Image.Image:
     return img.resize((S, S), Image.LANCZOS)
 
 
+# ---------------------------------------------------------------- backgrounds
+# "background": {"style": "gradient", "colors": ["#FF5F6D", "#FFC371"], "angle": 135, "speed": 1}
+# gradient: still, from the first colour to the last along `angle` (degrees, as in CSS: 0 towards
+# the top, 90 towards the right). animated: the colours keep flowing along the angle. waves: wavy
+# bands of the colours that roll by. "color" stays the key's plain colour (meters and alerts use it).
+BG_STYLES = ("solid", "gradient", "animated", "waves")
+BG_ANGLE = {"gradient": 135, "animated": 135, "waves": 180}  # default angle of each style
+BG_PERIOD = {"animated": 6000, "waves": 4800}  # ms per loop at speed 1
+BG_STEP = 66          # ms per frame of a moving background (about 15 a second)
+BG_MAX_FRAMES = 90    # per loop of the background
+MAX_FRAMES = 360      # per loop of a key whose picture and background both move
+SPEED_MIN, SPEED_MAX = 0.25, 4
+_G = 34               # backgrounds are worked out on a 34x34 grid and smoothed up to the key
+_HEX = re.compile(r"#(?:[0-9a-fA-F]{3}){1,2}")
+
+
+def is_color(c) -> bool:
+    return isinstance(c, str) and _HEX.fullmatch(c) is not None
+
+
+def validate_background(b) -> str:
+    """An error message for a key's "background", or "" when it is fine."""
+    if not isinstance(b, dict):
+        return t('background must be an object like {"style": "gradient", "colors": ["#FF5F6D", "#FFC371"]}')
+    style = b.get("style", "gradient")
+    if style not in BG_STYLES:
+        return t("the background style must be one of: {values}", values=", ".join(BG_STYLES))
+    if style == "solid":
+        return ""
+    colors = b.get("colors")
+    if not isinstance(colors, list) or not 2 <= len(colors) <= 3 or not all(map(is_color, colors)):
+        return t('the background needs 2 or 3 colors, like ["#FF5F6D", "#FFC371"]')
+    angle = b.get("angle", 0)
+    if isinstance(angle, bool) or not isinstance(angle, (int, float)) or not 0 <= angle <= 360:
+        return t("the background angle must be a number of degrees from 0 to 360")
+    speed = b.get("speed", 1)
+    if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not SPEED_MIN <= speed <= SPEED_MAX:
+        return t("the background speed must be a number from {min} to {max}", min=SPEED_MIN, max=SPEED_MAX)
+    return ""
+
+
+def background_of(spec: dict) -> Optional[tuple]:
+    """(style, colors, angle, speed) of a key's gradient background, None for a plain colour."""
+    b = spec.get("background")
+    if not isinstance(b, dict) or b.get("style", "gradient") == "solid" or validate_background(b):
+        return None
+    style = b.get("style", "gradient")
+    return (style, tuple(c.upper() for c in b["colors"]),
+            float(b.get("angle", BG_ANGLE[style])) % 360, float(b.get("speed", 1)))
+
+
+def _bg_period(spec: dict) -> Optional[int]:
+    """ms per loop of a moving background, None for a still one or a plain colour."""
+    bg = background_of(spec)
+    return round(BG_PERIOD[bg[0]] / bg[3]) if bg and bg[0] in BG_PERIOD else None
+
+
+@functools.lru_cache(maxsize=64)
+def _timeline(gif: tuple, period: Optional[int]) -> tuple:
+    """((ms, picture frame, background phase 0-1), ...): one loop of a key that moves. `gif`
+    is the ms of each frame of its animated picture, `period` the ms per loop of its moving
+    background. With both, the loop holds a whole number of each, and a frame starts wherever
+    either of them changes. The background's speed bends to fit: a little, or more when a
+    long picture would make the loop too many frames (MAX_FRAMES)."""
+    if not period:
+        return tuple((ms, i, 0.0) for i, ms in enumerate(gif))
+    if not gif:
+        n = max(2, min(BG_MAX_FRAMES, round(period / BG_STEP)))
+        cuts = [round(k * period / n) for k in range(n + 1)]
+        return tuple((cuts[k + 1] - cuts[k], 0, k / n) for k in range(n))
+    total = sum(gif)
+    loops = max(1, min(round(period / total), MAX_FRAMES // len(gif)))  # picture loops in one loop of both
+    length = total * loops
+    turns = max(1, round(length / period))  # background loops in the same time
+    ends = list(itertools.accumulate(gif))
+    starts = [loop * total + s for loop in range(loops) for s in [0] + ends[:-1]]
+    steps = max(2, min(BG_MAX_FRAMES, round(length / turns / BG_STEP)))
+    while True:
+        bg_cuts = [round(j * length / (turns * steps)) for j in range(turns * steps)]
+        cuts = set(starts)  # the picture changes on time; a background step that close waits for it
+        for c in bg_cuts:
+            k = bisect.bisect_left(starts, c)
+            if all(abs(c - starts[j]) >= 10 for j in (k - 1, k) if 0 <= j < len(starts)):  # no slivers of a frame
+                cuts.add(c)
+        cuts = sorted(cuts)
+        if len(cuts) <= MAX_FRAMES or steps <= 2:
+            break
+        steps = max(2, steps * 2 // 3)
+    out = []
+    for k, c in enumerate(cuts):
+        nxt = cuts[k + 1] if k + 1 < len(cuts) else length
+        pic = min(bisect.bisect_right(ends, c % total), len(gif) - 1)
+        step = (bisect.bisect_right(bg_cuts, c) - 1) % steps
+        out.append((nxt - c, pic, step / steps))
+    return tuple(out)
+
+
+@functools.lru_cache(maxsize=16)
+def _ramp(colors: tuple, cyclic: bool, crisp: bool = False) -> tuple:
+    """256 RGB steps (bytes) through the colours, back to the first one when cyclic, eased
+    so the colour stops do not show as lines (`crisp`: each colour holds longer, for bands)."""
+    stops = [_rgb(c, DEFAULT_BG) for c in colors] + ([_rgb(colors[0], DEFAULT_BG)] if cyclic else [])
+    n = len(stops) - 1
+    out = []
+    for i in range(256):
+        x = i / 256 * n if cyclic else i / 255 * n
+        k = min(int(x), n - 1)
+        f = x - k
+        f = f * f * f * (f * (f * 6 - 15) + 10) if crisp else f * f * (3 - 2 * f)
+        out.append(bytes(_mix(stops[k], stops[k + 1], f)))
+    return tuple(out)
+
+
+@functools.lru_cache(maxsize=192)
+def _background(style: str, colors: tuple, angle: float, phase: float) -> Image.Image:
+    """A gradient background at `phase` (0-1) of its loop."""
+    ramp = _ramp(colors, style != "gradient", style == "waves")
+    a = math.radians(angle)
+    dx, dy = math.sin(a), -math.cos(a)
+    span = abs(dx) + abs(dy)  # corner to corner along the angle, as in CSS
+    tau = 2 * math.pi
+    data = bytearray()
+    for j in range(_G):
+        y = (j + 0.5) / _G - 0.5
+        for i in range(_G):
+            x = (i + 0.5) / _G - 0.5
+            u = (x * dx + y * dy) / span + 0.5  # 0 at the first corner, 1 at the last
+            if style == "gradient":
+                data += ramp[min(255, max(0, round(u * 255)))]
+                continue
+            if style == "animated":
+                w = 0.5 * u - phase
+            else:  # waves: bands across the angle, their edges rolling sideways
+                v = (y * dx - x * dy) / span + 0.5
+                w = (1.1 * u + 0.12 * math.sin(tau * (v - phase))
+                     + 0.05 * math.sin(tau * (2 * v + 2 * phase) + 1.3) - phase)
+            data += ramp[int((w % 1.0) * 256) % 256]
+    return Image.frombytes("RGB", (_G, _G), bytes(data)).resize((S, S), Image.BICUBIC)
+
+
+# ---------------------------------------------------------------- press effects
+# "press_effect": {"style": "ripple", "color": "#FFFFFF"} plays over the key when it is pressed,
+# in place of darkening it.
+EFFECTS = {"ripple": 450, "flash": 380, "glow": 520, "sparkle": 560, "shine": 520, "bounce": 320}  # ms
+EFFECT_STEP = 30  # ms per frame
+DEFAULT_EFFECT_COLOR = "#FFFFFF"
+
+
+def validate_effect(e) -> str:
+    """An error message for a key's "press_effect", or "" when it is fine."""
+    if not isinstance(e, dict):
+        return t('press_effect must be an object like {"style": "ripple"}')
+    if e.get("style") not in EFFECTS:
+        return t("the press effect must be one of: {values}", values=", ".join(EFFECTS))
+    if "color" in e and not is_color(e["color"]):
+        return t('the press effect color must be a color like "#FFFFFF"')
+    return ""
+
+
+def effect_of(spec: Optional[dict]) -> Optional[tuple]:
+    """(style, color) of a key's press effect, or None."""
+    e = (spec or {}).get("press_effect")
+    if not isinstance(e, dict) or validate_effect(e):
+        return None
+    return e["style"], e.get("color", DEFAULT_EFFECT_COLOR)
+
+
+def _ease_out(p: float) -> float:
+    return 1 - (1 - p) ** 3
+
+
+@functools.lru_cache(maxsize=1)
+def _diagonal() -> Image.Image:
+    """0 at the top left corner up to 255 at the bottom right (for the shine)."""
+    return Image.frombytes("L", (S, S), bytes(round(255 * (x + y) / (2 * (S - 1))) for y in range(S) for x in range(S)))
+
+
+@functools.lru_cache(maxsize=8)
+def _edge(radius: int) -> Image.Image:
+    """A soft light along the inside of the key's edge (for the glow)."""
+    line = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(line).rounded_rectangle((1, 1, S - 2, S - 2), max(0, radius - 1), outline=255, width=4)
+    halo = line.filter(ImageFilter.GaussianBlur(7)).point(lambda v: min(255, v * 3))
+    return ImageChops.lighter(halo, line.filter(ImageFilter.GaussianBlur(1)))
+
+
+def _overlay(img: Image.Image, style: str, color: str, p: float, corner: int) -> Image.Image:
+    """`img` with its press effect `p` (0-1) of the way through, before the corners are cut."""
+    rgb = _rgb(color, DEFAULT_EFFECT_COLOR)
+    q = 1 - p
+    if style == "flash":
+        return Image.blend(img, Image.new("RGB", (S, S), rgb), 0.85 * q * q)
+    if style == "shine":  # a band of light across the key, top left to bottom right
+        c = -0.3 + 1.6 * p * p * (3 - 2 * p)
+        mask = _diagonal().point([round(235 * max(0.0, 1 - abs(v / 255 - c) / 0.17) ** 1.5) for v in range(256)])
+    elif style == "glow":  # the edge lights up at once and fades
+        e = math.sin(math.pi * p ** 0.5)
+        img = Image.blend(img, Image.new("RGB", (S, S), rgb), 0.16 * e)
+        mask = _edge(corner).point(lambda v: round(v * e))
+    else:  # ripple and sparkle are drawn 4x larger and scaled down, for smooth edges
+        k = 4
+        big = Image.new("L", (S * k, S * k), 0)
+        d = ImageDraw.Draw(big)
+        c = S * k / 2
+        if style == "ripple":  # a ring that spreads out from the middle, and a soft fill behind it
+            r = (0.1 + 0.62 * _ease_out(p)) * S * k
+            d.ellipse((c - r, c - r, c + r, c + r), fill=round(80 * q * q))
+            w = max(1.5, 7 * q) * k
+            d.ellipse((c - r - w / 2, c - r - w / 2, c + r + w / 2, c + r + w / 2),
+                      outline=round(240 * q ** 1.3), width=round(w))
+        else:  # sparkle: a burst in the middle and ten little stars flying out
+            if p < 0.3:
+                r = (0.08 + 0.3 * p / 0.3) * S * k
+                d.ellipse((c - r, c - r, c + r, c + r), fill=round(190 * (1 - p / 0.3)))
+            for n in range(10):
+                ang = 2 * math.pi * n / 10 + 0.3
+                dist = (0.12 + 0.42 * (1.0 if n % 2 == 0 else 0.7) * _ease_out(p)) * S * k
+                size = (11 if n % 2 == 0 else 8) * (1 - 0.5 * p) * k
+                cx, cy = c + dist * math.cos(ang), c + dist * math.sin(ang)
+                d.polygon([(cx + rr * math.cos(aa), cy + rr * math.sin(aa))
+                           for m in range(8) for rr, aa in [(size if m % 2 == 0 else size * 0.36,
+                                                             math.pi / 4 * m + 1.5 * p)]],
+                          fill=round(255 * q ** 1.2))
+        mask = big.resize((S, S), Image.LANCZOS)
+    img = img.copy()
+    img.paste(rgb, (0, 0, S, S), mask)
+    return img
+
+
+def _bounce(img: Image.Image, p: float) -> Image.Image:
+    """The face pushed in and springing back (after its corners are cut)."""
+    if p < 0.4:
+        s = 1 - 0.13 * _ease_out(p / 0.4)
+    else:
+        q = (p - 0.4) / 0.6
+        s = 0.87 + 0.13 * (1 - (1 - q) ** 2) + 0.035 * math.sin(math.pi * q)
+    side = round(S * s)
+    if side == S:
+        return img
+    face = img.resize((side, side), Image.LANCZOS)
+    off = (S - side) // 2
+    if side > S:
+        return face.crop((-off, -off, -off + S, -off + S))
+    out = Image.new("RGB", (S, S), "#000000")
+    out.paste(face, (off, off))
+    return out
+
+
+def _finish(img: Image.Image, corner: int, effect: Optional[tuple]) -> Image.Image:
+    if effect and effect[0] != "bounce":
+        img = _overlay(img, effect[0], effect[1], max(0.0, min(1.0, effect[2])), corner)
+    img = round_corners(img, corner)
+    if effect and effect[0] == "bounce":
+        img = _bounce(img, max(0.0, min(1.0, effect[2])))
+    return img
+
+
+def effect_preview(spec: dict, base_dir: str = ".", corner: int = DEFAULT_CORNER, live: Optional[dict] = None):
+    """(frames, ms): the key's press effect played once, then the key as it is (for the
+    configurator's "Try it")."""
+    style, color = effect_of(spec)
+    total = EFFECTS[style]
+    frames, durs = [], []
+    for at in range(0, total, EFFECT_STEP):
+        frames.append(render_key(spec, base_dir, frame=frame_at(spec, base_dir, at), corner=corner,
+                                 live=live, effect=(style, color, at / total)))
+        durs.append(EFFECT_STEP)
+    frames.append(render_key(spec, base_dir, frame=frame_at(spec, base_dir, total), corner=corner, live=live))
+    durs.append(600)
+    return frames, durs
+
+
 def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False, frame: int = 0,
-               first_only: bool = False, corner: int = DEFAULT_CORNER, live: Optional[dict] = None) -> Image.Image:
-    """The key face; `frame` picks the frame of an animated image, `corner` rounds it.
-    `live` is what a live key shows now (live.Engine.face): its text in place of the label,
-    or the whole face for a meter."""
+               first_only: bool = False, corner: int = DEFAULT_CORNER, live: Optional[dict] = None,
+               effect: Optional[tuple] = None) -> Image.Image:
+    """The key face; `frame` picks the frame of a key that moves (its animated picture and
+    moving background), `corner` rounds it. `live` is what a live key shows now
+    (live.Engine.face): its text in place of the label, or the whole face for a meter.
+    `effect` is (style, color, progress 0-1) of a press effect playing over it."""
     spec = spec or {}
     if live and live.get("style") == "meter":
         img = _meter(spec, live)
         if pressed:
             img = Image.blend(img, Image.new("RGB", (S, S), "#000000"), 0.45)
-        return round_corners(img, corner)
+        return _finish(img, corner, effect)
     bg = spec.get("color", DEFAULT_BG if spec else "#000000")
+    grad = background_of(spec)
     if live and live.get("level"):  # needs attention: amber, or red
-        bg = ALERT_BG[min(2, live["level"])]
+        bg, grad = ALERT_BG[min(2, live["level"])], None
     fg = spec.get("text_color", DEFAULT_FG)
-    img = Image.new("RGB", (S, S), bg)
+    if grad:
+        phase = 0.0
+        if frame and grad[0] in BG_PERIOD:
+            tl = _key_timeline(spec, base_dir)
+            phase = tl[frame % len(tl)][2] if tl else 0.0
+        img = _background(*grad[:3], phase).copy()
+    else:
+        img = Image.new("RGB", (S, S), bg)
     icon = _load_icon(spec, base_dir, frame, first_only)
     if live:
         label = live.get("text", "")
@@ -350,7 +658,7 @@ def render_key(spec: Optional[dict], base_dir: str = ".", pressed: bool = False,
 
     if pressed:
         img = Image.blend(img, Image.new("RGB", (S, S), "#000000"), 0.45)
-    return round_corners(img, corner)
+    return _finish(img, corner, effect)
 
 
 def to_bgr(img: Image.Image) -> bytes:

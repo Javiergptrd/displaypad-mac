@@ -27,7 +27,7 @@ from PIL import Image
 from . import anim, daemon, emojidata, i18n, keycapture, live, macos, macro, mcp, obs, presets  # daemon: circular, used at call time only
 from .actions import test_actions
 from .i18n import t
-from .render import MAX_CORNER, frame_durations, render_key
+from .render import MAX_CORNER, effect_of, effect_preview, frame_durations, render_key
 
 log = logging.getLogger(__name__)
 
@@ -316,6 +316,15 @@ class _Handler(BaseHTTPRequestHandler):
                     buf = io.BytesIO()
                     render_key(spec, base, first_only=True, corner=corner, live=lv).save(buf, "PNG")
                     return self._send(200, buf.getvalue(), "image/png")
+                if query.get("effect"):  # the press effect played once ("Try it")
+                    if not effect_of(spec):
+                        return self._json({"error": t("this key has no press effect")}, 400)
+                    frames, durs = effect_preview(spec, base, corner, lv)
+                    buf = io.BytesIO()
+                    frames[0].save(buf, "WEBP", save_all=True, append_images=frames[1:], duration=durs,
+                                   loop=1, lossless=True, quality=0, method=0)
+                    return self._send(200, buf.getvalue(), "image/webp",
+                                      {"X-Frames": len(durs), "X-Duration": sum(durs)})
                 durs = None if lv and lv["style"] == "meter" else frame_durations(spec, base)
                 buf = io.BytesIO()
                 if durs:  # animated preview, frame for frame what the pad shows

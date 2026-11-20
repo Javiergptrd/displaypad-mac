@@ -20,6 +20,10 @@ configurar tus teclas.
 - **12 teclas con imagen:** emoji, PNG/JPG, GIF/WebP/APNG animado o **Lottie**
   (`.json`, `.lottie`, `.tgs`), con texto, colores y tamaño del ícono de 30 % a 200 %.
   Puedes **ocultar el texto de una tecla** sin borrarlo.
+- **Fondos degradados y efectos al pulsar:** el fondo de una tecla puede ser un color liso,
+  un degradado de dos o tres colores, un degradado que no deja de moverse u olas que
+  ruedan, con degradados listos para empezar. Un efecto al pulsar (onda, destello, brillo,
+  chispas, reflejo o rebote) se reproduce sobre la tecla en el pad cada vez que la pulsas.
 - **Las imágenes nunca se estiran:** las teclas son cuadradas, así que una imagen ancha o
   alta abre un editor de encuadre donde la mueves y la acercas para elegir la parte que
   muestra la tecla, o la muestras completa. Funciona igual con GIF y Lottie.
@@ -147,7 +151,7 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
 - **Teclas:** haz clic en una para editarla. Arrastra una tecla sobre otra para
   intercambiarlas, o suelta una imagen sobre ella. Copia y pega teclas entre páginas.
 - **El editor de la tecla:** la vista previa y el **Nombre** de la tecla quedan arriba; lo
-  demás va en pestañas: **Estilo** (ícono, tamaño y colores), **Acciones** (lo que hace la
+  demás va en pestañas: **Estilo** (ícono, tamaño, fondo y efecto al pulsar), **Acciones** (lo que hace la
   tecla; la pestaña muestra cuántas tiene), **Carpeta** y **En vivo**. La barra de pestañas queda a la
   vista al desplazarte, y el editor recuerda la pestaña en la que estabas al elegir otra
   tecla.
@@ -165,7 +169,10 @@ El idioma por defecto es inglés: cámbialo a español en **Settings → Languag
   los ordena y agrupa, así que no se descarga nada y todo lo que ofrece el selector, el pad
   lo puede dibujar.
   Marca **Ocultar el nombre en la tecla** (debajo del nombre) para conservar el nombre sin
-  dibujarlo. La vista previa es exactamente lo que dibuja el pad.
+  dibujarlo. En **Fondo** elige **Liso**, **Degradado**, **En movimiento** u **Olas** (ver
+  [Fondos y efectos al pulsar](#fondos-y-efectos-al-pulsar)); en **Al pulsar** elige un
+  efecto y **▶ Probar** para verlo en la vista previa.
+  La vista previa es exactamente lo que dibuja el pad.
 - **Ajustar encuadre:** al añadir una imagen o animación que no es cuadrada, se abre una
   ventana donde la arrastras y la acercas o alejas (control, rueda del mouse, pellizco en
   el trackpad, o flechas y + / −) dentro de un cuadrado del tamaño de la tecla. **Imagen
@@ -326,7 +333,8 @@ así que el servicio le envía los cuadros uno a uno. Medido en el pad:
   25 un Lottie. Dos teclas Lottie caben a velocidad completa.
 - Si las teclas animadas piden más de lo que el pad acepta, se saltan cuadros: cada
   animación conserva su velocidad real, pero se ve con menos fluidez.
-- Mientras mantienes pulsada una tecla animada, se queda quieta y oscurecida.
+- Mientras mantienes pulsada una tecla animada, se queda quieta y oscurecida (una tecla con
+  efecto al pulsar reproduce su efecto y sigue moviéndose).
 - Con el pad al límite, el servicio usa un 4 % de CPU.
 
 Lo que subes se guarda en `icons/` como WebP animado, con el lado corto a 204 px como
@@ -335,6 +343,42 @@ encuadrar una animación ancha), y con 180 cuadros como máximo (si hay más, se
 cuadros intermedios). Los Lottie se dibujan con rlottie a 25 cuadros por segundo. Algunas
 funciones de After Effects (expresiones, efectos, capas de texto) pueden no dibujarse; si
 un Lottie sale sin movimiento, el configurador te avisa: expórtalo como GIF.
+
+## Fondos y efectos al pulsar
+
+En la pestaña **Estilo** del editor de la tecla, **Fondo** tiene cuatro estilos:
+
+- **Liso:** un solo color (lo de siempre).
+- **Degradado:** dos o tres colores que se funden a lo largo de la tecla. **Dirección** lo
+  gira (la flecha muestra hacia dónde va).
+- **En movimiento:** los colores del degradado no dejan de fluir en esa dirección.
+- **Olas:** franjas onduladas de los colores que ruedan por la tecla.
+
+Elige uno de los degradados listos (Atardecer, Océano, Morado, Aurora, Fuego, Menta,
+Caramelo, Neón, Durazno, Noche, Azul real) o tus propios colores; **+** agrega un tercer
+color. **En movimiento** y **Olas** tienen **Velocidad** (lenta, normal, rápida). Se
+reproducen en el pad como una animación, unas 15 imágenes por segundo cada una, y comparten
+la velocidad del pad con las demás teclas animadas de la página (ver
+[Animaciones](#animaciones-gif-y-lottie)), así que una página llena de teclas en movimiento
+se mueve con menos fluidez. Con una imagen animada encima, las dos se reproducen juntas
+(la velocidad del fondo se ajusta un poco para que se repitan a la vez).
+Los medidores, y las teclas en vivo que se ponen ámbar o rojas, mantienen un color liso.
+
+**Al pulsar** define un **efecto al pulsar**, que se reproduce sobre la tecla en el pad cada
+vez que la pulsas, en lugar de oscurecerla:
+
+| Efecto | Qué hace |
+|---|---|
+| Onda | Un anillo se abre desde el centro |
+| Destello | La tecla se ilumina y se apaga |
+| Brillo | Se ilumina el borde de la tecla |
+| Chispas | Un destello y estrellitas que salen volando |
+| Reflejo | Una franja de luz cruza la tecla |
+| Rebote | La tecla se hunde y vuelve a salir |
+
+Todos menos Rebote tienen color (blanco por defecto). El efecto se reproduce aunque
+**Oscurecer la tecla mientras está presionada** esté desactivado en Ajustes. Una tecla que
+abre una página o carpeta cambia al instante, así que su efecto se corta.
 
 ## Teclas en vivo
 
@@ -446,6 +490,8 @@ no necesita ningún permiso más para ello.
 | `hide_label` | `true` conserva el texto sin dibujarlo |
 | `color` | Color de fondo, por ejemplo `#1C1C24` |
 | `text_color` | Color del texto |
+| `background` | Un [fondo degradado](#fondos-y-efectos-al-pulsar): `{"style": "waves", "colors": ["#FC5C7D", "#6A82FB"]}`. `style`: `gradient`, `animated` (en movimiento), `waves` (olas) o `solid`; `colors`: 2 o 3; `angle`: grados, 0 es hacia arriba y 90 hacia la derecha (por defecto 135, olas 180); `speed`: de 0.25 a 4 para `animated` y `waves` (por defecto 1). Los medidores y las alertas siguen usando `color` |
+| `press_effect` | Se reproduce sobre la tecla al pulsarla: `{"style": "ripple", "color": "#FFFFFF"}`. `style`: `ripple` (onda), `flash` (destello), `glow` (brillo), `sparkle` (chispas), `shine` (reflejo) o `bounce` (rebote); `color` es opcional |
 | `action` / `actions` | Una acción, o una lista que se ejecuta en orden |
 | `folder` | Convierte la tecla en carpeta: `{"keys": {"2": {...}, "3": {...}}}`, con las teclas 2 a 12 (la 1 es su tecla Volver). Una carpeta puede tener carpetas. Sus propias acciones, si tiene, se ejecutan antes de abrirla |
 | `live` | La convierte en [tecla en vivo](#teclas-en-vivo): `{"source": "cpu", "style": "meter"}`. `source` es obligatorio; `style` es `text` (por defecto) o `meter`; `alert`: `false` mantiene los colores; una tecla `command` lleva además `command` y `every` (segundos). El `label` es el texto, con valores como `{time}` en su lugar |
@@ -550,8 +596,8 @@ cd ~/Library/Application\ Support/DisplayPadMac
   programa usa el puerto 8765, el configurador no arranca (el pad sigue funcionando).
 - **Pantalla − / + no cambia el monitor externo:** activa DDC/CI en el menú del monitor.
   Algunos adaptadores y docks USB-C no dejan pasar DDC.
-- **Una animación va a saltos:** las teclas animadas de esa página piden más de las
-  ≈ 52 imágenes por segundo que acepta el pad. Deja menos teclas animadas en esa página o
+- **Una animación va a saltos:** las teclas animadas de esa página (también cuentan los
+  fondos en movimiento y las olas) piden más de las ≈ 52 imágenes por segundo que acepta el pad. Deja menos teclas animadas en esa página o
   usa GIF con menos cuadros por segundo.
 - **Un asistente de IA no se conecta:** revisa que **Permitir que los asistentes de IA se
   conecten** esté activado y que el servicio esté en marcha. Un `401` significa que la clave

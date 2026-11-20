@@ -11,6 +11,9 @@
   frames are skipped so every animation keeps its real speed.
 - Live keys (live.py): the main loop sends a live key again when what it shows
   changes, one key per turn of the loop, sharing the pad with the animations.
+- Moving backgrounds (render.py) are animations like any other. A key with a press
+  effect plays it when pressed (about 33 frames a second, ahead of the animations)
+  over whatever the key shows at that moment, in place of darkening it.
 """
 
 import bisect
@@ -33,7 +36,8 @@ from . import __version__, appwatch, i18n, keycapture, live, macos, macro, web
 from .actions import NEEDS_POST_EVENTS, actions_of, run_actions, validate_action
 from .driver import NUM_KEYS, DisplayPad, DisplayPadError, device_present
 from .i18n import t
-from .render import DEFAULT_CORNER, MAX_CORNER, crop_of, frame_durations, render_key, to_bgr
+from .render import (DEFAULT_CORNER, EFFECT_STEP, EFFECTS, MAX_CORNER, crop_of, effect_of, frame_durations,
+                     render_key, to_bgr, validate_background, validate_effect)
 
 log = logging.getLogger(__name__)
 
@@ -98,10 +102,12 @@ def parse_config(cfg: dict, base_dir: str) -> dict:
             if (spec or {}).get("crop") is not None and not _crop_ok(spec["crop"]):
                 raise ConfigError(t("page '{page}', key {key}: crop must be [left, top, right, bottom] as fractions "
                                     "of the picture, with right > left and bottom > top", page=where, key=k))
-            if (spec or {}).get("live") is not None:
-                err = live.validate(spec["live"])
-                if err:
-                    raise ConfigError(t("page '{page}', key {key}: {error}", page=where, key=k, error=err))
+            for field, check in (("live", live.validate), ("background", validate_background),
+                                 ("press_effect", validate_effect)):
+                if (spec or {}).get(field) is not None:
+                    err = check(spec[field])
+                    if err:
+                        raise ConfigError(t("page '{page}', key {key}: {error}", page=where, key=k, error=err))
             for a in actions_of(spec or {}):
                 err = validate_action(a, pages)
                 if err:
@@ -203,6 +209,9 @@ class Service:
         self._live_faces: Dict[tuple, tuple] = {}   # (page, key index, pressed) -> (picture, BGR)
         self._live_due = 0.0
         self._pressed: set = set()
+        self._dark: set = set()                     # pressed keys showing their darkened face
+        self._fx: Dict[int, dict] = {}              # key index -> press effect playing: style, color, start, step
+        self._fx_faces: Dict[tuple, bytes] = {}     # (key index, frame, step, live picture) -> BGR, current page only
         self._released: Dict[int, threading.Event] = {}  # pad key -> set when it is let go ("hold" shortcuts)
         self._stop = threading.Event()
         self._reload = threading.Event()
@@ -337,7 +346,7 @@ class Service:
     def draw_page(self):
         t = time.monotonic()
         self._anims, self._anim_faces, self._anim_window, self._anim_stats = {}, {}, [], (0.0, 0.0)
-        self._anim_sig, self._live_faces = {}, {}
+        self._anim_sig, self._live_faces, self._fx, self._fx_faces, self._dark = {}, {}, {}, {}, set()
         specs = self.cfg["pages"][self.page]
         self._live_keys = {i: "" for i, spec in enumerate(specs) if spec and "live" in spec and not live.validate(spec["live"])}
         self.live.watch("pad", [specs[i]["live"] for i in self._live_keys])
@@ -360,7 +369,7 @@ class Service:
     def _animate(self) -> float:
         """Send the frame that should be showing now on the most overdue animated key.
         Returns the seconds until another frame is due (0 right after sending one)."""
-        hold = self._pressed if self.cfg["press_feedback"] else set()
+        hold = self._dark | self._fx.keys()
         due = [(a["due"], i) for i, a in self._anims.items() if i not in hold]
         if not due:
             return 0.04
@@ -401,7 +410,7 @@ class Service:
         now = time.monotonic()
         if now < self._live_due:
             return self._live_due - now
-        hold = self._pressed if self.cfg["press_feedback"] else set()
+        hold = self._dark | self._fx.keys()
         specs = self.cfg["pages"][self.page]
         for idx, sent in self._live_keys.items():
             if idx in hold or idx in self._anims:
@@ -412,6 +421,58 @@ class Service:
                 return 0.0  # the others on the next turn, between key presses
         self._live_due = now + 0.1  # the clock's seconds stay on time
         return 0.1
+
+    def _show_now(self, idx: int):
+        """Send a key as it is now (after it is let go, or its press effect ends); an
+        animated key goes on from the frame due now."""
+        a = self._anims.get(idx)
+        if a:
+            a["i"] = self._frame_now(a)
+        face = self._face(self.page, idx)
+        self.pad.upload(idx, face)
+        if a:
+            a["sent"], a["due"] = face, time.monotonic()
+
+    @staticmethod
+    def _frame_now(a: dict) -> int:
+        pos = ((time.monotonic() - a["t0"]) * 1000 + 0.5) % a["total"]
+        return min(bisect.bisect_right(a["ends"], pos), len(a["ends"]) - 1)
+
+    def _fx_step(self, only: Optional[int] = None) -> float:
+        """Send the next frame of the press effect most overdue (or of key `only`), or put
+        the key back when its effect is over. Returns the seconds until another is due."""
+        if not self._fx:
+            return 1.0
+        now = time.monotonic()
+        if only is None:
+            when, idx = min((f["due"], i) for i, f in self._fx.items())
+            if when > now:
+                return when - now
+        else:
+            idx = only
+        f = self._fx[idx]
+        total = EFFECTS[f["style"]]
+        at = (now - f["t0"]) * 1000
+        if at >= total:
+            del self._fx[idx]
+            self._show_now(idx)
+            return 0.0
+        step = int(at // EFFECT_STEP)
+        spec = self.cfg["pages"][self.page][idx]
+        lv = self.live.face(spec) if spec and "live" in spec else None
+        a = self._anims.get(idx)
+        frame = self._frame_now(a) if a else 0  # the key goes on moving under the effect
+        key = (idx, frame, step, lv["sig"] if lv else "")
+        face = self._fx_faces.get(key)
+        if face is None:
+            if len(self._fx_faces) > 600:
+                self._fx_faces.clear()
+            face = self._fx_faces[key] = to_bgr(render_key(
+                spec, self.cfg["base_dir"], frame=frame, corner=self.cfg["corner_radius"], live=lv,
+                effect=(f["style"], f["color"], step * EFFECT_STEP / total)))
+        self.pad.upload(idx, face)
+        f["due"] = f["t0"] + (step + 1) * EFFECT_STEP / 1000
+        return 0.0
 
     # -------------------------------------------------- main loop
     def _let_go(self):
@@ -426,7 +487,7 @@ class Service:
     def _connect(self):
         self.pad.open()
         self.pad.set_brightness(self.brightness)
-        self._pressed = set()
+        self._pressed, self._dark, self._fx = set(), set(), {}
         self._let_go()
         self.draw_page()
 
@@ -465,7 +526,13 @@ class Service:
                 continue
             spec = self.cfg["pages"][self.page][k]
             log.info("key %d pressed on '%s'", k + 1, self.page)
-            if spec and self.cfg["press_feedback"]:
+            fx = effect_of(spec)
+            if fx:  # plays over the key, from the first frame now
+                self._dark.discard(k)
+                self._fx[k] = {"style": fx[0], "color": fx[1], "t0": time.monotonic(), "due": 0.0}
+                self._fx_step(k)
+            elif spec and self.cfg["press_feedback"]:
+                self._dark.add(k)
                 self.pad.upload(k, self._face(self.page, k, pressed=True))
             if spec:
                 released = self._released[k] = threading.Event()
@@ -478,9 +545,10 @@ class Service:
             released = self._released.pop(k, None)
             if released:
                 released.set()
-            spec = self.cfg["pages"][self.page][k]
-            if spec and self.cfg["press_feedback"] and self._pending_page is None:
-                self.pad.upload(k, self._face(self.page, k))
+            if k in self._dark:  # a press effect puts the key back by itself when it ends
+                self._dark.discard(k)
+                if self._pending_page is None:
+                    self._show_now(k)
         self._pressed = keys
 
     def _apply_pending(self):
@@ -574,7 +642,7 @@ class Service:
                 continue
             try:
                 self._apply_pending()
-                wait = min(self._animate(), self._live_step())
+                wait = min(self._fx_step(), self._animate(), self._live_step())
                 keys = self.pad.read_keys(max(1, min(40, int(wait * 1000))))
                 if keys is not None:
                     self._on_keys(keys)
